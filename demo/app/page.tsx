@@ -1,5 +1,12 @@
 'use client';
-import { useState, useMemo, useRef, useLayoutEffect } from 'react';
+import {
+  useState,
+  useMemo,
+  useRef,
+  useLayoutEffect,
+  useEffect,
+  useCallback,
+} from 'react';
 import { flushSync } from 'react-dom';
 import {
   ArrowLeft,
@@ -38,11 +45,11 @@ import {
   type Upload,
 } from '@/lib/domain';
 const navigation = [
-  { id: 'archive', label: '原文', sub: '对话长卷', icon: MessageSquare },
-  { id: 'summary', label: '摘要', sub: '记忆摘记', icon: Layers },
-  { id: 'notes', label: 'Note', sub: '随手便签', icon: StickyNote },
-  { id: 'memory', label: '记忆包', sub: '带去下一页', icon: PackageOpen },
-  { id: 'connect', label: '连接', sub: '书册设置', icon: Plug },
+  { id: 'archive', label: '原文', icon: MessageSquare },
+  { id: 'summary', label: '摘要', icon: Layers },
+  { id: 'notes', label: 'Note', icon: StickyNote },
+  { id: 'memory', label: '记忆包', icon: PackageOpen },
+  { id: 'connect', label: '连接', icon: Plug },
 ];
 export default function Hub() {
   const initial = useMemo(() => createSeed(), []);
@@ -51,6 +58,7 @@ export default function Hub() {
     [page, setPage] = useState('archive'),
     [visitedPages, setVisitedPages] = useState(['archive']),
     [home, setHome] = useState(true),
+    [openingId, setOpeningId] = useState<string | null>(null),
     [modal, setModal] = useState(''),
     [afterId, setAfterId] = useState<string | null>(null),
     [editing, setEditing] = useState<Turn | undefined>(),
@@ -59,12 +67,13 @@ export default function Hub() {
     data.workspaces.find((w) => w.id === workspaceId) ?? data.workspaces[0];
   useDemoMemoryTools(w);
   const main = useRef<HTMLElement>(null);
+  const opening = useRef(false);
   const chapterScroll = useRef<Record<string, number>>({});
   useLayoutEffect(() => {
     if (main.current)
       main.current.scrollTop = chapterScroll.current[`${w.id}-${page}`] ?? 0;
   }, [page, w.id, home]);
-  function transition(fn: () => void) {
+  const transition = useCallback((fn: () => void) => {
     const update = () => {
       flushSync(fn);
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -79,14 +88,42 @@ export default function Hub() {
       void animation.ready.catch(() => {});
       void animation.finished.catch(() => {});
     } else update();
-  }
+  }, []);
+  useEffect(() => {
+    if (!openingId) return;
+    // Mount the selected archive behind the shelf while its cover lifts.
+    // Match --notebook-open-duration; start after the prepared tree commits.
+    const timer = setTimeout(() => {
+      transition(() => {
+        if (!opening.current) return;
+        setHome(false);
+        setOpeningId(null);
+        opening.current = false;
+      });
+    }, 380);
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpeningId(null);
+        opening.current = false;
+      }
+    };
+    document.addEventListener('keydown', cancel);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('keydown', cancel);
+    };
+  }, [openingId, transition]);
   function openWorkspace(id: string) {
-    transition(() => {
-      setWorkspaceId(id);
-      setPage('archive');
-      setVisitedPages(['archive']);
-      setHome(false);
-    });
+    if (opening.current) return;
+    setWorkspaceId(id);
+    setPage('archive');
+    setVisitedPages(['archive']);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      transition(() => setHome(false));
+    } else {
+      opening.current = true;
+      setOpeningId(id);
+    }
   }
   function navigate(target: string) {
     if (target === page && !home) return;
@@ -190,8 +227,9 @@ export default function Hub() {
     );
   return (
     <div className="journal-app">
-      {home ? (
+      {home && (
         <JournalHome
+          openingId={openingId}
           workspaces={data.workspaces}
           uploads={data.uploads.length}
           onOpen={openWorkspace}
@@ -200,18 +238,24 @@ export default function Hub() {
           onSearch={() => navigate('search')}
           onAccount={() => setModal('account')}
         />
-      ) : (
-        <div className="open-journal">
+      )}
+      {(!home || openingId) && (
+        <div
+          className={`open-journal${home ? ' workspace-preparing' : ''}`}
+          inert={home}
+          aria-hidden={home}
+        >
           <header className="journal-reader-header">
             <button
               className="back-to-shelf"
+              aria-label="返回我的手账"
               onClick={() => transition(() => setHome(true))}
             >
               <ArrowLeft size={16} />
               <span>我的手账</span>
             </button>
             <div className="reader-breadcrumb">
-              <span>{w.name}</span>
+              <span title={w.name}>{w.name}</span>
               <ChevronRight size={13} />
               <span>
                 {navigation.find((n) => n.id === page)?.label ??
@@ -256,13 +300,6 @@ export default function Hub() {
               <span>CONTEXT HUB</span>
             </aside>
             <div className="journal-sheet">
-              <div className="journal-chapter">
-                <span>
-                  <BookOpen size={16} />
-                  {w.name}
-                </span>
-                <small>一本持续生长的对话手账</small>
-              </div>
               <nav className="journal-tabs" aria-label="手账章节">
                 {navigation.map((n) => (
                   <button
@@ -272,10 +309,7 @@ export default function Hub() {
                     onClick={() => navigate(n.id)}
                   >
                     <n.icon size={15} />
-                    <span>
-                      {n.label}
-                      <small>{n.sub}</small>
-                    </span>
+                    <span>{n.label}</span>
                   </button>
                 ))}
               </nav>
@@ -354,11 +388,7 @@ export default function Hub() {
         />
       )}{' '}
       {modal === 'import' && (
-        <ImportDialog
-          onUpload={upload}
-          onPaste={() => insert(w.turns.at(-1)?.id ?? null)}
-          onClose={() => setModal('')}
-        />
+        <ImportDialog onUpload={upload} onClose={() => setModal('')} />
       )}{' '}
       {modal === 'account' && (
         <Modal title="这本手账，只在此处" onClose={() => setModal('')}>

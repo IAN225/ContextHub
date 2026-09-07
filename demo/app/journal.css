@@ -1,5 +1,6 @@
 /* Journal direction: the shelf is the entrance; each workspace is a notebook. */
 :root {
+  --notebook-open-duration: 380ms;
   --background: #f2efe8;
   --foreground: #393d34;
   --card: #fffdf8;
@@ -291,7 +292,8 @@ textarea::placeholder {
   padding: 0;
 }
 .notebook-cover {
-  aspect-ratio: 0.755;
+  width: 100%;
+  aspect-ratio: 0.72;
   border-radius: 3px 9px 9px 3px;
   position: relative;
   padding: 21px 21px 17px 27px;
@@ -305,8 +307,8 @@ textarea::placeholder {
   transform: rotate(-1deg);
   transform-origin: left center;
   transition:
-    transform 0.38s cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 0.38s;
+    transform var(--notebook-open-duration) cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow var(--notebook-open-duration);
   isolation: isolate;
 }
 .notebook-cover::before {
@@ -406,7 +408,7 @@ textarea::placeholder {
 .notebook-cover-bottom svg {
   opacity: 0.55;
 }
-.notebook-item:hover .notebook-cover {
+.notebook-item:is(:hover, :focus-visible, .opening) .notebook-cover {
   transform: rotate(-2deg) translateY(-9px) rotateY(-7deg);
   box-shadow:
     2px 4px 0 #f5f3e9,
@@ -417,7 +419,8 @@ textarea::placeholder {
   background: #ae9377;
   transform: rotate(1.5deg);
 }
-.notebook-item.book-tone-1:hover .notebook-cover {
+.notebook-item.book-tone-1:is(:hover, :focus-visible, .opening)
+  .notebook-cover {
   transform: rotate(0.3deg) translateY(-9px) rotateY(-7deg);
 }
 .book-tone-1 .notebook-bookmark {
@@ -430,7 +433,8 @@ textarea::placeholder {
   background: #84979b;
   transform: rotate(-0.5deg);
 }
-.notebook-item.book-tone-2:hover .notebook-cover {
+.notebook-item.book-tone-2:is(:hover, :focus-visible, .opening)
+  .notebook-cover {
   transform: rotate(-1.8deg) translateY(-9px) rotateY(-7deg);
 }
 .book-tone-2 .notebook-bookmark {
@@ -469,7 +473,7 @@ textarea::placeholder {
     opacity 0.2s,
     transform 0.2s;
 }
-.notebook-item:hover .open-book-label {
+.notebook-item:is(:hover, :focus-visible, .opening) .open-book-label {
   opacity: 1;
   transform: translateX(0);
 }
@@ -491,7 +495,8 @@ textarea::placeholder {
   margin: 10px 2px 0;
 }
 .new-notebook {
-  aspect-ratio: 0.755;
+  width: 100%;
+  aspect-ratio: 0.72;
   border: 1px dashed #cbd2bd;
   border-radius: 5px;
   background: #f7f6ef55;
@@ -2013,7 +2018,6 @@ textarea::placeholder {
   .notebook-cover {
     padding: 24px 24px 20px 30px;
     max-height: 340px;
-    aspect-ratio: 0.82;
   }
   .notebook-title {
     left: 30px;
@@ -2052,7 +2056,6 @@ textarea::placeholder {
     letter-spacing: 1px;
   }
   .new-notebook {
-    aspect-ratio: 0.82;
     max-height: 340px;
   }
   .notebook-footnote {
@@ -2277,7 +2280,6 @@ textarea::placeholder {
   }
   .notebook-cover {
     padding: 16px 12px 13px 20px;
-    aspect-ratio: 0.7;
     max-height: none;
   }
   .notebook-title {
@@ -2341,7 +2343,6 @@ textarea::placeholder {
     margin-top: 8px;
   }
   .new-notebook {
-    aspect-ratio: 0.7;
     max-height: none;
   }
   .new-notebook-icon {
@@ -3199,9 +3200,6 @@ textarea::placeholder {
 .new-notebook > span:last-child {
   font-size: 12px;
 }
-.notebook-cover {
-  aspect-ratio: 0.72;
-}
 .notebook-title h2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -3212,9 +3210,6 @@ textarea::placeholder {
   font-size: 12px;
   letter-spacing: 0;
   line-height: 1.8;
-}
-.new-notebook {
-  aspect-ratio: 0.72;
 }
 .new-notebook h2 {
   font-size: 21px;
@@ -3451,7 +3446,6 @@ textarea::placeholder {
 @media (max-width: 800px) {
   .notebook-cover,
   .new-notebook {
-    aspect-ratio: 0.72;
     max-height: none;
   }
   .notebook-title {
@@ -3505,7 +3499,6 @@ textarea::placeholder {
   }
   .notebook-cover,
   .new-notebook {
-    aspect-ratio: 0.62;
   }
   .notebook-title {
     top: 24%;
@@ -4136,25 +4129,237 @@ body {
   }
 }
 
-.section-heading h1 .page-title-mobile {
-  display: none;
+/* Compact working surfaces: one heading, then the content and its controls. */
+.journal-home-header {
+  padding-block: 18px;
 }
-.section-heading h1 .page-title-desktop {
-  color: inherit;
+.journal-shelf {
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+.shelf-heading {
+  margin-bottom: 22px;
+  padding-bottom: 12px;
+}
+.shelf-heading h1 {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0;
+  color: #5d6851;
+  font-family: 'Songti SC', 'SimSun', serif;
+  font-size: 22px;
+  font-weight: 400;
+}
+.notebook-caption {
+  margin-top: 16px;
+}
+.notebook-footnote {
+  margin-top: 6px;
+}
+/* Same mounted reader before and after entry; prepared content cannot receive
+   focus, affect shelf layout, or flash over the cover during its animation. */
+.open-journal.workspace-preparing {
+  position: fixed;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+  animation: none;
+}
+.section-heading,
+.section-heading.compact {
+  align-items: center;
+  min-height: 36px;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+.section-heading > div {
+  min-width: 0;
+}
+.section-heading h1,
+.section-heading.compact h1 {
+  font-size: 21px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  margin: 0;
+}
+.section-heading > .button {
+  flex-shrink: 0;
+  margin: 0;
+}
+.title-count {
+  margin-left: 8px;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  color: #8f9487;
+  white-space: nowrap;
+}
+.archive-top {
+  margin-bottom: 9px;
+}
+.chain {
+  margin-bottom: 12px;
+}
+.chain-labels {
+  margin-top: 7px;
+}
+/* A small brass bookmark marks the selected turn inside its actual run. */
+.chain-positioned {
+  padding-top: 18px;
+}
+.chain-positioned .chain-track {
+  overflow: visible;
+}
+.chain-run {
+  position: relative;
+}
+.chain-cursor {
+  position: absolute;
+  bottom: 0;
+  width: 12px;
+  height: 24px;
+  color: #b5a174;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+.chain-track .deprecated,
+.chain-track .trash,
+.chain-labels .inactive {
+  background: repeating-linear-gradient(120deg, #c7c6bb 0 2px, #e8e7df 2px 5px);
+}
+.timeline-toolbar {
+  margin-top: 12px;
+}
+.timeline {
+  height: 132px;
+}
+.timeline-center {
+  top: 8px;
+  height: 113px;
+}
+.timeline-track .turn-point {
+  top: 42px;
+  height: 82px;
+}
+.timeline-rail {
+  top: 79px;
+}
+.timeline-ticks {
+  top: 65px;
+}
+.timeline-bottom {
+  padding-bottom: 10px;
+}
+.turn-detail {
+  margin-top: 12px;
+}
+.summary-overview {
+  padding: 4px 0 14px;
+  margin-bottom: 16px;
+}
+.summary-switches {
+  margin-top: 12px;
+}
+.memory-callout,
+.connection-intro {
+  padding: 12px 16px;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.notes-toolbar {
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+}
+@media (min-width: 761px) {
+  .journal-reader-header {
+    height: 56px;
+  }
+  .journal-reader {
+    padding: 16px 4% 28px 2%;
+  }
+  .journal-chapter {
+    padding: 12px 28px;
+  }
+  .journal-tabs {
+    padding-inline: 22px;
+  }
+  .journal-tabs button {
+    padding: 12px 16px;
+  }
+  .page-content {
+    padding: 18px 28px 16px;
+  }
+  .detail-top {
+    padding: 14px 20px;
+  }
+  .conversation-text {
+    padding: 20px;
+  }
 }
 @media (max-width: 760px) {
-  .section-heading h1 .page-title-mobile {
-    display: inline;
-    color: inherit;
-    white-space: nowrap;
+  .section-heading h1,
+  .section-heading.compact h1 {
+    font-size: 17px;
   }
-  .section-heading h1 .page-title-desktop {
+}
+/* Keep the workspace identity once, in the top bar, including narrow screens. */
+.reader-breadcrumb {
+  min-width: 0;
+}
+.reader-breadcrumb > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.reader-actions {
+  flex-shrink: 0;
+}
+@media (max-width: 800px) {
+  .back-to-shelf {
+    flex-shrink: 0;
+  }
+  .back-to-shelf > span,
+  .reader-breadcrumb > svg,
+  .reader-breadcrumb > span:last-child {
     display: none;
   }
-  .archive-top {
-    margin-bottom: 9px;
+  .reader-breadcrumb {
+    display: flex;
+    margin-left: 0;
+    font-size: 13px;
   }
-  .chain-labels {
-    margin-top: 7px;
+}
+@media (max-width: 480px) {
+  .shelf-heading h1 {
+    font-size: 19px;
+  }
+  .notebook-title {
+    top: 18%;
+  }
+  /* Decorative verse is secondary to readable titles on pocket-size covers. */
+  .notebook-title p,
+  .new-notebook p {
+    display: none;
+  }
+  .notebook-cover,
+  .new-notebook {
+    min-height: 0;
+  }
+  .new-notebook-icon {
+    margin-bottom: 10px;
+  }
+  .new-notebook h2 {
+    margin-bottom: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .journal-home,
+  .open-journal {
+    animation: none;
+  }
+  .notebook-cover,
+  .open-book-label {
+    transition: none;
   }
 }

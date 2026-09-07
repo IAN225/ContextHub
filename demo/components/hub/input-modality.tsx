@@ -10,6 +10,15 @@ export function InputModality() {
       root.dataset.pointerType = event.pointerType;
     };
     const keyboard = (event: KeyboardEvent) => {
+      // Arrow keys continue a pointer-selected timeline gesture. Its selected
+      // tick already marks the position; Tab still opts into visible focus.
+      if (
+        event.key.startsWith('Arrow') &&
+        root.dataset.inputMode === 'pointer' &&
+        event.target instanceof Element &&
+        event.target.closest('.timeline')
+      )
+        return;
       if (event.key === 'Tab' || event.key.startsWith('Arrow')) {
         root.dataset.inputMode = 'keyboard';
       }

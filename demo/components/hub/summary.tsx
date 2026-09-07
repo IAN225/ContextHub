@@ -556,9 +556,7 @@ export function SummaryPage({
     <>
       <div className="section-heading compact">
         <div>
-          <div className="eyebrow">LIVING MEMORY</div>
-          <PageTitle mobile="记忆摘要">把长对话，留成记忆。</PageTitle>
-          <p>保留交流的温度，也给新的故事留出空间。</p>
+          <PageTitle>记忆摘要</PageTitle>
         </div>
         <Button onClick={() => setModal('settings')}>
           <Settings2 size={15} />
