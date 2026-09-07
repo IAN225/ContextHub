@@ -5,13 +5,12 @@ import {
   Inbox,
   Search,
   Orbit,
-  BookOpen,
   ArrowRight,
-  Feather,
 } from 'lucide-react';
 import { coverage, type Workspace } from '@/lib/domain';
 
 export function JournalHome({
+  openingId,
   workspaces,
   uploads,
   onOpen,
@@ -20,6 +19,7 @@ export function JournalHome({
   onSearch,
   onAccount,
 }: {
+  openingId: string | null;
   workspaces: Workspace[];
   uploads: number;
   onOpen: (id: string) => void;
@@ -29,12 +29,11 @@ export function JournalHome({
   onAccount: () => void;
 }) {
   return (
-    <div className="journal-home">
+    <div className="journal-home" inert={!!openingId} aria-busy={!!openingId}>
       <header className="journal-home-header">
         <button type="button" className="journal-wordmark">
           <Orbit size={23} />
           <span>Context Hub</span>
-          <small>一处记忆的住所</small>
         </button>
         <div>
           <button className="journal-header-action" onClick={onSearch}>
@@ -56,34 +55,11 @@ export function JournalHome({
         </div>
       </header>
       <main className="journal-shelf">
-        <div className="journal-greeting">
-          <div className="journal-date">
-            <span>SEPTEMBER</span>
-            <span>2026</span>
-            <i />
-          </div>
-          <div className="journal-intro">
-            <div className="journal-overline">
-              <Feather size={14} /> 我的手账
-            </div>
-            <h1>
-              每段对话，
-              <br className="home-mobile-break" />
-              都值得有下文<span>。</span>
-            </h1>
-            <p>
-              把散落在不同窗口的记忆，收在这里。
-              <br />
-              下次见面，就从熟悉的那一页继续。
-            </p>
-          </div>
-          <span className="handwritten">慢慢记录，慢慢来。</span>
-        </div>
         <div className="shelf-heading">
-          <span>
+          <h1>
             我的对话册{' '}
             <small>{String(workspaces.length).padStart(2, '0')}</small>
-          </span>
+          </h1>
           <span>一个窗口，一本手账</span>
         </div>
         <div className="notebook-grid">
@@ -91,7 +67,7 @@ export function JournalHome({
             const c = coverage(w);
             return (
               <button
-                className={`notebook-item book-tone-${i % 4}`}
+                className={`notebook-item book-tone-${i % 4}${openingId === w.id ? ' opening' : ''}`}
                 key={w.id}
                 onClick={() => onOpen(w.id)}
               >
@@ -131,7 +107,8 @@ export function JournalHome({
                     <span>{w.notes.length} 条便签</span>
                   </div>
                   <span className="open-book-label">
-                    翻开手账 <ArrowRight size={13} />
+                    {openingId === w.id ? '正在翻开…' : '翻开手账'}{' '}
+                    <ArrowRight size={13} />
                   </span>
                 </div>
                 <div className="book-progress">
@@ -163,13 +140,6 @@ export function JournalHome({
               创建工作区 <ArrowUpRight size={14} />
             </span>
           </button>
-        </div>
-        <div className="journal-bottom-note">
-          <BookOpen size={20} />
-          <div>
-            <p>不必从头解释，也不必记住所有细节。</p>
-            <span>记下重要的，让对话自然继续。</span>
-          </div>
         </div>
       </main>
       <footer className="journal-home-footer">

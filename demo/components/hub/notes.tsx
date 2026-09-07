@@ -297,9 +297,7 @@ export function NotesPage({
     <>
       <div className="section-heading compact">
         <div>
-          <div className="eyebrow">NOTES TO REMEMBER</div>
-          <PageTitle mobile="随手便签">有些事，值得单独记下。</PageTitle>
-          <p>偏好、小事、日记，以及你希望被记住的自己。</p>
+          <PageTitle>随手便签</PageTitle>
         </div>
         <Button primary onClick={() => setCreate(true)}>
           <Plus size={15} />

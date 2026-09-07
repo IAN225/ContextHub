@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import {
   Link2,
-  ClipboardPaste,
   Radio,
   Inbox,
   Plus,
@@ -41,11 +40,9 @@ const protocols = [
 ];
 export function ImportDialog({
   onUpload,
-  onPaste,
   onClose,
 }: {
   onUpload: (u: Upload) => void;
-  onPaste: () => void;
   onClose: () => void;
 }) {
   const [d, setD, p] = usePersistent('import-draft-v1', {
@@ -60,11 +57,12 @@ export function ImportDialog({
     revoked: false,
   });
   const [error, setError] = useState('');
-  const tab = d.tab;
+  // Keep existing drafts readable after removing the old manual-paste tab.
+  const tab = d.tab === 'api' ? 'api' : 'link';
   return (
     <Modal
       title="把对话，收进手账"
-      description="分享链接、手动粘贴或接口投递。先放进收件箱，再决定记到哪一本。"
+      description="分享链接或 API 投递。先放进收件箱，再决定记到哪一本。"
       onClose={onClose}
     >
       <Segments
@@ -75,7 +73,6 @@ export function ImportDialog({
         }}
         options={[
           { id: 'link', label: '分享链接' },
-          { id: 'paste', label: '粘贴文本' },
           { id: 'api', label: '投递接口' },
         ]}
       />
@@ -160,24 +157,6 @@ export function ImportDialog({
           >
             <Link2 size={15} />
             查看此类链接的收件示例
-          </Button>
-        </div>
-      ) : tab === 'paste' ? (
-        <div className="form-stack">
-          <div className="import-paste-illustration">
-            <ClipboardPaste size={29} />
-            <h3>一轮输入，一轮回应。</h3>
-            <p>
-              在原文链的任意两轮之间，或末尾点击「+」，分别粘贴用户输入和模型输出。
-            </p>
-          </div>
-          <p className="callout">
-            支持 Markdown
-            预览、直接粘贴图片、上传附件，以及自动保存草稿。点击外部不会关闭编辑器。
-          </p>
-          <Button primary onClick={onPaste}>
-            <Plus size={15} />
-            打开对话编辑器
           </Button>
         </div>
       ) : (
@@ -356,9 +335,7 @@ export function InboxPage({
     <>
       <div className="section-heading compact">
         <div>
-          <div className="eyebrow">LETTERS WAITING TO BE FILED</div>
-          <PageTitle mobile="收件箱">先收好，再慢慢整理。</PageTitle>
-          <p>这里的内容还未进入手账，也不会被模型召回。</p>
+          <PageTitle>收件箱</PageTitle>
         </div>
         <Button primary onClick={onNewImport}>
           <Plus size={15} />

@@ -29,19 +29,8 @@ import {
 } from '@/components/ui/select';
 import type { Block, Workspace } from '@/lib/domain';
 import { coverage, uid } from '@/lib/domain';
-export function PageTitle({
-  mobile,
-  children,
-}: {
-  mobile: string;
-  children: ReactNode;
-}) {
-  return (
-    <h1>
-      <span className="page-title-mobile">{mobile}</span>
-      <span className="page-title-desktop">{children}</span>
-    </h1>
-  );
+export function PageTitle({ children }: { children: ReactNode }) {
+  return <h1>{children}</h1>;
 }
 export function Button({
   children,
@@ -185,36 +174,67 @@ export function Markdown({ text }: { text: string }) {
     </div>
   );
 }
-export function ChainMap({ w }: { w: Workspace }) {
+export function ChainMap({
+  w,
+  selectedTurnId,
+  includeInactive = false,
+}: {
+  w: Workspace;
+  selectedTurnId?: string;
+  includeInactive?: boolean;
+}) {
   const c = coverage(w);
-  const n = Math.max(1, w.turns.filter((t) => t.status === 'normal').length);
+  const turns = includeInactive
+    ? w.turns
+    : w.turns.filter((t) => t.status === 'normal');
+  const n = Math.max(1, turns.length);
+  const selectedIndex = turns.findIndex((t) => t.id === selectedTurnId);
+  const selectedNumber = w.turns.findIndex((t) => t.id === selectedTurnId) + 1;
+  const inactiveCount = turns.filter((t) => t.status !== 'normal').length;
   const recent = new Set(c.recent.map((t) => t.id)),
     cov = new Set(c.covered.map((t) => t.id)),
     gap = new Set(c.gap.map((t) => t.id));
-  const runs: { type: string; count: number }[] = [];
-  w.turns
-    .filter((t) => t.status === 'normal')
-    .forEach((t) => {
-      const type = recent.has(t.id)
-        ? 'recent'
-        : gap.has(t.id)
-          ? 'gap'
-          : cov.has(t.id)
-            ? 'covered'
-            : 'pending';
-      if (runs.at(-1)?.type === type) runs[runs.length - 1].count++;
-      else runs.push({ type, count: 1 });
-    });
+  const runs: { type: string; count: number; start: number }[] = [];
+  turns.forEach((t, i) => {
+    const type =
+      t.status !== 'normal'
+        ? t.status
+        : recent.has(t.id)
+          ? 'recent'
+          : gap.has(t.id)
+            ? 'gap'
+            : cov.has(t.id)
+              ? 'covered'
+              : 'pending';
+    if (runs.at(-1)?.type === type) runs[runs.length - 1].count++;
+    else runs.push({ type, count: 1, start: i });
+  });
   return (
-    <div className="chain">
+    <div className={`chain${includeInactive ? ' chain-positioned' : ''}`}>
       <div className="chain-track">
         {runs.map((r, i) => (
           <div
             key={i}
             style={{ flex: r.count / n, minWidth: r.count ? 6 : 0 }}
-            className={r.type}
-            title={`${{ covered: '摘要已覆盖', recent: '近期原文', gap: '记忆缺口', pending: '待压缩' }[r.type]} · ${r.count} 轮`}
-          />
+            className={`chain-run ${r.type}`}
+            title={`${{ covered: '摘要已覆盖', recent: '近期原文', gap: '记忆缺口', pending: '待压缩', deprecated: '弃用 · 不参与召回', trash: '回收站 · 不参与召回' }[r.type]} · ${r.count} 轮`}
+          >
+            {selectedIndex >= r.start && selectedIndex < r.start + r.count && (
+              <svg
+                className="chain-cursor"
+                viewBox="0 0 12 24"
+                aria-label={`当前第 ${selectedNumber} 轮，共 ${w.turns.length} 轮`}
+                style={{
+                  left: `${((selectedIndex - r.start + 0.5) / r.count) * 100}%`,
+                }}
+              >
+                <title>{`读到这里 · 第 ${selectedNumber} 轮`}</title>
+                <path d="M6 14V24" stroke="currentColor" />
+                <path d="M1 0H11V16L6 12L1 16Z" fill="currentColor" />
+                <path d="M3 2H9" stroke="#f7efd8" strokeOpacity="0.65" />
+              </svg>
+            )}
+          </div>
         ))}
       </div>
       <div className="chain-labels">
@@ -232,6 +252,12 @@ export function ChainMap({ w }: { w: Workspace }) {
           <span>
             <i className="pending" />
             窗口之后 {c.queued.length} 轮
+          </span>
+        )}
+        {inactiveCount > 0 && (
+          <span>
+            <i className="inactive" />
+            不参与召回 {inactiveCount} 轮
           </span>
         )}
         <span>

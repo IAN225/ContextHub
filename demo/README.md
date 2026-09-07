@@ -16,8 +16,8 @@ node node_modules/vinext/dist/cli.js dev --hostname 127.0.0.1 --port 3000
 
 ## 可以实际操作
 
-- 手账书架：选择工作区、创建工作区、修改工作区名称、章节过渡、返回书架。
-- 原文：固定中心刻度，滚动、触屏与键盘导航；搜索及跳转；原生轨道当前渲染全部时间节点；桌面滚轮逐轮居中，触屏支持惯性、截停和结束吸附。查看预览、Payload、元数据。正常、弃用与回收站按完整 user 轮次维护。
+- 手账书架：选择工作区、创建工作区、修改工作区名称、章节过渡、返回书架。手机与桌面封面比例一致；点击后先浮起 380ms，同时预挂载原文页再进入。Escape 可取消，减少动态效果模式直接进入。
+- 原文：固定中心刻度，滚动、触屏与键盘导航；搜索及跳转；原生轨道当前渲染全部时间节点；桌面滚轮逐轮平滑居中，连续输入从目标轮次推进，触屏支持惯性、截停和结束吸附。查看预览、Payload、元数据。正常、弃用与回收站按完整 user 轮次维护。
 - 编辑：在任意轮次前后插入，保留已有工具消息顺序；Markdown 文本编辑与安全预览；图片粘贴、附件添加（单个 5 MB），浏览器 IndexedDB 保存素材与草稿。对话/Note 编辑器关闭或切换后可恢复草稿，点击遮罩不关闭。
 - 摘要：示例增量摘录、手动启动、逐批检查、托管、暂停、最多 30 个检查点。窗口跟随处理水位移动。回退可重置水位或保留进度；缺口可见，缺口内容不进入默认记忆包。首次完成后可开启后续自动演示。模拟压缩不依赖服务器；章节保持挂载后的隐藏页任务生命周期仍需进一步审查。
 - 工作台：选择任意历史摘要与完整原文范围，模拟生成候选摘要后进入收件箱；应用候选时再次选择水位策略。
@@ -55,6 +55,15 @@ node --experimental-strip-types --test tests/*.test.ts
 node node_modules/typescript/bin/tsc --noEmit
 node node_modules/oxlint/bin/oxlint app components/hub lib tests
 node node_modules/vinext/dist/cli.js build
+```
+
+浏览器回归使用可通过本地或 `NODE_PATH` 解析的 Playwright 与 Google Chrome，在上述开发服务运行时执行：
+
+```powershell
+node tests/ui-interactions.mjs
+node tests/responsive-interactions.mjs
+node tests/layout-motion.mjs
+node tests/workspace-controls.mjs
 ```
 
 按用户要求没有使用子智能体。执行了领域行为测试、类型检查、静态代码检查、生产构建与本地 HTTP 检查；随后已完成独立 Chrome 交互测试及 320px / 390px 小屏检查；接续状态详见 ../docs/HANDOFF.md。

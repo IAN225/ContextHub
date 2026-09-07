@@ -51,13 +51,7 @@ try {
     await page.locator('.notebook-item').first().click();
     await page.locator('.timeline-viewport').waitFor();
     await page.waitForTimeout(550);
-    for (const name of [
-      '原文 对话长卷',
-      '摘要 记忆摘记',
-      'Note 随手便签',
-      '记忆包 带去下一页',
-      '连接 书册设置',
-    ]) {
+    for (const name of ['原文', '摘要', 'Note', '记忆包', '连接']) {
       await page
         .locator('.journal-tabs button')
         .filter({ hasText: name.split(' ')[0] })
@@ -125,6 +119,12 @@ try {
     await page
       .getByRole('spinbutton', { name: '跳转到筛选结果轮次' })
       .fill('3');
+    await page.waitForFunction(
+      () =>
+        Math.abs(
+          document.querySelector('.timeline-viewport').scrollLeft - 208,
+        ) < 1,
+    );
     const box = await touchRail.boundingBox();
     const x = box.x + box.width * 0.8,
       y = box.y + 60;

@@ -80,9 +80,7 @@ export function ConnectionsPage({
     <>
       <div className="section-heading compact">
         <div>
-          <div className="eyebrow">TAKE THIS STORY WITH YOU</div>
-          <PageTitle mobile="连接设置">让记忆，去往下一个窗口。</PageTitle>
-          <p>只带走这一本的内容，每条连接都由你掌握。</p>
+          <PageTitle>连接设置</PageTitle>
         </div>
         <span className="pill">
           <Plug size={12} />

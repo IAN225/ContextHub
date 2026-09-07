@@ -45,13 +45,7 @@ try {
       2,
   );
   await page.getByRole('tab', { name: 'Payload', exact: true }).click();
-  for (const name of [
-    '摘要 记忆摘记',
-    'Note 随手便签',
-    '记忆包 带去下一页',
-    '连接 书册设置',
-    '原文 对话长卷',
-  ]) {
+  for (const name of ['摘要', 'Note', '记忆包', '连接', '原文']) {
     await page.getByRole('button', { name, exact: true }).click();
     assert(
       await shell.evaluate((e) => e.isConnected),
@@ -79,12 +73,8 @@ try {
     'No document navigation',
   );
   await search.fill('no matching conversation');
-  await page
-    .getByRole('button', { name: '摘要 记忆摘记', exact: true })
-    .click();
-  await page
-    .getByRole('button', { name: '原文 对话长卷', exact: true })
-    .click();
+  await page.getByRole('button', { name: '摘要', exact: true }).click();
+  await page.getByRole('button', { name: '原文', exact: true }).click();
   assert.equal(
     await search.inputValue(),
     'no matching conversation',

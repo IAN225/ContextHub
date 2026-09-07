@@ -69,9 +69,7 @@ export function SearchPage({
     <>
       <div className="section-heading compact">
         <div>
-          <div className="eyebrow">FIND A FAMILIAR PAGE</div>
-          <PageTitle mobile="寻找记忆">总有一页，还记得。</PageTitle>
-          <p>用几个关键词，找回原文、摘要与便签中的片段。</p>
+          <PageTitle>寻找记忆</PageTitle>
         </div>
       </div>
       <div className="journal-search-input">

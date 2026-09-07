@@ -27,9 +27,7 @@ export function MemoryPage({
     <>
       <div className="section-heading compact">
         <div>
-          <div className="eyebrow">A BRIDGE TO YOUR NEXT CONVERSATION</div>
-          <PageTitle mobile="记忆包">让下一段对话，接着这里。</PageTitle>
-          <p>你决定模型在重新认识你时，先读到什么。</p>
+          <PageTitle>记忆包</PageTitle>
         </div>
         <Button primary onClick={() => setPreview(true)}>
           <Eye size={15} />

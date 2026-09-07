@@ -1,6 +1,12 @@
 'use client';
 import Image from 'next/image';
-import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import {
+  useState,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+} from 'react';
 import {
   ArrowUpRight,
   ChevronLeft,
@@ -59,18 +65,30 @@ export function Transcript({
     ? w.turns.findIndex((t) => t.id === current.id) + 1
     : 0;
   const selectedIndex = useRef(currentIndex);
+  const touchSession = useRef(false);
+  const turnCount = list.length;
   useLayoutEffect(() => {
     selectedIndex.current = currentIndex;
   }, [currentIndex]);
-  function setIndex(next: number) {
-    const bounded = Math.max(0, Math.min(list.length - 1, next));
-    setSelectedIndex(bounded);
-    lane.current?.scrollTo({
-      left: bounded * 104,
-      behavior: 'instant',
-    });
-  }
+  const setIndex = useCallback(
+    (next: number) => {
+      const bounded = Math.max(0, Math.min(turnCount - 1, next));
+      // Discrete input owns a target, even while the rail is between ticks.
+      // Updating the ref synchronously also preserves rapid wheel/key input.
+      touchSession.current = false;
+      selectedIndex.current = bounded;
+      setSelectedIndex(bounded);
+      lane.current?.scrollTo({
+        left: bounded * 104,
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'instant'
+          : 'smooth',
+      });
+    },
+    [turnCount],
+  );
   useLayoutEffect(() => {
+    touchSession.current = false;
     if (active && lane.current) {
       lane.current.scrollTo({
         left: selectedIndex.current * 104,
@@ -82,13 +100,12 @@ export function Transcript({
     if (!lane.current) return;
     const el = lane.current;
     let held = false;
-    let touchSession = false;
     let settleTimer: ReturnType<typeof setTimeout> | undefined;
     let lastWheel = 0;
     let wheelDistance = 0;
     function settle() {
       clearTimeout(settleTimer);
-      if (held || !touchSession) return;
+      if (held || !touchSession.current) return;
       const next = Math.max(
         0,
         Math.min(list.length - 1, Math.round(el.scrollLeft / 104)),
@@ -103,11 +120,19 @@ export function Transcript({
     }
     function scheduleSettle() {
       clearTimeout(settleTimer);
-      if (!held && touchSession) settleTimer = setTimeout(settle, 180);
+      if (!held && touchSession.current) settleTimer = setTimeout(settle, 180);
     }
     function touchStart() {
       held = true;
-      touchSession = true;
+      touchSession.current = true;
+      // A finger down interrupts either native momentum or a discrete jump.
+      el.scrollTo({ left: el.scrollLeft, behavior: 'instant' });
+      const next = Math.max(
+        0,
+        Math.min(list.length - 1, Math.round(el.scrollLeft / 104)),
+      );
+      selectedIndex.current = next;
+      setSelectedIndex(next);
       clearTimeout(settleTimer);
     }
     function touchEnd(e: TouchEvent) {
@@ -119,7 +144,6 @@ export function Transcript({
       // Wheel input owns selection and positioning together; never allow a
       // second native pixel scroll after advancing the selected turn.
       e.preventDefault();
-      touchSession = false;
       clearTimeout(settleTimer);
       const delta =
         Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
@@ -136,12 +160,11 @@ export function Transcript({
         0,
         Math.min(
           list.length - 1,
-          Math.round(el.scrollLeft / 104) + Math.sign(wheelDistance),
+          selectedIndex.current + Math.sign(wheelDistance),
         ),
       );
       wheelDistance = 0;
-      setSelectedIndex(next);
-      el.scrollTo({ left: next * 104, behavior: 'instant' });
+      setIndex(next);
     }
     el.addEventListener('wheel', scroll, { passive: false });
     el.addEventListener('touchstart', touchStart, { passive: true });
@@ -158,7 +181,7 @@ export function Transcript({
       el.removeEventListener('scroll', scheduleSettle);
       el.removeEventListener('scrollend', settle);
     };
-  }, [list.length, active]);
+  }, [list.length, active, setIndex]);
   function status(s: Status) {
     if (!current) return;
     onChange({
@@ -192,26 +215,15 @@ export function Transcript({
     <>
       <div className="section-heading">
         <div>
-          <div className="eyebrow">CONVERSATION ARCHIVE</div>
-          <PageTitle mobile="对话原文">
-            那些聊过的，<span>都在这里。</span>
+          <PageTitle>
+            对话原文{' '}
+            <small className="title-count">
+              {w.turns.length.toLocaleString()} 轮
+            </small>
           </PageTitle>
-          <p>让每一次重新开始，都有迹可循。</p>
         </div>
-        <Button primary onClick={() => onInsert(w.turns.at(-1)?.id ?? null)}>
-          <Plus size={16} /> 添加对话
-        </Button>
       </div>
-      <div className="archive-top">
-        <span className="section-kicker">
-          原文链 <b>{w.turns.length.toLocaleString()}</b>
-          <small>完整轮次</small>
-        </span>
-        <span className="hint">
-          原文始终保留，摘要独立更新 <ArrowUpRight size={13} />
-        </span>
-      </div>
-      <ChainMap w={w} />
+      <ChainMap w={w} selectedTurnId={current?.id} includeInactive />
       <div className="timeline-toolbar">
         <Segments
           value={filter}
@@ -258,20 +270,17 @@ export function Transcript({
             <div
               ref={lane}
               className="timeline-viewport"
-              onScroll={(e) =>
-                setSelectedIndex(
-                  Math.max(
-                    0,
-                    Math.min(
-                      list.length - 1,
-                      Math.round(e.currentTarget.scrollLeft / 104),
-                    ),
+              onScroll={(e) => {
+                if (!touchSession.current) return;
+                const next = Math.max(
+                  0,
+                  Math.min(
+                    list.length - 1,
+                    Math.round(e.currentTarget.scrollLeft / 104),
                   ),
-                )
-              }
-              onPointerDown={(e) => {
-                const el = e.currentTarget;
-                el.scrollTo({ left: el.scrollLeft, behavior: 'instant' });
+                );
+                selectedIndex.current = next;
+                setSelectedIndex(next);
               }}
             >
               <div className="timeline-track">
@@ -281,19 +290,24 @@ export function Transcript({
                       key={t.id}
                       className={`turn-point ${i === currentIndex ? 'selected' : ''} ${mark(t.id)}`}
                       aria-pressed={i === currentIndex}
+                      tabIndex={i === currentIndex ? 0 : -1}
                       onClick={() => setIndex(i)}
                       onKeyDown={(e) => {
                         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                           e.preventDefault();
-                          setIndex(
-                            Math.max(
-                              0,
-                              Math.min(
-                                list.length - 1,
-                                currentIndex + (e.key === 'ArrowLeft' ? -1 : 1),
-                              ),
+                          const next = Math.max(
+                            0,
+                            Math.min(
+                              list.length - 1,
+                              selectedIndex.current +
+                                (e.key === 'ArrowLeft' ? -1 : 1),
                             ),
                           );
+                          setIndex(next);
+                          const point = e.currentTarget.parentElement?.children[
+                            next
+                          ] as HTMLButtonElement | undefined;
+                          point?.focus({ preventScroll: true });
                         }
                       }}
                       aria-label={`查看第 ${w.turns.indexOf(t) + 1} 轮`}
@@ -553,10 +567,12 @@ export function Transcript({
           }
           detail="每一次保存、删除和召回，都以完整轮次为单位。"
         >
-          <Button onClick={() => onInsert(null)}>
-            <Plus size={16} />
-            添加对话
-          </Button>
+          {w.turns.length === 0 && !query && filter === 'normal' && (
+            <Button onClick={() => onInsert(null)}>
+              <Plus size={16} />
+              写下第一轮
+            </Button>
+          )}
         </Empty>
       )}
       <div className="quiet-footer">
