@@ -367,12 +367,12 @@ export function NewWorkspace({
   });
   return (
     <Modal
-      title="每一个对话窗口，一个工作区"
-      description="原文、摘要、Note 和记忆包独立保存，连接授权也按工作区管理。"
+      title="新建手账"
+      description="每本手账独立保存原文、摘要、Note 和记忆包，连接授权也按手账管理。"
       onClose={onClose}
     >
       <label className="field">
-        工作区名称
+        手账名称
         <input
           value={d.name}
           onChange={(e) => setD({ ...d, name: e.target.value })}
@@ -383,7 +383,7 @@ export function NewWorkspace({
         来源平台
         <Picker
           value={d.platform}
-          label="新工作区平台"
+          label="新手账平台"
           options={['ChatGPT', 'Claude', 'Chatbox', '其他'].map((v) => ({
             value: v,
             label: v,
@@ -407,7 +407,7 @@ export function NewWorkspace({
           }}
         >
           <Plus size={15} />
-          创建工作区
+          创建手账
         </Button>
       </div>
     </Modal>

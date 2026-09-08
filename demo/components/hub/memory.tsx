@@ -64,7 +64,7 @@ export function MemoryPage({
       {notes.length > 0 && (
         <section className="memory-notes">
           <div className="surface-head">
-            <h2>按 id 读取的笔记</h2>
+            <h2>按 id 读取 Note</h2>
             <small>{notes.length} 条</small>
           </div>
           {notes.map((n) => (

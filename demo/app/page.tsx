@@ -12,7 +12,6 @@ import {
   ArrowLeft,
   Plus,
   Search,
-  Inbox,
   MessageSquare,
   Layers,
   StickyNote,
@@ -27,7 +26,8 @@ import { Transcript } from '@/components/hub/transcript';
 import { SummaryPage } from '@/components/hub/summary';
 import { NotesPage } from '@/components/hub/notes';
 import { MemoryPage } from '@/components/hub/memory';
-import { ImportDialog, InboxPage } from '@/components/hub/inbox';
+import { ImportDialog, InboxPage, UploadReview } from '@/components/hub/inbox';
+import { InboxPet } from '@/components/hub/inbox-pet';
 import { ConnectionsPage } from '@/components/hub/connections';
 import { SearchPage } from '@/components/hub/search';
 import { TurnEditor, NewWorkspace } from '@/components/hub/editors';
@@ -40,6 +40,7 @@ import {
   restoreSummary,
   uid,
   now,
+  pendingUploads,
   type Workspace,
   type Turn,
   type Upload,
@@ -65,6 +66,9 @@ export default function Hub() {
     [notice, setNotice] = useState('');
   const w =
     data.workspaces.find((w) => w.id === workspaceId) ?? data.workspaces[0];
+  const deliveries = pendingUploads(data.uploads, 'api');
+  const linkImports = pendingUploads(data.uploads, 'link');
+  const candidates = pendingUploads(data.uploads, 'workbench', w.id);
   useDemoMemoryTools(w);
   const main = useRef<HTMLElement>(null);
   const opening = useRef(false);
@@ -147,7 +151,22 @@ export default function Hub() {
   }
   function upload(u: Upload) {
     setData((d) => ({ ...d, uploads: [u, ...d.uploads] }));
-    notify('候选内容已放入收件箱，可以预览后决定如何使用。');
+    if (pendingUploads([u], 'api').length) {
+      navigate('inbox');
+      setModal('');
+      notify('已收到客户端上下文，确认后可归档到手账。');
+    } else {
+      setModal(u.kind === 'summary' ? 'review-workbench' : 'review-link');
+    }
+  }
+  function updateUpload(next: Upload) {
+    setData((d) => ({
+      ...d,
+      uploads: d.uploads.map((u) => (u.id === next.id ? next : u)),
+    }));
+  }
+  function removeUpload(id: string) {
+    setData((d) => ({ ...d, uploads: d.uploads.filter((u) => u.id !== id) }));
   }
   function importUpload(u: Upload, target: string) {
     const imported = u.turns.map((t) => ({ ...t, id: uid() }));
@@ -168,6 +187,7 @@ export default function Hub() {
           ),
     }));
     openWorkspace(fresh?.id ?? target);
+    setModal('');
     notify('对话已完整收进手账。');
   }
   function applySummary(u: Upload, target: Workspace, mode: 'keep' | 'rewind') {
@@ -190,6 +210,7 @@ export default function Hub() {
     }));
     setWorkspaceId(next.id);
     navigate('summary');
+    setModal('');
     notify('候选摘要已设为活跃，原文处理水位按你的选择更新。');
   }
   function edit(t: Turn) {
@@ -231,10 +252,8 @@ export default function Hub() {
         <JournalHome
           openingId={openingId}
           workspaces={data.workspaces}
-          uploads={data.uploads.length}
           onOpen={openWorkspace}
           onNew={() => setModal('new-workspace')}
-          onInbox={() => navigate('inbox')}
           onSearch={() => navigate('search')}
           onAccount={() => setModal('account')}
         />
@@ -259,7 +278,7 @@ export default function Hub() {
               <ChevronRight size={13} />
               <span>
                 {navigation.find((n) => n.id === page)?.label ??
-                  (page === 'inbox' ? '收件箱' : '寻找记忆')}
+                  (page === 'inbox' ? '收件箱' : '搜索记忆')}
               </span>
             </div>
             <div className="reader-actions">
@@ -279,13 +298,6 @@ export default function Hub() {
                 onClick={() => navigate('search')}
               >
                 <Search size={17} />
-              </button>
-              <button
-                className="icon-button"
-                aria-label="收件箱"
-                onClick={() => navigate('inbox')}
-              >
-                <Inbox size={17} />
               </button>
               <Button onClick={() => setModal('import')}>
                 <Plus size={14} />
@@ -334,22 +346,26 @@ export default function Hub() {
                         onEdit={edit}
                       />
                     ) : panel === 'summary' ? (
-                      <SummaryPage w={w} onChange={update} onUpload={upload} />
+                      <SummaryPage
+                        w={w}
+                        onChange={update}
+                        onUpload={upload}
+                        pendingCount={candidates.length}
+                        onReview={() => setModal('review-workbench')}
+                      />
                     ) : panel === 'notes' ? (
                       <NotesPage w={w} onChange={update} />
                     ) : panel === 'memory' ? (
                       <MemoryPage w={w} onChange={update} />
                     ) : panel === 'inbox' ? (
                       <InboxPage
-                        uploads={data.uploads}
+                        uploads={deliveries}
                         workspaces={data.workspaces}
                         currentId={w.id}
-                        onUploads={(uploads) =>
-                          setData((d) => ({ ...d, uploads }))
-                        }
+                        onUpdate={updateUpload}
+                        onRemove={removeUpload}
                         onImport={importUpload}
                         onSummary={applySummary}
-                        onNewImport={() => setModal('import')}
                       />
                     ) : panel === 'connect' ? (
                       <ConnectionsPage w={w} onChange={update} />
@@ -388,8 +404,37 @@ export default function Hub() {
         />
       )}{' '}
       {modal === 'import' && (
-        <ImportDialog onUpload={upload} onClose={() => setModal('')} />
+        <ImportDialog
+          onUpload={upload}
+          onClose={() => setModal('')}
+          pendingCount={linkImports.length}
+          onReview={() => setModal('review-link')}
+        />
       )}{' '}
+      {(modal === 'review-link' || modal === 'review-workbench') && (
+        <Modal
+          title={modal === 'review-link' ? '确认分享导入' : '确认候选摘要'}
+          description={
+            modal === 'review-link'
+              ? '预览后选择手账归档；未确认的内容会保留在分享链接导入流程中。'
+              : '确认后设为活跃摘要；未确认的候选会保留在当前手账的摘要工作台。'
+          }
+          onClose={() => setModal('')}
+        >
+          <div className="upload-review-dialog">
+            <UploadReview
+              key={`${modal}-${w.id}`}
+              uploads={modal === 'review-link' ? linkImports : candidates}
+              workspaces={data.workspaces}
+              currentId={w.id}
+              onUpdate={updateUpload}
+              onRemove={removeUpload}
+              onImport={importUpload}
+              onSummary={applySummary}
+            />
+          </div>
+        </Modal>
+      )}
       {modal === 'account' && (
         <Modal title="这本手账，只在此处" onClose={() => setModal('')}>
           <p className="callout">
@@ -397,6 +442,7 @@ export default function Hub() {
           </p>
         </Modal>
       )}
+      <InboxPet count={deliveries.length} onClick={() => navigate('inbox')} />
       {notice && (
         <output className="journal-toast">
           <Check size={16} />

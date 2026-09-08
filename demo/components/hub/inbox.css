@@ -1,0 +1,31 @@
+.inbox-description {
+  margin: 0 0 18px;
+  color: #7b866d;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.upload-review-dialog {
+  min-width: 0;
+}
+.upload-review-dialog .inbox-layout {
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 18px;
+}
+.upload-review-dialog .inbox-paper {
+  padding: 16px;
+}
+.upload-review-dialog .upload-turns {
+  max-height: min(42dvh, 380px);
+}
+.workbench-pending {
+  margin-bottom: 16px;
+}
+@media (max-width: 800px) {
+  .upload-review-dialog .inbox-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .upload-review-dialog .inbox-list {
+    max-height: 160px;
+    overflow-y: auto;
+  }
+}

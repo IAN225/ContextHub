@@ -92,6 +92,7 @@ export type Workspace = {
   started: boolean;
   firstComplete?: boolean;
 };
+export type UploadChannel = 'api' | 'link' | 'workbench';
 export type Upload = {
   id: string;
   title: string;
@@ -103,7 +104,28 @@ export type Upload = {
   createdAt: string;
   workspaceId?: string;
   covered?: string[];
+  channel?: UploadChannel;
 };
+export function pendingUploads(
+  uploads: Upload[],
+  channel: UploadChannel,
+  workspaceId?: string,
+) {
+  return uploads.filter((u) => {
+    // Older browser data had no channel. Keep those drafts in their original
+    // workflow; only known delivery protocols belong to the API inbox.
+    const origin =
+      u.kind === 'summary'
+        ? 'workbench'
+        : (u.channel ??
+          (/^\/v1\/(chat\/completions|responses|messages)$/.test(u.source)
+            ? 'api'
+            : 'link'));
+    return (
+      origin === channel && (!workspaceId || u.workspaceId === workspaceId)
+    );
+  });
+}
 export const uid = () =>
   globalThis.crypto?.randomUUID?.() ??
   `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;

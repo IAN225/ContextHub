@@ -1,0 +1,123 @@
+.note-actions {
+  --note-control-height: 36px;
+  --note-action-motion: 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  width: 240px;
+  max-width: 100%;
+  min-width: 80px;
+  height: var(--note-control-height);
+  margin-left: auto;
+  flex-shrink: 1;
+}
+.note-actions-capsule {
+  position: absolute;
+  right: 0;
+  width: 80px;
+  height: 100%;
+  isolation: isolate;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  transition: width var(--note-action-motion);
+}
+.note-actions[data-search-open='true'] .note-actions-capsule {
+  width: 100%;
+}
+.note-compose,
+.note-search-toggle {
+  position: absolute;
+  top: 0;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #536348;
+}
+.note-compose {
+  left: 1px;
+  transition:
+    opacity 140ms,
+    transform var(--note-action-motion);
+}
+.note-compose::after {
+  content: '';
+  position: absolute;
+  right: -3px;
+  top: 11px;
+  width: 1px;
+  height: 14px;
+  background: #a4b193;
+}
+.note-actions[data-search-open='true'] .note-compose {
+  opacity: 0;
+  transform: translateX(-12px);
+  pointer-events: none;
+}
+.note-search-toggle {
+  left: calc(100% - 37px);
+  z-index: 2;
+  transition: left var(--note-action-motion);
+}
+.note-actions[data-search-open='true'] .note-search-toggle {
+  left: 0;
+}
+.note-search-field {
+  position: absolute;
+  inset: 0 6px 0 36px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  opacity: 0;
+  transform: translateX(18px);
+  pointer-events: none;
+  transition:
+    opacity 160ms,
+    transform var(--note-action-motion);
+}
+.note-actions[data-search-open='true'] .note-search-field {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+.note-search-field input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+  background: transparent;
+  font-size: 16px;
+  color: #45563d;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.note-search-field input::-webkit-search-cancel-button {
+  display: none;
+}
+.note-search-clear {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 36px;
+  border-radius: 50%;
+  color: #7d8971;
+}
+@media (max-width: 800px) {
+  .note-actions {
+    width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .note-actions-capsule,
+  .note-compose,
+  .note-search-toggle,
+  .note-search-field {
+    transition: none;
+  }
+}

@@ -69,7 +69,7 @@ export function SearchPage({
     <>
       <div className="section-heading compact">
         <div>
-          <PageTitle>寻找记忆</PageTitle>
+          <PageTitle>搜索记忆</PageTitle>
         </div>
       </div>
       <div className="journal-search-input">

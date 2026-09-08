@@ -142,7 +142,7 @@ try {
         .getAttribute('aria-selected')) === 'true',
       'Legacy paste draft falls back to link import',
     );
-    await dialog.getByRole('tab', { name: '投递接口' }).click();
+    await dialog.getByRole('tab', { name: '发布对话 API' }).click();
     check(
       await dialog.getByRole('button', { name: '填入示例' }).isVisible(),
       'API delivery remains usable',

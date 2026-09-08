@@ -3,7 +3,6 @@ import { useState } from 'react';
 import {
   Plus,
   Star,
-  Search,
   History,
   Trash2,
   Archive,
@@ -23,6 +22,7 @@ import {
   formatDate,
 } from './shared';
 import { TextEditor } from './editors';
+import { NoteActions } from './note-actions';
 import { uid, now, type Workspace, type Note, type Status } from '@/lib/domain';
 function NoteEditor({
   note,
@@ -46,7 +46,7 @@ function NoteEditor({
   function save() {
     const next = {
       ...note,
-      title: d.title.trim() || '无标题笔记',
+      title: d.title.trim() || '无标题 Note',
       body: d.body,
       updatedAt: now(),
       editor: '我',
@@ -66,7 +66,7 @@ function NoteEditor({
         <div className="action-row">
           <button
             className={`icon-button ${note.star ? 'starred' : ''}`}
-            aria-label={note.star ? '取消标星' : '标星笔记'}
+            aria-label={note.star ? '取消标星' : '标星 Note'}
             onClick={onStar}
           >
             <Star size={17} fill={note.star ? 'currentColor' : 'none'} />
@@ -80,7 +80,7 @@ function NoteEditor({
           </button>
           {note.status === 'normal' ? (
             <button
-              aria-label="弃用笔记"
+              aria-label="弃用 Note"
               className="icon-button"
               onClick={() => onStatus('deprecated')}
             >
@@ -88,7 +88,7 @@ function NoteEditor({
             </button>
           ) : (
             <button
-              aria-label="恢复笔记"
+              aria-label="恢复 Note"
               className="icon-button"
               onClick={() => onStatus('normal')}
             >
@@ -97,7 +97,7 @@ function NoteEditor({
           )}
           {note.status !== 'trash' && (
             <button
-              aria-label="将笔记移入回收站"
+              aria-label="将 Note 移入回收站"
               className="icon-button"
               onClick={() => onStatus('trash')}
             >
@@ -108,7 +108,7 @@ function NoteEditor({
       </div>
       <input
         className="note-title-input"
-        aria-label="笔记标题"
+        aria-label="Note 标题"
         value={d.title}
         onChange={(e) => setD({ ...d, title: e.target.value })}
       />
@@ -139,15 +139,15 @@ function NoteEditor({
       <p className="inline-note">
         {note.status === 'normal'
           ? note.star
-            ? '标星笔记优先出现在记忆包的 Note id 列表中，正文按需读取。'
-            : '普通笔记用于日记、流水账与临时记录，可搜索或按 id 读取。'
+            ? '标星 Note 优先出现在记忆包的 Note id 列表中，正文按需读取。'
+            : '普通 Note 用于日记、流水账与临时记录，可搜索或按 id 读取。'
           : note.status === 'deprecated'
-            ? '弃用笔记只供用户查看，不提供给模型。'
+            ? '弃用 Note 只供用户查看，不提供给模型。'
             : `删除于 ${formatDate(note.deletedAt ?? null)}。正式版 30 天后清除；本地 demo 不自动清理。`}
       </p>
       {history && (
         <Modal
-          title="笔记历史版本"
+          title="Note 历史版本"
           description="最多保留 5 个历史版本。恢复时会先保存当前正式版本。"
           onClose={() => setHistory(false)}
         >
@@ -213,7 +213,7 @@ function NewNote({
   });
   return (
     <Modal
-      title="写一条 Note"
+      title="新建 Note"
       description="不用把一切都藏在历史里。把希望再次被找到的内容，单独留下来。"
       onClose={onClose}
     >
@@ -250,7 +250,7 @@ function NewNote({
             if (!(await p.commit({ title: '', body: '', star: false }))) return;
             onCreate({
               id: `note-${uid().slice(0, 8)}`,
-              title: d.title.trim() || '无标题笔记',
+              title: d.title.trim() || '无标题 Note',
               body: d.body,
               star: d.star,
               status: 'normal',
@@ -280,15 +280,25 @@ export function NotesPage({
     [filter, setFilter] = useState('all'),
     [query, setQuery] = useState(''),
     [create, setCreate] = useState(false);
-  const list = w.notes.filter(
-    (n) =>
-      (filter === 'star'
-        ? n.status === 'normal' && n.star
-        : filter === 'all'
-          ? n.status === 'normal'
-          : n.status === filter) &&
-      `${n.title} ${n.body}`.toLowerCase().includes(query.toLowerCase()),
+  const scopedNotes = w.notes.filter((n) =>
+    filter === 'star'
+      ? n.status === 'normal' && n.star
+      : filter === 'all'
+        ? n.status === 'normal'
+        : n.status === filter,
   );
+  const matching = (value: string) =>
+    scopedNotes.filter((n) =>
+      `${n.title} ${n.body}`.toLowerCase().includes(value.toLowerCase()),
+    );
+  const list = matching(query);
+  function search(value: string) {
+    const matches = matching(value);
+    setId((previous) =>
+      matches.some((n) => n.id === previous) ? previous : matches[0]?.id,
+    );
+    setQuery(value);
+  }
   const selected = list.find((n) => n.id === id) ?? list[0];
   function update(n: Note) {
     onChange({ ...w, notes: w.notes.map((x) => (x.id === n.id ? n : x)) });
@@ -297,33 +307,25 @@ export function NotesPage({
     <>
       <div className="section-heading compact">
         <div>
-          <PageTitle>随手便签</PageTitle>
+          <PageTitle>Note</PageTitle>
         </div>
-        <Button primary onClick={() => setCreate(true)}>
-          <Plus size={15} />
-          写一条 Note
-        </Button>
       </div>
       <div className="notes-toolbar">
         <Segments
           value={filter}
           onChange={setFilter}
           options={[
-            { id: 'all', label: '全部笔记' },
+            { id: 'all', label: '全部 Note' },
             { id: 'star', label: '标星' },
             { id: 'deprecated', label: '弃用' },
             { id: 'trash', label: '回收站' },
           ]}
         />
-        <label className="search-field">
-          <Search size={15} />
-          <input
-            aria-label="搜索笔记"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="搜索笔记…"
-          />
-        </label>
+        <NoteActions
+          query={query}
+          onQueryChange={search}
+          onCreate={() => setCreate(true)}
+        />
       </div>
       <div className="notes-layout">
         <aside className="note-list">
@@ -344,7 +346,7 @@ export function NotesPage({
               </small>
             </button>
           ))}
-          {!list.length && <p className="inline-note">这里还没有笔记。</p>}
+          {!list.length && <p className="inline-note">当前列表为空。</p>}
           <div className="note-list-help">
             <StickyNote size={16} />
             <p>
@@ -373,14 +375,25 @@ export function NotesPage({
           />
         ) : (
           <Empty
-            title="留下一点想记住的事"
-            detail="像使用备忘录一样，随时写下，也随时修改。"
-          >
-            <Button onClick={() => setCreate(true)}>
-              <Plus size={15} />
-              新建 Note
-            </Button>
-          </Empty>
+            title={
+              query.trim()
+                ? '没有找到匹配的 Note'
+                : filter === 'star'
+                  ? '暂无标星 Note'
+                  : filter === 'deprecated'
+                    ? '暂无弃用 Note'
+                    : filter === 'trash'
+                      ? '回收站为空'
+                      : '还没有 Note'
+            }
+            detail={
+              query.trim()
+                ? '试试其他关键词，或清空搜索条件。'
+                : filter === 'all'
+                  ? '点击工具栏的笔形按钮，新建一条 Note。'
+                  : '切换筛选可查看其他 Note。'
+            }
+          />
         )}
       </div>
       {create && (

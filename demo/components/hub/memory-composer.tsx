@@ -219,14 +219,23 @@ export function MemoryComposer({
                 }}
                 aria-label={`编辑${memoryBlockLabel(b)}`}
               >
-                <strong>{memoryBlockLabel(b)}</strong>
-                <small>
-                  {b.custom
-                    ? '仅此记忆包'
-                    : b.type === 'text'
-                      ? '自由编写'
-                      : '动态引用'}
-                </small>
+                <span className="memory-block-heading">
+                  <strong title={memoryBlockLabel(b)}>
+                    {memoryBlockLabel(b)}
+                  </strong>
+                  <small>
+                    {b.custom || b.type === 'text' ? '自定义' : '动态引用'}
+                  </small>
+                </span>
+                <span className="memory-block-preview">
+                  {memoryText(w, [b])
+                    .replace(/^\[[^\]]*\]\n/, '')
+                    .slice(0, 100) || '点击编写内容'}
+                  <span className="memory-block-edit-hint">
+                    <Pencil size={12} />
+                    编辑
+                  </span>
+                </span>
               </button>
               <button
                 className="icon-button"
@@ -245,24 +254,6 @@ export function MemoryComposer({
                 <ChevronDown size={17} />
               </button>
             </div>
-            <button
-              className="memory-block-preview"
-              onClick={() => {
-                setQuery('');
-                setEditing(b.id);
-              }}
-              aria-label={`打开${memoryBlockLabel(b)}`}
-            >
-              <span>
-                {memoryText(w, [b])
-                  .replace(/^\[[^\]]*\]\n/, '')
-                  .slice(0, 100) || '点击编写内容'}
-                <span className="memory-block-edit-hint">
-                  <Pencil size={12} />
-                  编辑
-                </span>
-              </span>
-            </button>
           </article>
         ))}
       </div>

@@ -998,7 +998,7 @@ small {
   border-bottom: 1px solid #2b3538;
   height: 49px;
 }
-.detail-tabs > span {
+.detail-view-options > span {
   font-size: 10px;
   color: #6d8388;
 }
@@ -1751,7 +1751,7 @@ small {
   .detail-tabs {
     padding: 0 16px;
   }
-  .detail-tabs > span {
+  .detail-view-options > span {
     font-size: 9px;
   }
   .conversation-text {

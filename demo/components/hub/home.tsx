@@ -1,30 +1,19 @@
 'use client';
-import {
-  ArrowUpRight,
-  Plus,
-  Inbox,
-  Search,
-  Orbit,
-  ArrowRight,
-} from 'lucide-react';
+import { ArrowUpRight, Plus, Search, Orbit, ArrowRight } from 'lucide-react';
 import { coverage, type Workspace } from '@/lib/domain';
 
 export function JournalHome({
   openingId,
   workspaces,
-  uploads,
   onOpen,
   onNew,
-  onInbox,
   onSearch,
   onAccount,
 }: {
   openingId: string | null;
   workspaces: Workspace[];
-  uploads: number;
   onOpen: (id: string) => void;
   onNew: () => void;
-  onInbox: () => void;
   onSearch: () => void;
   onAccount: () => void;
 }) {
@@ -38,12 +27,7 @@ export function JournalHome({
         <div>
           <button className="journal-header-action" onClick={onSearch}>
             <Search size={17} />
-            <span>找一段记忆</span>
-          </button>
-          <button className="journal-header-action" onClick={onInbox}>
-            <Inbox size={17} />
-            <span>收件箱</span>
-            {uploads > 0 && <i>{uploads}</i>}
+            <span>搜索记忆</span>
           </button>
           <button
             className="journal-avatar"
@@ -57,8 +41,7 @@ export function JournalHome({
       <main className="journal-shelf">
         <div className="shelf-heading">
           <h1>
-            我的对话册{' '}
-            <small>{String(workspaces.length).padStart(2, '0')}</small>
+            我的手账 <small>{String(workspaces.length).padStart(2, '0')}</small>
           </h1>
           <span>一个窗口，一本手账</span>
         </div>
@@ -104,7 +87,7 @@ export function JournalHome({
                       {w.turns.length ? `${w.turns.length} 轮对话` : '还未落笔'}
                     </span>
                     <i>·</i>
-                    <span>{w.notes.length} 条便签</span>
+                    <span>{w.notes.length} 条 Note</span>
                   </div>
                   <span className="open-book-label">
                     {openingId === w.id ? '正在翻开…' : '翻开手账'}{' '}
@@ -130,14 +113,14 @@ export function JournalHome({
             <span className="new-notebook-icon">
               <Plus size={25} />
             </span>
-            <h2>再开一本</h2>
+            <h2>新建手账</h2>
             <p>
               留给一段新的对话，
               <br />
               或另一个熟悉的窗口。
             </p>
             <span>
-              创建工作区 <ArrowUpRight size={14} />
+              创建手账 <ArrowUpRight size={14} />
             </span>
           </button>
         </div>

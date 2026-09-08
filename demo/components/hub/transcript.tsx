@@ -422,7 +422,20 @@ export function Transcript({
                   { id: 'metadata', label: '元数据' },
                 ]}
               />
-              <span>{current.messages.length} 条消息 · 完整轮次</span>
+              <div className="detail-view-options">
+                <span>{current.messages.length} 条消息 · 完整轮次</span>
+                {tab === 'preview' &&
+                  current.messages.some((m) => m.role === 'assistant') && (
+                    <button
+                      className="render-toggle"
+                      aria-label="当前轮次的模型回复使用 Markdown 显示"
+                      aria-pressed={rendered}
+                      onClick={() => setRendered(!rendered)}
+                    >
+                      {rendered ? '显示原始文本' : '显示 Markdown'}
+                    </button>
+                  )}
+              </div>
             </div>
             {tab === 'preview' ? (
               <div className="conversation-text">
@@ -444,14 +457,6 @@ export function Transcript({
                           : m.role === 'assistant'
                             ? 'Assistant'
                             : (m.name ?? m.role)}
-                        {m.role === 'assistant' && (
-                          <button
-                            className="render-toggle"
-                            onClick={() => setRendered(!rendered)}
-                          >
-                            {rendered ? 'Markdown ↔' : '原始文本 ↔'}
-                          </button>
-                        )}
                       </div>
                       {rendered && m.role === 'assistant' ? (
                         <Markdown text={m.content} />

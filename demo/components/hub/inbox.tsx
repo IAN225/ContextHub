@@ -1,10 +1,10 @@
 'use client';
+import './inbox.css';
 import { useState } from 'react';
 import {
   Link2,
   Radio,
   Inbox,
-  Plus,
   Trash2,
   ArrowRight,
   Check,
@@ -41,9 +41,13 @@ const protocols = [
 export function ImportDialog({
   onUpload,
   onClose,
+  pendingCount,
+  onReview,
 }: {
   onUpload: (u: Upload) => void;
   onClose: () => void;
+  pendingCount: number;
+  onReview: () => void;
 }) {
   const [d, setD, p] = usePersistent('import-draft-v1', {
     tab: 'link',
@@ -61,8 +65,12 @@ export function ImportDialog({
   const tab = d.tab === 'api' ? 'api' : 'link';
   return (
     <Modal
-      title="把对话，收进手账"
-      description="分享链接或 API 投递。先放进收件箱，再决定记到哪一本。"
+      title="收录对话"
+      description={
+        tab === 'link'
+          ? '分享链接解析后先预览，再选择归档到哪本手账。'
+          : '在第三方客户端配置对话 API，再发送一条消息，请求携带的上下文就会进入收件箱。'
+      }
       onClose={onClose}
     >
       <Segments
@@ -73,11 +81,16 @@ export function ImportDialog({
         }}
         options={[
           { id: 'link', label: '分享链接' },
-          { id: 'api', label: '投递接口' },
+          { id: 'api', label: '发布对话 API' },
         ]}
       />
       {tab === 'link' ? (
         <div className="form-stack">
+          {pendingCount > 0 && (
+            <Button onClick={onReview}>
+              继续确认已有导入（{pendingCount}）
+            </Button>
+          )}
           <label className="field">
             ChatGPT / Claude 官方分享链接
             <input
@@ -88,7 +101,7 @@ export function ImportDialog({
             />
           </label>
           <label className="field">
-            收件标题
+            导入标题
             <input
               value={d.title}
               onChange={(e) => setD({ ...d, title: e.target.value })}
@@ -96,7 +109,7 @@ export function ImportDialog({
             />
           </label>
           <p className="callout warning">
-            当前演示解析后的收件流程，不联网读取链接。示例消息与输入链接的实际内容无关；附件缺失会单独说明。
+            当前演示解析后的预览与归档流程，不联网读取链接。示例消息与输入链接的实际内容无关；附件缺失会单独说明。
           </p>
           <Button
             primary
@@ -117,6 +130,7 @@ export function ImportDialog({
                   id: uid(),
                   title: d.title.trim() || `${platform} 分享导入示例`,
                   kind: 'conversation',
+                  channel: 'link',
                   source: `${platform} · 分享解析示例`,
                   createdAt: now(),
                   warning:
@@ -147,7 +161,6 @@ export function ImportDialog({
                     platform,
                   ),
                 });
-                onClose();
               } catch {
                 setError(
                   '请填写有效的 ChatGPT 或 Claude 官方 https 分享链接。',
@@ -156,7 +169,7 @@ export function ImportDialog({
             }}
           >
             <Link2 size={15} />
-            查看此类链接的收件示例
+            预览此类链接的导入示例
           </Button>
         </div>
       ) : (
@@ -171,10 +184,11 @@ export function ImportDialog({
             />
           </label>
           <p className="inline-note">
-            正式服务中，将导入地址配置到第三方客户端，模型名可任意填写。在目标窗口再发送一条消息，请求携带的历史便会进入收件箱。
+            将发布的地址和 Key
+            填入第三方客户端，模型名可任意填写。在已有对话中发送一条消息，随请求发来的上下文会成为一份待归档收件。
           </p>
           <div className="delivery-details">
-            <span className="muted-label">示例地址 · 不可连接</span>
+            <span className="muted-label">对话 API 示例地址 · 尚未发布</span>
             <code className="inline-code">
               https://context-hub.invalid
               {protocols.find((x) => x.value === d.protocol)?.label}
@@ -204,7 +218,7 @@ export function ImportDialog({
             )}
           </div>
           <div className="surface">
-            <h3 className="import-json-title">在本地验证请求解析</h3>
+            <h3 className="import-json-title">模拟接收客户端上下文</h3>
             <p className="inline-note">
               把客户端请求 JSON
               粘贴在下面，可以实际测试完整轮次归组。无需连接接口，也无需密钥。
@@ -266,6 +280,7 @@ export function ImportDialog({
                       source: protocols.find((x) => x.value === d.protocol)!
                         .label,
                       kind: 'conversation',
+                      channel: 'api',
                       createdAt: now(),
                       turns,
                       warning:
@@ -295,23 +310,41 @@ export function ImportDialog({
     </Modal>
   );
 }
-export function InboxPage({
-  uploads,
-  workspaces,
-  currentId,
-  onUploads,
-  onImport,
-  onSummary,
-  onNewImport,
-}: {
+type UploadReviewProps = {
   uploads: Upload[];
   workspaces: Workspace[];
   currentId: string;
-  onUploads: (u: Upload[]) => void;
+  onUpdate: (u: Upload) => void;
+  onRemove: (id: string) => void;
   onImport: (u: Upload, target: string) => void;
   onSummary: (u: Upload, w: Workspace, mode: 'keep' | 'rewind') => void;
-  onNewImport: () => void;
-}) {
+};
+
+export function InboxPage(props: UploadReviewProps) {
+  return (
+    <>
+      <div className="section-heading compact">
+        <PageTitle>收件箱</PageTitle>
+        <span className="muted-label">对话 API 投递</span>
+      </div>
+      <p className="inbox-description">
+        只接收第三方客户端通过对话 API 发来的上下文，确认后归档到手账。
+      </p>
+      <UploadReview {...props} delivery />
+    </>
+  );
+}
+
+export function UploadReview({
+  uploads,
+  workspaces,
+  currentId,
+  onUpdate,
+  onRemove,
+  onImport,
+  onSummary,
+  delivery = false,
+}: UploadReviewProps & { delivery?: boolean }) {
   const [selected, setSelected] = useState(uploads[0]?.id),
     [target, setTarget] = useState(currentId),
     [checked, setChecked] = useState<string[]>([]),
@@ -322,7 +355,7 @@ export function InboxPage({
     (w) => w.id === (u?.kind === 'summary' ? u.workspaceId : target),
   );
   function edit(p: Partial<Upload>) {
-    if (u) onUploads(uploads.map((x) => (x.id === u.id ? { ...x, ...p } : x)));
+    if (u) onUpdate({ ...u, ...p });
   }
   const candidate: Summary = {
     id: `candidate-${u?.id}`,
@@ -333,20 +366,11 @@ export function InboxPage({
   };
   return (
     <>
-      <div className="section-heading compact">
-        <div>
-          <PageTitle>收件箱</PageTitle>
-        </div>
-        <Button primary onClick={onNewImport}>
-          <Plus size={15} />
-          收录对话
-        </Button>
-      </div>
       {uploads.length ? (
         <div className="inbox-layout">
           <aside className="inbox-list">
             <div className="surface-head">
-              <h2>待归档</h2>
+              <h2>{delivery ? '待归档上下文' : '待确认内容'}</h2>
               <span className="pill">{uploads.length} 份</span>
             </div>
             {uploads.map((x) => (
@@ -397,7 +421,7 @@ export function InboxPage({
                   </p>
                 </div>
                 <button
-                  aria-label="删除整份上传"
+                  aria-label="删除这份待确认内容"
                   className="icon-button"
                   onClick={() => setRemove(true)}
                 >
@@ -464,7 +488,7 @@ export function InboxPage({
                 {u.kind === 'summary' ? (
                   <>
                     <p className="inline-note">
-                      将替换「{w?.name ?? '来源工作区不存在'}
+                      将替换「{w?.name ?? '来源手账不存在'}
                       」的活跃摘要，并由你选择水位是否跟随。
                     </p>
                     <Button
@@ -473,7 +497,7 @@ export function InboxPage({
                       onClick={() => setRestore(true)}
                     >
                       <Check size={15} />
-                      替换到活跃摘要
+                      设为活跃摘要
                     </Button>
                   </>
                 ) : (
@@ -509,14 +533,13 @@ export function InboxPage({
         </div>
       ) : (
         <Empty
-          title="所有来信，都已收好"
-          detail="导入的对话与工作台生成的候选摘要，会先停在这里。"
-        >
-          <Button primary onClick={onNewImport}>
-            <Plus size={15} />
-            收录一段对话
-          </Button>
-        </Empty>
+          title={delivery ? '暂无待归档上下文' : '没有待确认内容'}
+          detail={
+            delivery
+              ? '通过「收录对话 → 发布对话 API」查看接入方式。在第三方客户端配置后，发送一条消息即可投递上下文。'
+              : '已有内容已处理，可以关闭窗口继续。'
+          }
+        />
       )}
       {restore && u && w && (
         <RestoreDialog
@@ -537,13 +560,13 @@ export function InboxPage({
         >
           <p className="callout warning">
             「{u.title}
-            」将从收件箱永久删除。这里尚未归档的内容无法从原文回收站恢复。
+            」将永久删除。这份尚未归档的内容无法从原文回收站恢复。
           </p>
           <div className="form-actions">
             <Button onClick={() => setRemove(false)}>保留</Button>
             <Button
               onClick={() => {
-                onUploads(uploads.filter((x) => x.id !== u.id));
+                onRemove(u.id);
                 setRemove(false);
                 setChecked([]);
               }}

@@ -27,12 +27,16 @@ const tools = [
     '记忆注入',
     '新窗口或严重上下文遗忘时读取编排后的记忆包',
   ],
-  ['notes_list', '查看笔记列表', '返回 id、标题；标星条目附 50 字预览'],
-  ['note_read', '按 id 读笔记', '返回指定正常状态笔记的全文'],
-  ['note_create', '创建笔记', '必须明确指定 star 为 true 或 false'],
-  ['note_replace', '精准修改笔记', '匹配原文替换，保留少量历史版本'],
-  ['memory_search', '搜索记忆', '按完整轮次检索原文、摘要和笔记'],
-  ['conversation_import', '导入分享链接', '解析后放入收件箱，由用户归档'],
+  ['notes_list', '查看 Note 列表', '返回 id、标题；标星条目附 50 字预览'],
+  ['note_read', '按 id 读 Note', '返回指定正常状态 Note 的全文'],
+  ['note_create', '创建 Note', '必须明确指定 star 为 true 或 false'],
+  ['note_replace', '精准修改 Note', '匹配原文替换，保留少量历史版本'],
+  ['memory_search', '搜索记忆', '按完整轮次检索原文、摘要和 Note'],
+  [
+    'conversation_import',
+    '导入分享链接',
+    '解析后在分享导入流程中预览，由用户确认归档',
+  ],
 ];
 export function ConnectionsPage({
   w,
@@ -92,7 +96,7 @@ export function ConnectionsPage({
         <div>
           <h2>{w.name}</h2>
           <p>
-            当前连接仅属于这本手账。其他工作区的原文、摘要与 Note
+            当前连接仅属于这本手账。其他手账的原文、摘要与 Note
             不包含在授权范围中。
           </p>
         </div>
@@ -256,7 +260,7 @@ export function ConnectionsPage({
           <h2>手账封面</h2>
         </div>
         <label className="field">
-          工作区名称
+          手账名称
           <input
             value={d.workspaceName}
             onChange={(e) => setD({ ...d, workspaceName: e.target.value })}
@@ -298,8 +302,8 @@ export function ConnectionsPage({
             />
           </label>
           <p className="callout">
-            授权读取本工作区记忆，以及创建和精准修改
-            Note。导入对话先进入收件箱，不直接覆盖原文。
+            授权读取本手账记忆，以及创建和精准修改
+            Note。分享链接导入需用户确认，不直接覆盖原文。
           </p>
           <div className="form-actions">
             <span className="save-caption">
@@ -337,7 +341,7 @@ export function ConnectionsPage({
             <li>读取这本手账的记忆包、正常状态的原文与 Note</li>
             <li>创建 Note，并明确设置是否标星</li>
             <li>精准修改 Note，保留历史版本</li>
-            <li>将分享链接导入到收件箱，等待你归档</li>
+            <li>提交分享链接导入，等待你预览并归档</li>
           </ul>
           <p className="callout">
             你可以在连接列表随时吊销。其他手账不在本次授权范围内。

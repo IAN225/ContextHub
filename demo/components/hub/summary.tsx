@@ -381,10 +381,14 @@ function Workbench({
   w,
   onCreate,
   onClose,
+  pendingCount,
+  onReview,
 }: {
   w: Workspace;
   onCreate: (u: Upload) => void;
   onClose: () => void;
+  pendingCount: number;
+  onReview: () => void;
 }) {
   const [d, setD, p] = usePersistent(`workbench-${w.id}`, {
     summaryId: w.activeId ?? '',
@@ -399,9 +403,21 @@ function Workbench({
   return (
     <Modal
       title="摘要工作台"
-      description="选择任意历史摘要和重点原文，组合生成一份候选摘要；结果先进入收件箱。"
+      description="选择历史摘要和重点原文生成候选，预览确认后再设为活跃摘要。"
       onClose={onClose}
     >
+      {pendingCount > 0 && (
+        <div className="workbench-pending">
+          <Button
+            onClick={() => {
+              onClose();
+              onReview();
+            }}
+          >
+            查看待确认候选（{pendingCount}）
+          </Button>
+        </div>
+      )}
       <label className="field">
         起始摘要
         <Picker
@@ -466,6 +482,7 @@ function Workbench({
               id: uid(),
               title: '工作台候选摘要',
               kind: 'summary',
+              channel: 'workbench',
               source: '摘要工作台 · 模拟生成',
               turns: [],
               workspaceId: w.id,
@@ -486,7 +503,7 @@ function Workbench({
           }}
         >
           <FlaskConical size={15} />
-          模拟生成并送入收件箱
+          生成候选并预览（模拟）
         </Button>
       </div>
       {!w.config.configured && (
@@ -499,10 +516,14 @@ export function SummaryPage({
   w,
   onChange,
   onUpload,
+  pendingCount,
+  onReview,
 }: {
   w: Workspace;
   onChange: (w: Workspace) => void;
   onUpload: (u: Upload) => void;
+  pendingCount: number;
+  onReview: () => void;
 }) {
   const [selected, setSelected] = useState(w.activeId),
     [modal, setModal] = useState(''),
@@ -762,7 +783,13 @@ export function SummaryPage({
         <ModelSettings w={w} onChange={onChange} onClose={() => setModal('')} />
       )}{' '}
       {modal === 'workbench' && (
-        <Workbench w={w} onCreate={onUpload} onClose={() => setModal('')} />
+        <Workbench
+          w={w}
+          onCreate={onUpload}
+          onClose={() => setModal('')}
+          pendingCount={pendingCount}
+          onReview={onReview}
+        />
       )}{' '}
       {restore && (
         <RestoreDialog

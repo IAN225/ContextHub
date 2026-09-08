@@ -933,9 +933,22 @@ textarea::placeholder {
   border-color: #93a87c;
 }
 .detail-tabs {
+  min-height: 49px;
+  height: auto;
+  flex-wrap: wrap;
+  gap: 8px;
   border-bottom-color: #e6eadc;
 }
-.detail-tabs > span {
+.detail-view-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-left: auto;
+  padding: 5px 0;
+}
+.detail-view-options > span {
   color: #9eae86;
 }
 .message-avatar {
@@ -2522,7 +2535,7 @@ textarea::placeholder {
   .detail-tabs {
     padding: 0 13px;
   }
-  .detail-tabs > span {
+  .detail-view-options > span {
     font-size: 8px;
   }
   .conversation-text {
@@ -3236,7 +3249,7 @@ textarea::placeholder {
 .chain-labels,
 .timeline-bottom,
 .metadata-line,
-.detail-tabs > span,
+.detail-view-options > span,
 .message-label,
 .render-toggle,
 .note-metadata,
@@ -3617,7 +3630,7 @@ textarea::placeholder {
     font-size: 10px;
     line-height: 1.7;
   }
-  .detail-tabs > span {
+  .detail-view-options > span {
     font-size: 10px;
   }
   .detail-tabs .segments [data-slot='tabs-trigger'] {
@@ -4421,18 +4434,26 @@ body {
   flex: 1;
   min-width: 0;
   text-align: left;
-  padding: 4px;
+  padding: 7px 4px;
+}
+.memory-block-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+  white-space: nowrap;
 }
 .memory-block-open strong {
-  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 13px;
   font-weight: 600;
 }
 .memory-block-open small {
-  display: block;
-  font-size: 10px;
+  flex-shrink: 0;
+  font-size: 11px;
   opacity: 0.72;
-  margin-top: 2px;
 }
 .memory-block-row .icon-button {
   flex-shrink: 0;
@@ -4441,18 +4462,15 @@ body {
   color: inherit;
 }
 .memory-block-preview {
-  display: block;
+  display: -webkit-box;
   text-align: left;
   width: 100%;
-  padding: 0 13px 12px 43px;
+  margin-top: 4px;
   font-size: 12px;
   line-height: 1.7;
   color: inherit;
   opacity: 0.85;
   overflow-wrap: anywhere;
-}
-.memory-block-preview > span {
-  display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
