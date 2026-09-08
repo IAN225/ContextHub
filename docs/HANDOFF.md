@@ -22,6 +22,7 @@
 - 移动端固定顶部与五等分菜单，仅主内容区纵向滚动；时间轴水平手势不带动整个页面。标题为简短单行，压缩留白与检查点列表高度。
 - 后续精简：移除白色区域内重复工作区名称，手机顶栏保留可截断的名称。手动插入集中在轮次详情底部的前/后插入；真正空工作区提供“写下第一轮”，搜索无结果不会出现该入口。收录弹窗仅保留分享链接/API 投递，旧粘贴标签草稿回落到链接标签且保留其他字段。
 - 原文覆盖图的小书签按完整原文链定位，搜索不重排位置；弃用与回收站保留为不参与召回的灰色区段。摘要页仍显示正常轮次覆盖图。鼠标选中时间节点后用方向键切换不显示外框，Tab 进入仍有键盘焦点提示。
+- 记忆包移除重复预览入口与编排标题行，恢复默认移到页首，实时预览仅保留一行标题、字符数与复制。每个组件可打开编辑；修改摘要、窗口轮数、Note id 选择只保存到组件，不影响源摘要、原文窗口配置或 Note 标星。修改后分别标为自定义摘要、自选滑动窗口、自选 Note id 列表，删除后重新添加恢复动态引用。删除按钮位于编辑窗口内。鼠标与触屏共用 Pointer Events 排序，松手前即补位，带占位框、浮动卡片和补位动画；Escape/触控取消恢复拖动前顺序。
 
 ## 代码入口
 
@@ -30,6 +31,7 @@
 - `demo/components/hub/transcript.tsx`：104px 间距的原生滚动时间轴；桌面 wheel 与触屏惯性分离。
 - `demo/components/hub/input-modality.tsx`：输入方式与焦点视觉。
 - `demo/components/hub/shared.tsx`：基础组件与统一页面标题。
+- `demo/components/hub/memory-composer.tsx`：记忆包专用编排、触摸排序及组件编辑；摘要提示词编排仍使用 shared 内原组件。
 - `demo/lib/domain.ts`：轮次、摘要水位、覆盖、记忆包规则。
 - `demo/lib/import.ts`：Chat Completions / Responses / Anthropic Messages 结构导入。
 - `demo/lib/store.ts`：IndexedDB 持久化。
@@ -58,6 +60,8 @@ node tests/workspace-controls.mjs
 ```
 
 当前桌面环境通过 `NODE_PATH` 使用 Codex 随附的 Playwright；其他设备可在独立工具目录安装 Playwright 后配置 `NODE_PATH`，或将其正式加入项目开发依赖。截图写入被忽略的 `demo/outputs/`。测试启动独立浏览器上下文，不使用当前用户的浏览器资料。
+
+记忆包编辑补充验证（2026-09-08）：15 项领域/导入测试、TypeScript、应用代码 lint、Vinext 构建通过；`node tests/memory-composer.mjs` 检查桌面鼠标及 320/390px Chrome 触屏事件的松手前排序、组件编辑、源数据隔离、刷新保存、删除重加恢复引用及紧凑布局。移动端各章节布局与时间轴触屏回归通过。实体手机/Safari 仍待实际验收。
 
 ## 已知限制与下一步
 

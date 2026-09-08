@@ -47,6 +47,9 @@ export type Block = {
   id: string;
   type: 'text' | 'summary' | 'recent' | 'stars';
   text?: string;
+  custom?: boolean;
+  windowLength?: number;
+  noteIds?: string[];
 };
 export type Token = {
   id: string;
@@ -216,17 +219,37 @@ export function memoryText(w: Workspace, blocks = w.blocks) {
     .map((b) => {
       if (b.type === 'text') return b.text ?? '';
       if (b.type === 'summary')
-        return `[当前活跃摘要]\n${c.active?.text ?? '尚无活跃摘要'}`;
+        return b.custom
+          ? `[自定义摘要]\n${b.text ?? ''}`
+          : `[当前活跃摘要]\n${c.active?.text ?? '尚无活跃摘要'}`;
       if (b.type === 'stars')
-        return `[标星 Note id 列表]\n${
-          w.notes
-            .filter((n) => n.star && n.status === 'normal')
+        return `[${b.custom ? '自选 Note id 列表' : '标星 Note id 列表'}]\n${
+          memoryNotes(w, b)
             .map((n) => `${n.id} · ${n.title}`)
-            .join('\n') || '暂无标星笔记'
+            .join('\n') || (b.custom ? '未选择笔记' : '暂无标星笔记')
         }`;
-      return `[近期原文]\n${c.recent.map((t) => t.messages.map((m) => `${m.role}: ${m.content}`).join('\n')).join('\n\n')}`;
+      const turns = b.custom
+        ? coverage({
+            ...w,
+            retain: Math.max(0, Math.floor(b.windowLength ?? 0)),
+          }).recent
+        : c.recent;
+      return `[${b.custom ? '自选滑动窗口' : '近期原文'}]\n${turns.map((t) => t.messages.map((m) => `${m.role}: ${m.content}`).join('\n')).join('\n\n')}`;
     })
     .join('\n\n');
+}
+export function memoryNotes(w: Workspace, b: Block) {
+  if (!b.custom) return w.notes.filter((n) => n.star && n.status === 'normal');
+  return [...new Set(b.noteIds ?? [])].flatMap((id) => {
+    const note = w.notes.find((n) => n.id === id && n.status === 'normal');
+    return note ? [note] : [];
+  });
+}
+export function memoryBlockLabel(b: Block) {
+  if (b.type === 'text') return '自定义文本';
+  if (b.type === 'summary') return b.custom ? '自定义摘要' : '当前活跃摘要';
+  if (b.type === 'recent') return b.custom ? '自选滑动窗口' : '原文滑动窗口';
+  return b.custom ? '自选 Note id 列表' : '标星 Note id 列表';
 }
 export function blankWorkspace(name: string, platform = '手动导入'): Workspace {
   return {
