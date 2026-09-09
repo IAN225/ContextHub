@@ -26,7 +26,7 @@
 
 ## 代码入口
 
-此前改动和后续前端重构顺序见 [2026-09-09 修改记录与前端重构计划](2026-09-09-frontend-progress.md)。第一阶段状态与持久化边界已完成，接口与验证详见 [第一阶段接续记录](2026-09-09-state-persistence-progress.md)。第二阶段 CSS 归属整理已完成，见 [第二阶段接续记录](2026-09-09-css-ownership-progress.md) 与 [样式归属与演进约定](frontend-styles.md)。接下来可以进行第三阶段复杂组件拆分，仍保留本地 Demo 范围。
+此前改动和后续前端重构顺序见 [2026-09-09 修改记录与前端重构计划](2026-09-09-frontend-progress.md)。前三阶段均已完成：[状态与持久化](2026-09-09-state-persistence-progress.md)、[CSS 归属](2026-09-09-css-ownership-progress.md)、[复杂组件拆分](2026-09-09-component-boundaries-progress.md)。定位代码与样式见 [组件职责](frontend-components.md) 和 [样式归属](frontend-styles.md)。接下来是第四阶段性能测量与回归，仍保留本地 Demo 范围。
 
 用户补充的长期要求：现有 Demo 是正式产品的视觉基准，重构要组件化、模块化，能直接定位样式所属组件，并按主题、共用控件、外壳、章节顺序演进风格。正式产品复用同一套前端源代码；不要另外复制出一套页面与 CSS。
 
@@ -38,10 +38,12 @@
 
 - `demo/app/page.tsx`：工作区外壳、章节状态和移动端章节滚动位置。
 - `demo/app/globals.css`：框架与全局基础；`theme.css`：主题变量；`styles.css`：唯一组件样式入口。原 `journal.css` 已迁出并删除，各章节规则位于相邻的 `components/hub/*.css`，完整对应表见样式约定。紧凑布局与断点跟随所属组件，封面比例仍统一为 0.72。`--notebook-open-duration` 与 `page.tsx` 的进入延时保持一致。
-- `demo/components/hub/transcript.tsx`：104px 间距的原生滚动时间轴；桌面 wheel 与触屏惯性分离。
+- `demo/components/hub/transcript.tsx`：原文章节协调；`use-transcript-navigation.ts` 负责原生滚动与选择，`transcript-timeline.tsx` / `turn-detail.tsx` 负责展示。104px 间距与现有手势保留。
 - `demo/components/hub/input-modality.tsx`：输入方式与焦点视觉。
 - `demo/components/hub/shared.tsx`：基础组件与统一页面标题。
-- `demo/components/hub/memory-composer.tsx`：记忆包专用编排、触摸排序及组件编辑；摘要提示词编排仍使用 shared 内原组件。
+- `demo/components/hub/memory-composer.tsx`：记忆包编排协调；`use-memory-reorder.ts` 负责排序，`memory-block-card.tsx` / `memory-block-editor.tsx` 负责卡片与编辑。摘要提示词编排仍使用 shared 内原组件。
+- `demo/components/hub/summary.tsx`：摘要章节；设置、工作台、回退确认分别位于 `summary-model-settings.tsx`、`summary-workbench.tsx`、`summary-restore-dialog.tsx`。
+- `demo/components/hub/import-dialog.tsx`：导入入口；`upload-review.tsx`：收件确认状态；`upload-turn-preview.tsx` / `upload-archive-actions.tsx`：完整轮次预览与归档选择。
 - `demo/components/hub/inbox-pet.tsx`、`inbox-pet.css`：无件／抱信两态像素图标；`inbox.css`：API 收件说明与非 API 确认窗口的局部布局。
 - `demo/components/hub/note-actions.tsx`、`note-actions.css`：Note 新建与搜索、展开聚焦和退出收起。
 - `demo/lib/domain.ts`：轮次、摘要水位、覆盖、记忆包规则。
@@ -52,6 +54,8 @@
 - `docs/superpowers/`：早期设计与实现计划；具体交互状态以当前源码及本说明为准。
 
 ## 最近验证结果
+
+第三阶段补充：37 项 Node 测试、TypeScript、应用范围 lint、生产构建、六组既有浏览器回归通过；新增四项组件生命周期场景在生产预览通过。从 `a83e48d` 基线到本次生产构建，四种宽度、56 个界面状态对照通过。仅拆职责，CSS、数据接口、存储键与手势算法保持不变。详见第三阶段接续记录。
 
 第二阶段补充：37 项 Node 测试、TypeScript、应用代码 lint、生产构建与五组既有交互回归通过。以 `eaad5bc` 为视觉基线，和本次生产构建对比四种宽度、56 个状态通过。截图稳定化、像素容差与验收边界详见第二阶段接续记录；既有触屏惯性问题和实体手机验收仍保留。
 

@@ -6,7 +6,7 @@
 
 正式产品继续使用 `demo/components/hub/` 中的组件、样式和主题。接入真实数据时替换数据与服务适配层，或整体迁移前端目录；不要复制出另一套“正式版页面/CSS”独立修改。Demo 与正式产品保持同一个前端来源，避免两套实现逐渐产生差异。
 
-本轮只整理 CSS 归属。复杂 TSX 组件的拆分是下一阶段；不因为样式拆分就同时改 DOM、状态或交互。
+第二阶段整理 CSS 归属，第三阶段已按职责拆分复杂 TSX，见 [组件职责与状态边界](frontend-components.md)。两阶段均保持现有 DOM、样式与交互；下表中的章节入口继续对应同组子组件。
 
 ## 入口与定位
 
@@ -27,14 +27,14 @@
 | 富文本工具栏、编辑预览、附件 | `components/hub/editors.css` | `editors.tsx` |
 | 工作区外壳、顶栏、章节菜单、纸张容器、移动端滚动区、通知 | `components/hub/shell.css` | `app/page.tsx` |
 | 首页书架、笔记本封面、进入反馈 | `components/hub/home.css` | `home.tsx` |
-| 原文时间轴、刻度、轮次详情、消息、Payload/元数据 | `components/hub/transcript.css` | `transcript.tsx` |
-| 摘要检查点、摘要纸张、控制区、工作台 | `components/hub/summary.css` | `summary.tsx` |
+| 原文时间轴、刻度、轮次详情、消息、Payload/元数据 | `components/hub/transcript.css` | `transcript.tsx`、`transcript-timeline.tsx`、`turn-detail.tsx` |
+| 摘要检查点、摘要纸张、控制区、工作台 | `components/hub/summary.css` | `summary.tsx`、`summary-workbench.tsx`、`summary-model-settings.tsx`、`summary-restore-dialog.tsx` |
 | Note 列表、正文、历史版本 | `components/hub/notes.css` | `notes.tsx` |
 | Note 新建与展开搜索控件 | `components/hub/note-actions.css` | `note-actions.tsx` |
-| 记忆包预览、块排序、拖动浮层、块编辑窗口 | `components/hub/memory.css` | `memory.tsx`、`memory-composer.tsx` |
+| 记忆包预览、块排序、拖动浮层、块编辑窗口 | `components/hub/memory.css` | `memory.tsx`、`memory-composer.tsx`、`memory-block-card.tsx`、`memory-block-editor.tsx` |
 | 连接、授权演示、工具目录、手账设置 | `components/hub/connections.css` | `connections.tsx` |
 | 全局搜索与结果列表 | `components/hub/search.css` | `search.tsx` |
-| 收件内容、导入布局、轮次预览与归档区 | `components/hub/inbox-content.css` | `inbox.tsx` |
+| 收件内容、导入布局、轮次预览与归档区 | `components/hub/inbox-content.css` | `import-dialog.tsx`、`upload-review.tsx`、`upload-turn-preview.tsx`、`upload-archive-actions.tsx` |
 | API 收件说明、候选确认弹窗中的收件布局 | `components/hub/inbox.css` | `inbox.tsx`、`app/page.tsx` |
 | 像素小猫、数量提醒、浮动动画 | `components/hub/inbox-pet.css` | `inbox-pet.tsx` |
 
