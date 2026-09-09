@@ -4,12 +4,13 @@ import { ArrowUpRight, RotateCcw, StickyNote } from 'lucide-react';
 import { Button, PageTitle, Markdown, CopyButton, Modal } from './shared';
 import { MemoryComposer } from './memory-composer';
 import { memoryText, memoryNotes, uid, type Workspace } from '@/lib/domain';
+import type { SendWorkspaceCommand } from '@/lib/hub-state';
 export function MemoryPage({
   w,
-  onChange,
+  onCommand,
 }: {
   w: Workspace;
-  onChange: (w: Workspace) => void;
+  onCommand: SendWorkspaceCommand;
 }) {
   const [noteId, setNoteId] = useState<string | null>(null);
   const text = memoryText(w);
@@ -26,8 +27,8 @@ export function MemoryPage({
         <PageTitle>记忆包</PageTitle>
         <Button
           onClick={() =>
-            onChange({
-              ...w,
+            onCommand({
+              type: 'memory/set',
               blocks: [
                 { id: uid(), type: 'summary' },
                 { id: uid(), type: 'recent' },
@@ -44,7 +45,7 @@ export function MemoryPage({
         <section aria-label="记忆包编排" className="memory-composer-pane">
           <MemoryComposer
             w={w}
-            onChange={(blocks) => onChange({ ...w, blocks })}
+            onChange={(blocks) => onCommand({ type: 'memory/set', blocks })}
           />
           <p className="field-help memory-composer-help">
             拖动把手排序 · 点击组件编辑 · 修改自动保存
@@ -64,7 +65,7 @@ export function MemoryPage({
       {notes.length > 0 && (
         <section className="memory-notes">
           <div className="surface-head">
-            <h2>按 id 读取的笔记</h2>
+            <h2>按 id 读取 Note</h2>
             <small>{notes.length} 条</small>
           </div>
           {notes.map((n) => (

@@ -1,0 +1,68 @@
+/* shared-content: see docs/frontend-styles.md for ownership and load order. */
+
+.raw-text,
+.markdown {
+  overflow-wrap: anywhere;
+}
+.raw-text {
+  white-space: pre-wrap;
+  margin: 0;
+}
+.markdown p {
+  margin: 0;
+}
+.markdown h3 {
+  font-size: 15px;
+  margin: 12px 0 7px;
+  font-weight: 550;
+}
+.paragraph-space {
+  height: 12px;
+}
+.markdown pre,
+.tool-text {
+  font-size: 12px;
+  padding: 10px;
+  border-radius: 5px;
+  overflow-x: auto;
+}
+.list-line {
+  padding-left: 16px;
+  position: relative;
+}
+.list-line::before {
+  content: '·';
+  position: absolute;
+  left: 2px;
+}
+.raw-text,
+.markdown {
+  color: #737b65;
+  line-height: 2;
+}
+.markdown strong {
+  color: #5b6a4a;
+  font-weight: 550;
+}
+.markdown h3 {
+  color: #5e7050;
+}
+.markdown pre,
+.tool-text {
+  background: #f2f5ec;
+  color: #748865;
+}
+.list-line::before {
+  color: #93a675;
+}
+.raw-text,
+.markdown {
+  font-size: 16px;
+}
+@media (max-width: 480px) {
+  .raw-text,
+  .markdown {
+    font-size: 15px;
+    line-height: 1.95;
+  }
+}

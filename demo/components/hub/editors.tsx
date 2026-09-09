@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Button, Modal, Markdown, Picker } from './shared';
 import { usePersistent } from '@/lib/store';
+import type { StorageEntry } from '@/lib/repository';
 import {
   uid,
   type Attachment,
@@ -152,7 +153,7 @@ export function TurnEditor({
   w: Workspace;
   turn?: Turn;
   afterId: string | null;
-  onSave: (turn: Turn) => void;
+  onSave: (turn: Turn, draft: StorageEntry) => Promise<boolean>;
   onClose: () => void;
 }) {
   const initial: TurnDraft = {
@@ -205,10 +206,25 @@ export function TurnEditor({
           ? '保留每条消息的位置与工具调用结构。修改已有原文不会重写历史摘要。'
           : `插入位置：${position === 0 ? '原文链开头' : `第 ${position} 轮之后`}。输入与后续模型、工具消息作为一个整体保存。`
       }
-      onClose={onClose}
+      onClose={() => {
+        if (!save.busy) onClose();
+      }}
     >
       {!save.ready ? (
-        <p>恢复草稿中…</p>
+        <div>
+          <p role={save.error ? 'alert' : undefined}>
+            {save.error || '恢复草稿中…'}
+          </p>
+          {save.error && (
+            <Button
+              onClick={() => {
+                void save.retry();
+              }}
+            >
+              重试读取
+            </Button>
+          )}
+        </div>
       ) : (
         <>
           <div className="form-grid">
@@ -310,7 +326,9 @@ export function TurnEditor({
                   ? '✓ 草稿已保存到此浏览器'
                   : '正在保存草稿…'}
             </span>
-            <Button onClick={onClose}>关闭并保留草稿</Button>
+            <Button disabled={save.busy} onClick={onClose}>
+              关闭并保留草稿
+            </Button>
             <Button
               primary
               disabled={
@@ -340,9 +358,10 @@ export function TurnEditor({
                   title: '',
                 };
                 setReading(true);
-                const committed = await save.commit(turn ? draft : cleared);
+                await save.commitWith(turn ? draft : cleared, (entry) =>
+                  onSave(result, entry),
+                );
                 setReading(false);
-                if (committed) onSave(result);
               }}
             >
               <Check size={15} />
@@ -358,7 +377,11 @@ export function NewWorkspace({
   onCreate,
   onClose,
 }: {
-  onCreate: (name: string, platform: string) => void;
+  onCreate: (
+    name: string,
+    platform: string,
+    draft: StorageEntry,
+  ) => Promise<boolean>;
   onClose: () => void;
 }) {
   const [d, setD, p] = usePersistent('new-workspace-draft', {
@@ -367,12 +390,14 @@ export function NewWorkspace({
   });
   return (
     <Modal
-      title="每一个对话窗口，一个工作区"
-      description="原文、摘要、Note 和记忆包独立保存，连接授权也按工作区管理。"
-      onClose={onClose}
+      title="新建手账"
+      description="每本手账独立保存原文、摘要、Note 和记忆包，连接授权也按手账管理。"
+      onClose={() => {
+        if (!p.busy) onClose();
+      }}
     >
       <label className="field">
-        工作区名称
+        手账名称
         <input
           value={d.name}
           onChange={(e) => setD({ ...d, name: e.target.value })}
@@ -383,7 +408,7 @@ export function NewWorkspace({
         来源平台
         <Picker
           value={d.platform}
-          label="新工作区平台"
+          label="新手账平台"
           options={['ChatGPT', 'Claude', 'Chatbox', '其他'].map((v) => ({
             value: v,
             label: v,
@@ -396,18 +421,29 @@ export function NewWorkspace({
       </p>
       <div className="form-actions">
         <span className="save-caption">
-          {p.saved ? '✓ 草稿已保存' : '保存中…'}
+          {p.error || (p.saved ? '✓ 草稿已保存' : '保存中…')}
+          {p.error && (
+            <button
+              className="text-button"
+              onClick={() => {
+                void p.retry();
+              }}
+            >
+              {p.ready ? '重试保存' : '重试读取'}
+            </button>
+          )}
         </span>
         <Button
           primary
-          disabled={!d.name.trim() || !p.ready}
+          disabled={!d.name.trim() || !p.ready || p.busy}
           onClick={async () => {
-            if (!(await p.commit({ name: '', platform: 'ChatGPT' }))) return;
-            onCreate(d.name.trim(), d.platform);
+            await p.commitWith({ name: '', platform: 'ChatGPT' }, (entry) =>
+              onCreate(d.name.trim(), d.platform, entry),
+            );
           }}
         >
           <Plus size={15} />
-          创建工作区
+          创建手账
         </Button>
       </div>
     </Modal>

@@ -1,0 +1,1454 @@
+{
+  "baselineCommit": "535549e",
+  "candidateBranch": "codex/frontend-performance",
+  "environment": "Local Chrome headless, Vinext production, 1280x900, reduced motion, no CPU throttle",
+  "runsPerSize": 3,
+  "sizes": [208, 2000, 10000],
+  "sourceScript": "demo/tests/frontend-performance.mjs",
+  "timingUnits": "milliseconds",
+  "fixtureBytes": "JSON UTF-8, not IndexedDB disk usage",
+  "before": [
+    {
+      "size": 208,
+      "run": 1,
+      "dataBytes": 383009,
+      "timelineNodes": 1041,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 250,
+          "taskMs": 54,
+          "scriptMs": 19,
+          "layoutMs": 20,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 42,
+          "taskMs": 10,
+          "scriptMs": 3,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 46,
+          "taskMs": 11,
+          "scriptMs": 3,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 89,
+          "taskMs": 23,
+          "scriptMs": 10,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 45,
+          "taskMs": 16,
+          "scriptMs": 5,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 133,
+          "taskMs": 18,
+          "scriptMs": 7,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 857,
+          "taskMs": 358,
+          "scriptMs": 234,
+          "layoutMs": 28,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1229,
+          "taskMs": 5,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 208,
+      "run": 2,
+      "dataBytes": 383009,
+      "timelineNodes": 1041,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 118,
+          "taskMs": 64,
+          "scriptMs": 29,
+          "layoutMs": 18,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 44,
+          "taskMs": 12,
+          "scriptMs": 3,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 42,
+          "taskMs": 19,
+          "scriptMs": 6,
+          "layoutMs": 2,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 79,
+          "taskMs": 30,
+          "scriptMs": 14,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 48,
+          "taskMs": 16,
+          "scriptMs": 5,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 95,
+          "taskMs": 21,
+          "scriptMs": 8,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 1084,
+          "taskMs": 425,
+          "scriptMs": 275,
+          "layoutMs": 33,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1229,
+          "taskMs": 6,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 208,
+      "run": 3,
+      "dataBytes": 383009,
+      "timelineNodes": 1041,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 137,
+          "taskMs": 63,
+          "scriptMs": 26,
+          "layoutMs": 18,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 38,
+          "taskMs": 15,
+          "scriptMs": 4,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 28,
+          "taskMs": 10,
+          "scriptMs": 4,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 80,
+          "taskMs": 27,
+          "scriptMs": 13,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 42,
+          "taskMs": 19,
+          "scriptMs": 5,
+          "layoutMs": 6,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 92,
+          "taskMs": 20,
+          "scriptMs": 8,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 996,
+          "taskMs": 405,
+          "scriptMs": 261,
+          "layoutMs": 31,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1230,
+          "taskMs": 6,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 2000,
+      "run": 1,
+      "dataBytes": 3626940,
+      "timelineNodes": 10001,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 155,
+          "taskMs": 106,
+          "scriptMs": 30,
+          "layoutMs": 32,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 48,
+          "taskMs": 25,
+          "scriptMs": 8,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 45,
+          "taskMs": 26,
+          "scriptMs": 11,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 86,
+          "taskMs": 57,
+          "scriptMs": 18,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 47,
+          "taskMs": 25,
+          "scriptMs": 7,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 111,
+          "taskMs": 50,
+          "scriptMs": 24,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 1160,
+          "taskMs": 703,
+          "scriptMs": 508,
+          "layoutMs": 19,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1224,
+          "taskMs": 5,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 2000,
+      "run": 2,
+      "dataBytes": 3626940,
+      "timelineNodes": 10001,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 156,
+          "taskMs": 111,
+          "scriptMs": 32,
+          "layoutMs": 33,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 46,
+          "taskMs": 26,
+          "scriptMs": 8,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 46,
+          "taskMs": 23,
+          "scriptMs": 11,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 97,
+          "taskMs": 57,
+          "scriptMs": 18,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 62,
+          "taskMs": 32,
+          "scriptMs": 9,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 109,
+          "taskMs": 51,
+          "scriptMs": 26,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 1144,
+          "taskMs": 690,
+          "scriptMs": 505,
+          "layoutMs": 19,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1218,
+          "taskMs": 7,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 2000,
+      "run": 3,
+      "dataBytes": 3626940,
+      "timelineNodes": 10001,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 167,
+          "taskMs": 113,
+          "scriptMs": 35,
+          "layoutMs": 33,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 49,
+          "taskMs": 27,
+          "scriptMs": 8,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 46,
+          "taskMs": 23,
+          "scriptMs": 11,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 96,
+          "taskMs": 58,
+          "scriptMs": 18,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 47,
+          "taskMs": 25,
+          "scriptMs": 8,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 115,
+          "taskMs": 55,
+          "scriptMs": 28,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 1141,
+          "taskMs": 687,
+          "scriptMs": 500,
+          "layoutMs": 20,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1220,
+          "taskMs": 6,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 10000,
+      "run": 1,
+      "dataBytes": 18122942,
+      "timelineNodes": 50001,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 441,
+          "taskMs": 386,
+          "scriptMs": 73,
+          "layoutMs": 93,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 83,
+          "taskMs": 81,
+          "scriptMs": 34,
+          "layoutMs": 4,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 95,
+          "taskMs": 80,
+          "scriptMs": 44,
+          "layoutMs": 2,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 282,
+          "taskMs": 257,
+          "scriptMs": 66,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 113,
+          "taskMs": 112,
+          "scriptMs": 30,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 251,
+          "taskMs": 208,
+          "scriptMs": 94,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 5151,
+          "taskMs": 4972,
+          "scriptMs": 4049,
+          "layoutMs": 30,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1227,
+          "taskMs": 10,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 10000,
+      "run": 2,
+      "dataBytes": 18122942,
+      "timelineNodes": 50001,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 427,
+          "taskMs": 365,
+          "scriptMs": 73,
+          "layoutMs": 93,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 86,
+          "taskMs": 83,
+          "scriptMs": 39,
+          "layoutMs": 4,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 95,
+          "taskMs": 83,
+          "scriptMs": 45,
+          "layoutMs": 2,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 286,
+          "taskMs": 259,
+          "scriptMs": 67,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 106,
+          "taskMs": 104,
+          "scriptMs": 30,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 252,
+          "taskMs": 200,
+          "scriptMs": 91,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 5025,
+          "taskMs": 4790,
+          "scriptMs": 3925,
+          "layoutMs": 29,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1225,
+          "taskMs": 8,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 10000,
+      "run": 3,
+      "dataBytes": 18122942,
+      "timelineNodes": 50001,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 439,
+          "taskMs": 376,
+          "scriptMs": 73,
+          "layoutMs": 95,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 99,
+          "taskMs": 88,
+          "scriptMs": 35,
+          "layoutMs": 7,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 85,
+          "taskMs": 80,
+          "scriptMs": 44,
+          "layoutMs": 2,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 299,
+          "taskMs": 265,
+          "scriptMs": 67,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 114,
+          "taskMs": 111,
+          "scriptMs": 30,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 247,
+          "taskMs": 199,
+          "scriptMs": 90,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 5118,
+          "taskMs": 4927,
+          "scriptMs": 4027,
+          "layoutMs": 30,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1228,
+          "taskMs": 8,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    }
+  ],
+  "after": [
+    {
+      "size": 208,
+      "run": 1,
+      "dataBytes": 383009,
+      "timelineNodes": 1041,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 265,
+          "taskMs": 53,
+          "scriptMs": 20,
+          "layoutMs": 19,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 40,
+          "taskMs": 12,
+          "scriptMs": 3,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 33,
+          "taskMs": 8,
+          "scriptMs": 3,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 90,
+          "taskMs": 34,
+          "scriptMs": 15,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 50,
+          "taskMs": 15,
+          "scriptMs": 4,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 133,
+          "taskMs": 18,
+          "scriptMs": 7,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 882,
+          "taskMs": 362,
+          "scriptMs": 234,
+          "layoutMs": 30,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1225,
+          "taskMs": 5,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 208,
+      "run": 2,
+      "dataBytes": 383009,
+      "timelineNodes": 1041,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 112,
+          "taskMs": 62,
+          "scriptMs": 25,
+          "layoutMs": 19,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 46,
+          "taskMs": 13,
+          "scriptMs": 3,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 44,
+          "taskMs": 15,
+          "scriptMs": 5,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 90,
+          "taskMs": 30,
+          "scriptMs": 13,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 49,
+          "taskMs": 14,
+          "scriptMs": 3,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 91,
+          "taskMs": 28,
+          "scriptMs": 13,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 1093,
+          "taskMs": 427,
+          "scriptMs": 274,
+          "layoutMs": 36,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1232,
+          "taskMs": 5,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 208,
+      "run": 3,
+      "dataBytes": 383009,
+      "timelineNodes": 1041,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 125,
+          "taskMs": 54,
+          "scriptMs": 22,
+          "layoutMs": 18,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 42,
+          "taskMs": 18,
+          "scriptMs": 4,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 46,
+          "taskMs": 11,
+          "scriptMs": 4,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 70,
+          "taskMs": 25,
+          "scriptMs": 12,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 47,
+          "taskMs": 20,
+          "scriptMs": 5,
+          "layoutMs": 5,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 78,
+          "taskMs": 25,
+          "scriptMs": 12,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 1139,
+          "taskMs": 436,
+          "scriptMs": 274,
+          "layoutMs": 35,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1223,
+          "taskMs": 4,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 2000,
+      "run": 1,
+      "dataBytes": 3626940,
+      "timelineNodes": 87,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 105,
+          "taskMs": 44,
+          "scriptMs": 17,
+          "layoutMs": 17,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 30,
+          "taskMs": 12,
+          "scriptMs": 5,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 48,
+          "taskMs": 18,
+          "scriptMs": 6,
+          "layoutMs": 3,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 70,
+          "taskMs": 18,
+          "scriptMs": 8,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 49,
+          "taskMs": 16,
+          "scriptMs": 6,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 107,
+          "taskMs": 24,
+          "scriptMs": 9,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 1148,
+          "taskMs": 488,
+          "scriptMs": 297,
+          "layoutMs": 22,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1239,
+          "taskMs": 5,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 2000,
+      "run": 2,
+      "dataBytes": 3626940,
+      "timelineNodes": 87,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 108,
+          "taskMs": 44,
+          "scriptMs": 17,
+          "layoutMs": 17,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 46,
+          "taskMs": 14,
+          "scriptMs": 6,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 51,
+          "taskMs": 17,
+          "scriptMs": 6,
+          "layoutMs": 3,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 78,
+          "taskMs": 28,
+          "scriptMs": 15,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 63,
+          "taskMs": 33,
+          "scriptMs": 15,
+          "layoutMs": 5,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 92,
+          "taskMs": 28,
+          "scriptMs": 14,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 1121,
+          "taskMs": 491,
+          "scriptMs": 301,
+          "layoutMs": 22,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1225,
+          "taskMs": 6,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 2000,
+      "run": 3,
+      "dataBytes": 3626940,
+      "timelineNodes": 87,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 119,
+          "taskMs": 51,
+          "scriptMs": 21,
+          "layoutMs": 17,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 42,
+          "taskMs": 18,
+          "scriptMs": 7,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 48,
+          "taskMs": 20,
+          "scriptMs": 9,
+          "layoutMs": 3,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 77,
+          "taskMs": 28,
+          "scriptMs": 14,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 48,
+          "taskMs": 21,
+          "scriptMs": 10,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 98,
+          "taskMs": 23,
+          "scriptMs": 10,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 1141,
+          "taskMs": 504,
+          "scriptMs": 309,
+          "layoutMs": 22,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1225,
+          "taskMs": 6,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 10000,
+      "run": 1,
+      "dataBytes": 18122942,
+      "timelineNodes": 87,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 107,
+          "taskMs": 57,
+          "scriptMs": 20,
+          "layoutMs": 17,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 46,
+          "taskMs": 19,
+          "scriptMs": 11,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 66,
+          "taskMs": 28,
+          "scriptMs": 21,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 80,
+          "taskMs": 32,
+          "scriptMs": 20,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 64,
+          "taskMs": 42,
+          "scriptMs": 31,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 117,
+          "taskMs": 39,
+          "scriptMs": 17,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 1475,
+          "taskMs": 924,
+          "scriptMs": 503,
+          "layoutMs": 21,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1222,
+          "taskMs": 4,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 10000,
+      "run": 2,
+      "dataBytes": 18122942,
+      "timelineNodes": 87,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 108,
+          "taskMs": 51,
+          "scriptMs": 24,
+          "layoutMs": 17,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 43,
+          "taskMs": 38,
+          "scriptMs": 19,
+          "layoutMs": 2,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 50,
+          "taskMs": 21,
+          "scriptMs": 16,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 85,
+          "taskMs": 32,
+          "scriptMs": 20,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 65,
+          "taskMs": 36,
+          "scriptMs": 26,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 114,
+          "taskMs": 39,
+          "scriptMs": 15,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 1524,
+          "taskMs": 954,
+          "scriptMs": 533,
+          "layoutMs": 21,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1231,
+          "taskMs": 4,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    },
+    {
+      "size": 10000,
+      "run": 3,
+      "dataBytes": 18122942,
+      "timelineNodes": 87,
+      "measurements": [
+        {
+          "name": "openTranscript",
+          "elapsedMs": 90,
+          "taskMs": 48,
+          "scriptMs": 21,
+          "layoutMs": 17,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "jumpMiddle",
+          "elapsedMs": 48,
+          "taskMs": 29,
+          "scriptMs": 12,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "filterTranscript",
+          "elapsedMs": 48,
+          "taskMs": 22,
+          "scriptMs": 18,
+          "layoutMs": 1,
+          "writes": 0,
+          "mainWrites": 0
+        },
+        {
+          "name": "openSearch",
+          "elapsedMs": 84,
+          "taskMs": 31,
+          "scriptMs": 19,
+          "layoutMs": 2,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "searchCommon",
+          "elapsedMs": 65,
+          "taskMs": 34,
+          "scriptMs": 25,
+          "layoutMs": 4,
+          "writes": 1,
+          "mainWrites": 0
+        },
+        {
+          "name": "toggleNoteWithHiddenTranscriptAndSearch",
+          "elapsedMs": 122,
+          "taskMs": 39,
+          "scriptMs": 16,
+          "layoutMs": 1,
+          "writes": 1,
+          "mainWrites": 1
+        },
+        {
+          "name": "typeMemory24Characters",
+          "elapsedMs": 1514,
+          "taskMs": 940,
+          "scriptMs": 520,
+          "layoutMs": 20,
+          "writes": 24,
+          "mainWrites": 24
+        },
+        {
+          "name": "hiddenChaptersIdle",
+          "elapsedMs": 1226,
+          "taskMs": 5,
+          "scriptMs": 0,
+          "layoutMs": 0,
+          "writes": 0,
+          "mainWrites": 0
+        }
+      ]
+    }
+  ]
+}

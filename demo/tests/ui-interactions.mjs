@@ -12,11 +12,18 @@ try {
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('http://127.0.0.1:3000/');
+  await page.goto(process.env.BASE_URL ?? 'http://127.0.0.1:3000/');
   await page.locator('.notebook-item').first().click();
   await page.locator('.timeline-viewport').waitFor();
   await page.waitForFunction(
-    () => !document.documentElement.getAnimations({ subtree: true }).length,
+    () =>
+      !document.documentElement
+        .getAnimations({ subtree: true })
+        .some(
+          (a) =>
+            a.playState === 'running' &&
+            Number.isFinite(a.effect?.getComputedTiming().endTime),
+        ),
   );
   const origin = await page.evaluate(() => performance.timeOrigin);
   const shell = await page.locator('.journal-sheet').elementHandle();
@@ -151,6 +158,7 @@ try {
   });
   await page.waitForTimeout(80);
   const drifting = await rail.evaluate((e) => e.scrollLeft);
+  console.log('Touch release samples', { during, drifting });
   assert(drifting > during + 5, 'Fast release must keep moving with momentum');
   await cdp.send('Input.dispatchTouchEvent', {
     type: 'touchStart',

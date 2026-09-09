@@ -11,6 +11,12 @@ export type Attachment = {
   type: string;
   url: string;
 };
+export type ImportProvenance = {
+  parser: string;
+  version: number;
+  sourceUrl?: string;
+  issues: { code: string; message: string }[];
+};
 export type Turn = {
   id: string;
   title: string;
@@ -22,6 +28,7 @@ export type Turn = {
   attachments?: Attachment[];
   tokens?: number;
   cache?: number;
+  provenance?: ImportProvenance;
 };
 export type Summary = {
   id: string;
@@ -29,6 +36,11 @@ export type Summary = {
   text: string;
   covered: string[];
   createdAt: string;
+  generation?: {
+    model: string;
+    protocol: string;
+    usage?: { input?: number; output?: number };
+  };
 };
 export type Note = {
   id: string;
@@ -62,6 +74,7 @@ export type Token = {
 };
 export type Config = {
   configured: boolean;
+  modelEnabled?: boolean;
   auto: boolean;
   batch: number;
   review: boolean;
@@ -92,6 +105,7 @@ export type Workspace = {
   started: boolean;
   firstComplete?: boolean;
 };
+export type UploadChannel = 'api' | 'link' | 'manual' | 'workbench';
 export type Upload = {
   id: string;
   title: string;
@@ -103,7 +117,36 @@ export type Upload = {
   createdAt: string;
   workspaceId?: string;
   covered?: string[];
+  channel?: UploadChannel;
+  provenance?: ImportProvenance;
 };
+export function pendingUploads(
+  uploads: Upload[],
+  channel: UploadChannel,
+  workspaceId?: string,
+) {
+  return uploads.filter((u) => {
+    // Resolve older browser data without rewriting its source or provenance.
+    const origin = uploadChannel(u);
+    return (
+      origin === channel && (!workspaceId || u.workspaceId === workspaceId)
+    );
+  });
+}
+export function inboxUploads(uploads: Upload[]) {
+  return uploads.filter((u) => {
+    const channel = uploadChannel(u);
+    return channel === 'api' || channel === 'link';
+  });
+}
+export function uploadChannel(u: Upload): UploadChannel {
+  return u.kind === 'summary'
+    ? 'workbench'
+    : (u.channel ??
+        (/^\/v1\/(chat\/completions|responses|messages)$/.test(u.source)
+          ? 'api'
+          : 'link'));
+}
 export const uid = () =>
   globalThis.crypto?.randomUUID?.() ??
   `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -182,35 +225,6 @@ export function restoreSummary(
     ...w,
     activeId: id,
     watermark: mode === 'rewind' ? (last?.id ?? null) : w.watermark,
-  };
-}
-export function compressBatch(w: Workspace): Workspace {
-  const c = coverage(w),
-    batch = c.pending.slice(0, Math.max(1, w.config.batch));
-  if (!batch.length || !w.config.configured) return w;
-  const summary: Summary = {
-    id: uid(),
-    title: '增量摘要',
-    createdAt: now(),
-    covered: [
-      ...new Set([...(c.active?.covered ?? []), ...batch.map((t) => t.id)]),
-    ],
-    text: [
-      c.active?.text ?? '## 对话延续提示',
-      `\n### 新增记忆（演示摘录 · ${batch.length} 轮）`,
-      ...batch.map(
-        (t) =>
-          `- ${t.messages.find((m) => m.role === 'user')?.content.slice(0, 140) ?? t.title}`,
-      ),
-    ].join('\n'),
-  };
-  return {
-    ...w,
-    summaries: [...w.summaries, summary].slice(-30),
-    activeId: summary.id,
-    watermark: batch.at(-1)!.id,
-    started: true,
-    firstComplete: w.firstComplete || c.pending.length <= batch.length,
   };
 }
 export function memoryText(w: Workspace, blocks = w.blocks) {

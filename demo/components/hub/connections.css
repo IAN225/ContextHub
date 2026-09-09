@@ -1,0 +1,228 @@
+/* connections: see docs/frontend-styles.md for ownership and load order. */
+
+.connection-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 0;
+  border-bottom: 1px solid #303d40;
+}
+.connection-row > div {
+  flex: 1;
+  min-width: 0;
+}
+.connection-row h3 {
+  margin: 0 0 6px;
+}
+.connection-row p {
+  margin: 0;
+}
+.row-icon {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #3e554b;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+}
+@media (max-width: 767px) {
+  .connection-row {
+    gap: 9px;
+    flex-wrap: wrap;
+  }
+  .connection-row > div {
+    min-width: 150px;
+  }
+}
+.connection-row {
+  border-bottom-color: #dfe6d4;
+}
+.connection-row h3 {
+  color: #758863;
+}
+.connection-row p {
+  color: #93a17f;
+}
+.row-icon {
+  background: #e9f0df;
+  border-color: #d2dfbf;
+  color: #8ca56f;
+}
+.row-icon.orange {
+  background: #f3ece1;
+  border-color: #e6d7bf;
+  color: #b39870;
+}
+.connection-intro {
+  display: flex;
+  align-items: center;
+  color: #a5b98c;
+  border-top: 1px solid #dfe7d2;
+  border-bottom: 1px solid #dfe7d2;
+}
+.connection-intro h2 {
+  font-family: 'SimSun', serif;
+  color: #80976b;
+  font-size: 18px;
+  font-weight: 400;
+  margin: 0 0 9px;
+}
+.connection-intro p {
+  color: #96aa7e;
+  font-size: 12px;
+  line-height: 1.9;
+  margin: 0;
+}
+.connections-layout .connection-row {
+  gap: 12px;
+}
+.connections-layout .connection-row .button {
+  padding: 7px 9px;
+}
+.connections-layout .row-icon {
+  width: 33px;
+  height: 33px;
+}
+.connections-layout .page-description {
+  font-size: 13px;
+  line-height: 2;
+}
+.connections-layout .inline-code {
+  margin: 16px 0;
+}
+.connections-layout .inline-note {
+  margin: 16px 0 22px;
+}
+.connection-history {
+  border-top: 1px solid #dfe8d1;
+  padding-top: 25px;
+  margin-top: 35px;
+}
+.connection-history .connection-row h3 .pill {
+  margin-left: 5px;
+  font-size: 9px;
+}
+.connection-history .connection-row > div.action-row {
+  flex: 0 1 auto;
+}
+.connection-empty {
+  padding: 27px 0;
+  color: #a1b28c;
+}
+.tool-catalog {
+  margin-top: 35px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e8d3;
+}
+.tool-catalog > div:not(.surface-head) {
+  display: grid;
+  grid-template-columns: 155px 100px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid #e7ecde;
+  align-items: baseline;
+}
+.tool-catalog code {
+  color: #93a87b;
+}
+.tool-catalog strong {
+  color: #809966;
+  font-weight: 400;
+}
+.tool-catalog p {
+  color: #99aa84;
+  line-height: 1.9;
+  margin: 0;
+}
+.workspace-settings {
+  margin-top: 35px;
+}
+.workspace-settings .field {
+  max-width: 400px;
+  margin-bottom: 17px;
+}
+.oauth-bridge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  padding: 23px 0;
+  color: #8caa6f;
+  font-size: 14px;
+  flex-wrap: wrap;
+}
+@media (max-width: 800px) {
+  .tool-catalog > div:not(.surface-head) {
+    grid-template-columns: 150px minmax(0, 1fr);
+  }
+  .tool-catalog p {
+    grid-column: span 2;
+  }
+  .connection-history .connection-row {
+    gap: 11px;
+  }
+  .connection-history .connection-row > div.action-row {
+    flex: 0 1 100%;
+    padding-left: 50px;
+  }
+}
+@media (max-width: 480px) {
+  .tool-catalog > div:not(.surface-head) {
+    gap: 8px;
+  }
+  .tool-catalog .surface-head {
+    align-items: flex-start;
+    gap: 9px;
+  }
+  .tool-catalog .surface-head small {
+    line-height: 1.7;
+    max-width: 150px;
+  }
+  .connection-intro h2 {
+    font-size: 16px;
+  }
+  .connection-history .surface-head small {
+    font-size: 9px;
+  }
+  .connections-layout .page-description {
+    font-size: 12px;
+  }
+}
+.connection-row h3 {
+  font-size: 14px;
+}
+.connection-row p,
+.connections-layout .connection-row .button,
+.tool-catalog code,
+.tool-catalog p,
+.tool-catalog strong,
+.connection-empty {
+  font-size: 12px;
+}
+@media (max-width: 480px) {
+  .connections-layout .connection-row .button,
+  .connection-intro p,
+  .connection-history .connection-row p,
+  .tool-catalog code,
+  .tool-catalog strong,
+  .tool-catalog p {
+    font-size: 12px;
+  }
+  .tool-catalog > div:not(.surface-head) {
+    grid-template-columns: 150px minmax(0, 1fr);
+  }
+  .tool-catalog .surface-head small {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 760px) {
+  .connection-intro {
+    margin-top: 0;
+  }
+}
+.connection-intro {
+  padding: 12px 16px;
+  gap: 12px;
+  margin-bottom: 18px;
+}

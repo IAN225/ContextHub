@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { InputModality } from '@/components/hub/input-modality';
 import './globals.css';
-import './journal.css';
+import './styles.css';
 
 export const metadata: Metadata = {
   title: 'Context Hub · 让对话自然继续',

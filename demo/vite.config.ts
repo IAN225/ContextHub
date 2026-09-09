@@ -2,6 +2,9 @@ import { sites } from '@openai/sites-vite-plugin';
 import tailwindcss from '@tailwindcss/postcss';
 import vinext from 'vinext';
 import { defineConfig } from 'vite';
+import { fileURLToPath } from 'node:url';
+import { existsSync, readFileSync } from 'node:fs';
+import { parseEnv } from 'node:util';
 import hostingConfig from './.openai/hosting.json';
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
@@ -21,6 +24,7 @@ const localBindingConfig = {
           binding: d1,
           database_name: 'site-creator-d1',
           database_id: SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
+          migrations_dir: fileURLToPath(new URL('./drizzle', import.meta.url)),
         },
       ]
     : [],
@@ -34,7 +38,7 @@ const localBindingConfig = {
     : [],
 };
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ command }) => {
   // Keep Wrangler and Miniflare state project-local. These are non-secret tool
   // settings; application environment belongs in ignored `.env*` files.
   process.env.WRANGLER_WRITE_LOGS ??= 'false';
@@ -43,6 +47,25 @@ export default defineConfig(async () => {
 
   // Wrangler snapshots its log path while the Cloudflare plugin is imported.
   const { cloudflare } = await import('@cloudflare/vite-plugin');
+  // Dev-only secret bindings. Build never reads the private connection file and
+  // never embeds its contents in either client assets or the generated config.
+  const secretNames = [
+    'CONTEXT_HUB_SUMMARY_BASE_URL',
+    'CONTEXT_HUB_SUMMARY_MODEL',
+    'CONTEXT_HUB_SUMMARY_API_KEY',
+    'CONTEXT_HUB_SUMMARY_PROTOCOL',
+    'CONTEXT_HUB_SUMMARY_THINKING',
+  ];
+  if (command === 'serve') {
+    const path = fileURLToPath(
+      new URL('./.env.summary.local', import.meta.url),
+    );
+    if (existsSync(path)) {
+      const values = parseEnv(readFileSync(path, 'utf8'));
+      for (const name of secretNames)
+        if (values[name] !== undefined) process.env[name] = values[name];
+    }
+  }
 
   return {
     css: { postcss: { plugins: [tailwindcss()] } },
@@ -54,7 +77,12 @@ export default defineConfig(async () => {
       sites(),
       cloudflare({
         viteEnvironment: { name: 'rsc', childEnvironments: ['ssr'] },
-        config: localBindingConfig,
+        config: {
+          ...localBindingConfig,
+          ...(command === 'serve'
+            ? { secrets: { required: secretNames } }
+            : {}),
+        },
       }),
     ],
   };

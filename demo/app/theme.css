@@ -1,0 +1,152 @@
+/* Shared visual vocabulary. Preserve distinct shades instead of rounding them
+   to a new palette during structural refactors. */
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* Motion: notebook opening also coordinates with the timer in app/page.tsx. */
+  --motion-shelf: 0.55s ease;
+  --motion-reader: 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+  --motion-chapter: 140ms ease-out;
+  --notebook-open-duration: 380ms;
+  /* Existing dialog primitives use layer 50, between the pet and toast. */
+  --z-memory-drag: 90;
+  --z-toast: 70;
+  --z-inbox-pet: 40;
+  /* Shared control spacing; feature-specific geometry stays with the feature. */
+  --space-6: 24px;
+  --space-4: 16px;
+  --space-3: 12px;
+  --space-2: 8px;
+  --space-1: 4px;
+  /* Paper, ink, accent and boundaries. */
+  --line-input: #d9dccd;
+  --line-soft: #deddd0;
+  --focus-ring: #7b9367;
+  --accent-olive: #687c5e;
+  --ink-muted: #85867a;
+  --ink-body: #46503f;
+  --ink-strong: #393d34;
+  --paper-input: #fffef9;
+  --paper-surface: #fffdf8;
+  --paper-canvas: #f2efe8;
+  --scroll-thumb: #a6ae9570;
+  --scroll-thumb-hover: #889775a6;
+  /* Framework compatibility and typography. */
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: #14181a;
+  --sidebar-foreground: #a7b0b2;
+  --sidebar-primary: #92d2bb;
+  --sidebar-primary-foreground: #122821;
+  --sidebar-accent: #25352f;
+  --sidebar-accent-foreground: #c2e4d7;
+  --sidebar-border: #272d30;
+  --sidebar-ring: #83c9b1;
+  --font-geist-sans: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  --font-geist-mono: 'Cascadia Code', Consolas, monospace;
+  --background: var(--paper-canvas);
+  --foreground: var(--ink-strong);
+  --card: var(--paper-surface);
+  --card-foreground: var(--ink-strong);
+  --popover: var(--paper-surface);
+  --popover-foreground: var(--ink-strong);
+  --primary: var(--accent-olive);
+  --primary-foreground: #fffdf6;
+  --secondary: #eae9df;
+  --secondary-foreground: #4e5845;
+  --muted: #ecebe2;
+  --muted-foreground: var(--ink-muted);
+  --accent: #e5ebde;
+  --accent-foreground: #486043;
+  --destructive: #ad7060;
+  --border: var(--line-soft);
+  --input: #d6d8c9;
+  --ring: #899c76;
+  --radius: 0.5rem;
+}
+
+/* Retain the previous framework dark tokens; the current product is the light
+   journal. A complete dark appearance is a separate design change. */
+.dark {
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --background: #101315;
+  --foreground: #e1e5e5;
+  --card: #15191c;
+  --card-foreground: #e1e5e5;
+  --popover: #191e21;
+  --popover-foreground: #e1e5e5;
+  --primary: #89c9b5;
+  --primary-foreground: #122821;
+  --secondary: #242b2d;
+  --secondary-foreground: #d9dfdf;
+  --muted: #202629;
+  --muted-foreground: #939da0;
+  --accent: #273b34;
+  --accent-foreground: #ace1cd;
+  --destructive: #e29a93;
+  --border: #2a3033;
+  --input: #30383b;
+  --ring: #83c9b1;
+  --sidebar: #14181a;
+  --sidebar-foreground: #a7b0b2;
+  --sidebar-primary: #92d2bb;
+  --sidebar-primary-foreground: #122821;
+  --sidebar-accent: #25352f;
+  --sidebar-accent-foreground: #c2e4d7;
+  --sidebar-border: #272d30;
+  --sidebar-ring: #83c9b1;
+  --font-geist-sans: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  --font-geist-mono: 'Cascadia Code', Consolas, monospace;
+  --radius: 0.625rem;
+}

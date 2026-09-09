@@ -1,0 +1,333 @@
+/* memory: see docs/frontend-styles.md for ownership and load order. */
+.memory-preview-scroll {
+  padding: 18px;
+  background: #fafcf5;
+  border: 1px solid #e3ead8;
+  border-radius: 4px;
+  margin-top: 19px;
+}
+.memory-preview-scroll pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-geist-sans);
+  line-height: 2;
+  color: #809567;
+  margin: 0;
+}
+.memory-notes {
+  margin-top: 35px;
+  border-top: 1px solid #e0e8d3;
+  padding-top: 24px;
+}
+.memory-notes > button {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 16px 0;
+  border-bottom: 1px solid #e7ecdf;
+  color: #baaa7a;
+  text-align: left;
+}
+.memory-notes > button > div {
+  flex: 1;
+}
+.memory-notes strong {
+  font-family: 'SimSun', serif;
+  color: #879b70;
+  font-weight: 400;
+}
+.memory-notes p {
+  color: #94a37c;
+  line-height: 1.8;
+  margin: 5px 0 0;
+}
+.memory-notes code {
+  color: #9fad8a;
+}
+@media (max-width: 800px) {
+  .memory-notes code {
+    display: none;
+  }
+}
+.memory-notes p,
+.memory-notes code {
+  font-size: 12px;
+}
+.memory-preview-scroll pre {
+  font-size: 14px;
+}
+.memory-notes strong {
+  font-size: 16px;
+}
+@media (max-width: 480px) {
+  .memory-notes p {
+    font-size: 11px;
+  }
+  .memory-notes .surface-head small {
+    font-size: 10px;
+  }
+  .memory-preview-scroll pre {
+    font-size: 13px;
+  }
+}
+.memory-layout-editable {
+  align-items: start;
+  gap: 22px;
+}
+.memory-composer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.memory-block {
+  border: 1px solid #d9dece;
+  border-radius: 7px;
+  background: #f7f8f2;
+  overflow: hidden;
+  color: #536044;
+}
+.memory-block.summary {
+  background: #f0f5e9;
+  border-color: #d6e2c7;
+}
+.memory-block.recent {
+  background: #edf3f5;
+  border-color: #d0dfe5;
+  color: #536b77;
+}
+.memory-block.stars {
+  background: #f8f3e7;
+  border-color: #e5dcc1;
+  color: #786a45;
+}
+.memory-block-row {
+  display: flex;
+  align-items: center;
+  padding: 3px 5px;
+  gap: 2px;
+}
+.memory-drag-handle {
+  width: 34px;
+  min-height: 44px;
+  flex: 0 0 34px;
+  display: grid;
+  place-items: center;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  color: inherit;
+  opacity: 0.65;
+}
+.memory-drag-handle:active {
+  cursor: grabbing;
+}
+.memory-block-open {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 7px 4px;
+}
+.memory-block-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.memory-block-open strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 600;
+}
+.memory-block-open small {
+  flex-shrink: 0;
+  font-size: 11px;
+  opacity: 0.72;
+}
+.memory-block-row .icon-button {
+  flex-shrink: 0;
+  width: 32px;
+  height: 36px;
+  color: inherit;
+}
+.memory-block-preview {
+  display: -webkit-box;
+  text-align: left;
+  width: 100%;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: inherit;
+  opacity: 0.85;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.memory-block-edit-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  opacity: 0.65;
+  font-size: 10px;
+}
+.memory-block.is-placeholder {
+  border: 1px dashed #8b9c70;
+  background: #eaf0df;
+}
+.memory-block.is-placeholder > * {
+  opacity: 0.2;
+}
+.memory-drag-ghost {
+  position: fixed;
+  z-index: var(--z-memory-drag);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 14px;
+  border: 1px solid #a9b88e;
+  border-radius: 7px;
+  background: #f8fbf1;
+  color: #536044;
+  box-shadow: 0 10px 25px #3e502930;
+  font-size: 13px;
+}
+.memory-composer-help {
+  font-size: 11px;
+  margin: 4px 0 0;
+}
+.memory-preview-pane.surface {
+  padding-top: 0;
+  border: 0;
+}
+.memory-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  margin-bottom: 8px;
+}
+.memory-preview-header h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #596b42;
+}
+.memory-preview-header small {
+  margin-right: auto;
+  font-size: 11px;
+  color: #84926e;
+}
+.memory-preview-header .button {
+  min-height: 30px;
+  padding: 5px 9px;
+  font-size: 11px;
+}
+.memory-layout-editable .memory-preview-scroll {
+  margin-top: 0;
+  padding: 13px;
+}
+.memory-layout-editable .memory-preview-scroll pre {
+  font-size: 12px;
+  line-height: 1.8;
+}
+.memory-block-editor {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.memory-block-editor label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+.memory-block-editor textarea {
+  min-height: 200px;
+  max-height: 45dvh;
+  resize: vertical;
+}
+.memory-block-editor input[type='number'] {
+  max-width: 160px;
+}
+.memory-editor-preview {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #f7f8f2;
+  border: 1px solid #e1e6d7;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.memory-note-options {
+  display: grid;
+  gap: 6px;
+}
+.memory-note-options button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e1e6d7;
+  border-radius: 5px;
+  text-align: left;
+}
+.memory-note-options button[aria-pressed='true'] {
+  background: #eef4e3;
+  border-color: #bccc9f;
+}
+.memory-note-options button span {
+  min-width: 0;
+}
+.memory-note-options strong {
+  display: block;
+  font-weight: 500;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.memory-note-options small {
+  display: block;
+  font-size: 10px;
+  color: #84926e;
+  overflow-wrap: anywhere;
+  margin-top: 3px;
+}
+.memory-note-options svg {
+  flex-shrink: 0;
+}
+.memory-editor-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+  align-items: center;
+  border-top: 1px solid #e1e6d7;
+  padding-top: 15px;
+  margin-top: 16px;
+}
+.memory-editor-actions .danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #a35d53;
+  font-size: 12px;
+}
+@media (max-width: 760px) {
+  .memory-layout-editable {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .memory-block-row .icon-button {
+    width: 34px;
+    height: 44px;
+  }
+  .memory-block-open strong {
+    font-size: 12px;
+  }
+}

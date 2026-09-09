@@ -1,7 +1,6 @@
 'use client';
 import {
   useState,
-  useMemo,
   useRef,
   useLayoutEffect,
   useEffect,
@@ -12,7 +11,6 @@ import {
   ArrowLeft,
   Plus,
   Search,
-  Inbox,
   MessageSquare,
   Layers,
   StickyNote,
@@ -21,25 +19,33 @@ import {
   Check,
   BookOpen,
   ChevronRight,
+  Database,
 } from 'lucide-react';
 import { JournalHome } from '@/components/hub/home';
+import { DataManager } from '@/components/hub/data-manager';
 import { Transcript } from '@/components/hub/transcript';
 import { SummaryPage } from '@/components/hub/summary';
 import { NotesPage } from '@/components/hub/notes';
 import { MemoryPage } from '@/components/hub/memory';
-import { ImportDialog, InboxPage } from '@/components/hub/inbox';
+import { InboxPage } from '@/components/hub/inbox';
+import { ImportDialog } from '@/components/hub/import-dialog';
+import { UploadReview } from '@/components/hub/upload-review';
+import { InboxPet } from '@/components/hub/inbox-pet';
 import { ConnectionsPage } from '@/components/hub/connections';
 import { SearchPage } from '@/components/hub/search';
 import { TurnEditor, NewWorkspace } from '@/components/hub/editors';
 import { Button, Modal } from '@/components/hub/shared';
-import { createSeed } from '@/lib/seed';
-import { usePersistent } from '@/lib/store';
+import { useHub } from '@/lib/use-hub';
+import type { WorkspaceCommand } from '@/lib/hub-state';
+import type { StorageEntry } from '@/lib/repository';
 import { useDemoMemoryTools } from '@/lib/webmcp';
+import { useDeliveryInbox } from '@/lib/imports/use-delivery-inbox';
 import {
   blankWorkspace,
-  restoreSummary,
   uid,
   now,
+  pendingUploads,
+  inboxUploads,
   type Workspace,
   type Turn,
   type Upload,
@@ -52,8 +58,11 @@ const navigation = [
   { id: 'connect', label: '连接', icon: Plug },
 ];
 export default function Hub() {
-  const initial = useMemo(() => createSeed(), []);
-  const [data, setData, persistence] = usePersistent('hub-state-v1', initial);
+  const { data, persistence, dispatch, commit, cleanup } = useHub();
+  const [emptyWorkspace] = useState(() => ({
+    ...blankWorkspace('尚未创建手账'),
+    id: 'empty-workspace',
+  }));
   const [workspaceId, setWorkspaceId] = useState('ws-everyday'),
     [page, setPage] = useState('archive'),
     [visitedPages, setVisitedPages] = useState(['archive']),
@@ -64,8 +73,41 @@ export default function Hub() {
     [editing, setEditing] = useState<Turn | undefined>(),
     [notice, setNotice] = useState('');
   const w =
-    data.workspaces.find((w) => w.id === workspaceId) ?? data.workspaces[0];
-  useDemoMemoryTools(w);
+    data.workspaces.find((w) => w.id === workspaceId) ??
+    data.workspaces[0] ??
+    emptyWorkspace;
+  const onWorkspaceCommand = useCallback(
+    (command: WorkspaceCommand) => {
+      dispatch({ type: 'workspace', workspaceId: w.id, command });
+    },
+    [dispatch, w.id],
+  );
+  const commitWorkspace = useCallback(
+    (command: WorkspaceCommand, companion?: StorageEntry) =>
+      commit({ type: 'workspace', workspaceId: w.id, command }, companion),
+    [commit, w.id],
+  );
+  const currentView = useRef({ workspaceId, modal, page, home });
+  useLayoutEffect(() => {
+    currentView.current = { workspaceId, modal, page, home };
+  }, [workspaceId, modal, page, home]);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(''), 4500);
+    return () => clearTimeout(timer);
+  }, [notice]);
+  const deliveries = inboxUploads(data.uploads);
+  const directImports = pendingUploads(data.uploads, 'manual');
+  const candidates = pendingUploads(data.uploads, 'workbench', w.id);
+  const receiveDeliveries = useCallback(
+    (uploads: Upload[]) => commit({ type: 'upload/receive', uploads }),
+    [commit],
+  );
+  const deliveryInbox = useDeliveryInbox(
+    persistence.ready && modal !== 'data',
+    receiveDeliveries,
+  );
+  useDemoMemoryTools(w, data.workspaces.length > 0);
   const main = useRef<HTMLElement>(null);
   const opening = useRef(false);
   const chapterScroll = useRef<Record<string, number>>({});
@@ -135,62 +177,87 @@ export default function Hub() {
     setPage(target);
     setHome(false);
   }
-  function update(next: Workspace) {
-    setData((d) => ({
-      ...d,
-      workspaces: d.workspaces.map((x) => (x.id === next.id ? next : x)),
-    }));
-  }
   function notify(text: string) {
     setNotice(text);
-    setTimeout(() => setNotice(''), 4500);
   }
-  function upload(u: Upload) {
-    setData((d) => ({ ...d, uploads: [u, ...d.uploads] }));
-    notify('候选内容已放入收件箱，可以预览后决定如何使用。');
+  async function upload(u: Upload) {
+    const origin = currentView.current;
+    if (!(await commit({ type: 'upload/add', upload: u }))) return false;
+    if (currentView.current !== origin) return true;
+    if (inboxUploads([u]).length) {
+      navigate('inbox');
+      setModal('');
+      notify('对话已放入收件箱，可随时归档到手账。');
+    } else {
+      setModal(u.kind === 'summary' ? 'review-workbench' : 'review-manual');
+    }
+    return true;
   }
-  function importUpload(u: Upload, target: string) {
-    const imported = u.turns.map((t) => ({ ...t, id: uid() }));
+  function updateUpload(next: Upload) {
+    dispatch({ type: 'upload/update', upload: next });
+  }
+  async function importConversation(u: Upload) {
+    const origin = currentView.current;
+    const saved = await commit({ type: 'upload/add', upload: u });
+    if (saved && currentView.current === origin) {
+      if (inboxUploads([u]).length) {
+        navigate('inbox');
+        setModal('');
+        notify('对话已放入收件箱，可随时归档到手账。');
+      } else setModal('review-manual');
+    }
+    return saved;
+  }
+  function removeUpload(id: string) {
+    dispatch({ type: 'upload/remove', uploadId: id });
+  }
+  async function importUpload(u: Upload, target: string) {
+    const origin = currentView.current;
     const fresh =
       target === 'new'
-        ? {
-            ...blankWorkspace(u.title, u.turns[0]?.source ?? '导入'),
-            turns: imported,
-          }
+        ? blankWorkspace(u.title, u.turns[0]?.source ?? '导入')
         : null;
-    setData((d) => ({
-      ...d,
-      uploads: d.uploads.filter((x) => x.id !== u.id),
-      workspaces: fresh
-        ? [...d.workspaces, fresh]
-        : d.workspaces.map((x) =>
-            x.id === target ? { ...x, turns: [...x.turns, ...imported] } : x,
-          ),
-    }));
-    openWorkspace(fresh?.id ?? target);
-    notify('对话已完整收进手账。');
+    const saved = await commit({
+      type: 'upload/archive',
+      uploadId: u.id,
+      target: fresh ?? target,
+      batchId: uid(),
+    });
+    if (!saved) {
+      notify('归档失败，待归档内容已保留。');
+      return false;
+    }
+    if (currentView.current === origin) {
+      openWorkspace(fresh?.id ?? target);
+      setModal('');
+      notify('对话已完整收进手账。');
+    }
+    return true;
   }
-  function applySummary(u: Upload, target: Workspace, mode: 'keep' | 'rewind') {
-    const s = {
-      id: `candidate-${u.id}`,
-      title: u.title,
-      text: u.summaryText ?? '',
-      covered: u.covered ?? [],
-      createdAt: now(),
-    };
-    const next = restoreSummary(
-      { ...target, summaries: [...target.summaries, s].slice(-30) },
-      s.id,
+  async function applySummary(
+    u: Upload,
+    target: Workspace,
+    mode: 'keep' | 'rewind',
+  ) {
+    const origin = currentView.current;
+    const saved = await commit({
+      type: 'upload/summary',
+      uploadId: u.id,
+      workspaceId: target.id,
       mode,
-    );
-    setData((d) => ({
-      ...d,
-      uploads: d.uploads.filter((x) => x.id !== u.id),
-      workspaces: d.workspaces.map((x) => (x.id === next.id ? next : x)),
-    }));
-    setWorkspaceId(next.id);
-    navigate('summary');
-    notify('候选摘要已设为活跃，原文处理水位按你的选择更新。');
+      at: now(),
+    });
+    if (!saved) {
+      notify('摘要保存失败，候选内容已保留。');
+      return false;
+    }
+    if (currentView.current === origin) {
+      setWorkspaceId(target.id);
+      navigate('summary');
+      setModal('');
+      notify('候选摘要已设为活跃，原文处理水位按你的选择更新。');
+    }
+    return true;
   }
   function edit(t: Turn) {
     setEditing(t);
@@ -202,27 +269,45 @@ export default function Hub() {
     setAfterId(id);
     setModal('turn');
   }
-  function saveTurn(turn: Turn) {
-    if (editing)
-      update({
-        ...w,
-        turns: w.turns.map((t) => (t.id === turn.id ? turn : t)),
-      });
-    else {
-      const at = afterId ? w.turns.findIndex((t) => t.id === afterId) + 1 : 0;
-      const turns = [...w.turns];
-      turns.splice(at, 0, turn);
-      update({ ...w, turns });
+  async function saveTurn(turn: Turn, companion: StorageEntry) {
+    const origin = currentView.current;
+    const saved = await commitWorkspace(
+      { type: 'turn/save', turn, insert: !editing, afterId },
+      companion,
+    );
+    if (saved && currentView.current === origin) {
+      setModal('');
+      notify('完整轮次已保存。');
     }
-    setModal('');
-    notify('完整轮次已保存。');
+    return saved;
   }
   if (!persistence.ready)
     return (
       <div className="loading-screen">
         <BookOpen size={38} />
         <h1>Context Hub</h1>
-        <p>正在翻开你的手账…</p>
+        <p role={persistence.error ? 'alert' : undefined}>
+          {persistence.error || '正在翻开你的手账…'}
+        </p>
+        {persistence.error && (
+          <Button
+            onClick={() => {
+              void persistence.retry();
+            }}
+          >
+            重试读取
+          </Button>
+        )}
+        {persistence.error && (
+          <Button onClick={() => setModal('data')}>从备份恢复</Button>
+        )}
+        {modal === 'data' && (
+          <DataManager
+            saved={false}
+            onClose={() => setModal('')}
+            onCleanup={cleanup}
+          />
+        )}
       </div>
     );
   return (
@@ -231,13 +316,25 @@ export default function Hub() {
         <JournalHome
           openingId={openingId}
           workspaces={data.workspaces}
-          uploads={data.uploads.length}
           onOpen={openWorkspace}
           onNew={() => setModal('new-workspace')}
-          onInbox={() => navigate('inbox')}
           onSearch={() => navigate('search')}
           onAccount={() => setModal('account')}
+          onData={() => setModal('data')}
+          onImport={() => setModal('import')}
         />
+      )}
+      {home && persistence.error && (
+        <div role="alert" className="callout warning">
+          {persistence.error}
+          <Button
+            onClick={() => {
+              void persistence.retry();
+            }}
+          >
+            重试保存
+          </Button>
+        </div>
       )}
       {(!home || openingId) && (
         <div
@@ -259,10 +356,17 @@ export default function Hub() {
               <ChevronRight size={13} />
               <span>
                 {navigation.find((n) => n.id === page)?.label ??
-                  (page === 'inbox' ? '收件箱' : '寻找记忆')}
+                  (page === 'inbox' ? '收件箱' : '搜索记忆')}
               </span>
             </div>
             <div className="reader-actions">
+              <button
+                className="icon-button"
+                aria-label="本地数据与备份"
+                onClick={() => setModal('data')}
+              >
+                <Database size={17} />
+              </button>
               <span className="save-state">
                 <span
                   className={`status-dot ${persistence.error ? 'error' : ''}`}
@@ -279,13 +383,6 @@ export default function Hub() {
                 onClick={() => navigate('search')}
               >
                 <Search size={17} />
-              </button>
-              <button
-                className="icon-button"
-                aria-label="收件箱"
-                onClick={() => navigate('inbox')}
-              >
-                <Inbox size={17} />
               </button>
               <Button onClick={() => setModal('import')}>
                 <Plus size={14} />
@@ -304,6 +401,7 @@ export default function Hub() {
                 {navigation.map((n) => (
                   <button
                     key={n.id}
+                    disabled={!data.workspaces.length}
                     className={page === n.id ? 'selected' : ''}
                     aria-current={page === n.id ? 'page' : undefined}
                     onClick={() => navigate(n.id)}
@@ -316,51 +414,90 @@ export default function Hub() {
               {persistence.error && (
                 <div role="alert" className="callout warning">
                   {persistence.error}
+                  <Button
+                    onClick={() => {
+                      void persistence.retry();
+                    }}
+                  >
+                    重试保存
+                  </Button>
                 </div>
               )}
               <main className="page-content" key={w.id} ref={main}>
-                {visitedPages.map((panel) => (
-                  <div
-                    key={panel}
-                    className="chapter-panel"
-                    hidden={page !== panel}
-                  >
-                    {panel === 'archive' ? (
-                      <Transcript
-                        w={w}
-                        active={page === 'archive'}
-                        onChange={update}
-                        onInsert={insert}
-                        onEdit={edit}
-                      />
-                    ) : panel === 'summary' ? (
-                      <SummaryPage w={w} onChange={update} onUpload={upload} />
-                    ) : panel === 'notes' ? (
-                      <NotesPage w={w} onChange={update} />
-                    ) : panel === 'memory' ? (
-                      <MemoryPage w={w} onChange={update} />
-                    ) : panel === 'inbox' ? (
-                      <InboxPage
-                        uploads={data.uploads}
-                        workspaces={data.workspaces}
-                        currentId={w.id}
-                        onUploads={(uploads) =>
-                          setData((d) => ({ ...d, uploads }))
-                        }
-                        onImport={importUpload}
-                        onSummary={applySummary}
-                        onNewImport={() => setModal('import')}
-                      />
-                    ) : panel === 'connect' ? (
-                      <ConnectionsPage w={w} onChange={update} />
-                    ) : (
-                      <SearchPage
-                        workspaces={data.workspaces}
-                        currentId={w.id}
-                      />
-                    )}
-                  </div>
-                ))}
+                {visitedPages
+                  .filter(
+                    (panel) =>
+                      data.workspaces.length > 0 ||
+                      ['inbox', 'search'].includes(panel),
+                  )
+                  .map((panel) => (
+                    <div
+                      key={panel}
+                      className="chapter-panel"
+                      hidden={page !== panel}
+                    >
+                      {panel === 'archive' ? (
+                        <Transcript
+                          w={w}
+                          active={!home && page === 'archive'}
+                          onCommand={onWorkspaceCommand}
+                          onInsert={insert}
+                          onEdit={edit}
+                        />
+                      ) : panel === 'summary' ? (
+                        <SummaryPage
+                          w={w}
+                          active={
+                            !home &&
+                            page === 'summary' &&
+                            persistence.ready &&
+                            modal !== 'data'
+                          }
+                          onCommand={onWorkspaceCommand}
+                          onUpload={upload}
+                          onCommit={commitWorkspace}
+                          pendingCount={candidates.length}
+                          onReview={() => setModal('review-workbench')}
+                        />
+                      ) : panel === 'notes' ? (
+                        <NotesPage
+                          w={w}
+                          onCommand={onWorkspaceCommand}
+                          onCommit={commitWorkspace}
+                        />
+                      ) : panel === 'memory' ? (
+                        <MemoryPage w={w} onCommand={onWorkspaceCommand} />
+                      ) : panel === 'inbox' ? (
+                        <>
+                          {deliveryInbox.error && (
+                            <p role="alert" className="callout warning">
+                              {deliveryInbox.error}
+                            </p>
+                          )}
+                          <InboxPage
+                            uploads={deliveries}
+                            workspaces={data.workspaces}
+                            currentId={w.id}
+                            onUpdate={updateUpload}
+                            onRemove={removeUpload}
+                            onImport={importUpload}
+                            onSummary={applySummary}
+                          />
+                        </>
+                      ) : panel === 'connect' ? (
+                        <ConnectionsPage
+                          w={w}
+                          active={!home && page === 'connect'}
+                          onCommand={onWorkspaceCommand}
+                        />
+                      ) : (
+                        <SearchPage
+                          workspaces={data.workspaces}
+                          currentId={w.id}
+                        />
+                      )}
+                    </div>
+                  ))}
               </main>
             </div>
           </div>
@@ -379,24 +516,70 @@ export default function Hub() {
       {modal === 'new-workspace' && (
         <NewWorkspace
           onClose={() => setModal('')}
-          onCreate={(name, platform) => {
+          onCreate={async (name, platform, companion) => {
+            const origin = currentView.current;
             const x = blankWorkspace(name, platform);
-            setData((d) => ({ ...d, workspaces: [...d.workspaces, x] }));
-            setModal('');
-            openWorkspace(x.id);
+            const saved = await commit(
+              { type: 'workspace/create', workspace: x },
+              companion,
+            );
+            if (saved && currentView.current === origin) {
+              setModal('');
+              openWorkspace(x.id);
+            }
+            return saved;
           }}
         />
       )}{' '}
       {modal === 'import' && (
-        <ImportDialog onUpload={upload} onClose={() => setModal('')} />
+        <ImportDialog
+          onUpload={importConversation}
+          onDeliveryEnabled={deliveryInbox.activate}
+          onClose={() => setModal('')}
+          pendingCount={directImports.length}
+          onReview={() => setModal('review-manual')}
+        />
       )}{' '}
+      {(modal === 'review-manual' || modal === 'review-workbench') && (
+        <Modal
+          title={modal === 'review-manual' ? '确认对话导入' : '确认候选摘要'}
+          description={
+            modal === 'review-manual'
+              ? '预览后选择手账归档；未确认的内容可从收录对话入口继续处理。'
+              : '确认后设为活跃摘要；未确认的候选会保留在当前手账的摘要工作台。'
+          }
+          onClose={() => setModal('')}
+        >
+          <div className="upload-review-dialog">
+            <UploadReview
+              key={`${modal}-${w.id}`}
+              uploads={modal === 'review-manual' ? directImports : candidates}
+              workspaces={data.workspaces}
+              currentId={w.id}
+              onUpdate={updateUpload}
+              onRemove={removeUpload}
+              onImport={importUpload}
+              onSummary={applySummary}
+            />
+          </div>
+        </Modal>
+      )}
       {modal === 'account' && (
         <Modal title="这本手账，只在此处" onClose={() => setModal('')}>
           <p className="callout">
-            这是本地交互原型，使用示例账号。真实账号、接口与云端存储尚未连接。数据保存在当前浏览器中。
+            手账与草稿保存在当前浏览器。客户端投递先保存在本机服务的收件队列，浏览器接收成功后清除服务端正文。账号与云端同步尚未接入。
           </p>
         </Modal>
       )}
+      {modal === 'data' && (
+        <DataManager
+          state={data}
+          saved={persistence.saved && !persistence.busy}
+          onClose={() => setModal('')}
+          onCleanup={cleanup}
+        />
+      )}
+      <InboxPet count={deliveries.length} onClick={() => navigate('inbox')} />
       {notice && (
         <output className="journal-toast">
           <Check size={16} />

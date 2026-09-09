@@ -1,0 +1,21 @@
+/* Single, eager style entry. Keep shared primitives before their consumers.
+   Do not import these again from lazily mounted chapters. See docs/frontend-styles.md. */
+@import '../components/hub/shared.css';
+@import '../components/hub/forms.css';
+@import '../components/hub/shared-content.css';
+@import '../components/hub/shared-coverage.css';
+@import '../components/hub/shared-composer.css';
+@import '../components/hub/editors.css';
+@import '../components/hub/shell.css';
+@import '../components/hub/home.css';
+@import '../components/hub/transcript.css';
+@import '../components/hub/summary.css';
+@import '../components/hub/notes.css';
+@import '../components/hub/note-actions.css';
+@import '../components/hub/memory.css';
+@import '../components/hub/connections.css';
+@import '../components/hub/search.css';
+@import '../components/hub/inbox-content.css';
+@import '../components/hub/imports/imports.css';
+@import '../components/hub/inbox.css';
+@import '../components/hub/inbox-pet.css';

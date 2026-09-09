@@ -93,7 +93,7 @@ try {
       'An empty search result is not an empty workspace',
     );
   }
-  // Older browsers may have saved the now-removed paste tab. Preserve its other draft fields.
+  // Older browsers may have saved the legacy paste tab. Map it to manual copy and preserve its fields.
   await page.evaluate(async () => {
     await new Promise((resolve, reject) => {
       const request = indexedDB.open('context-hub-demo', 1);
@@ -123,14 +123,21 @@ try {
   const dialog = page.getByRole('dialog');
   await dialog.waitFor();
   check(
-    (await dialog.getByRole('tab').count()) === 2,
-    'Import dialog offers only link and API delivery',
+    (await dialog.getByRole('tab').count()) === 3,
+    'Import dialog offers manual copy, share link, and client delivery',
   );
   check(
-    (await dialog.getByRole('tab', { name: '粘贴文本' }).count()) === 0,
-    'Remove the duplicate paste entry',
+    (await dialog.getByRole('tab', { name: '手动复制' }).count()) === 1,
+    'Manual import has a single dedicated entry',
   );
-  if ((await dialog.getByRole('tab').count()) === 2) {
+  if ((await dialog.getByRole('tab').count()) === 3) {
+    check(
+      (await dialog
+        .getByRole('tab', { name: '手动复制' })
+        .getAttribute('aria-selected')) === 'true',
+      'Legacy paste draft falls back to manual import',
+    );
+    await dialog.getByRole('tab', { name: '分享链接' }).click();
     await page.waitForFunction(() =>
       document
         .querySelector('input[aria-label="分享链接"]')
@@ -140,11 +147,13 @@ try {
       (await dialog
         .getByRole('tab', { name: '分享链接' })
         .getAttribute('aria-selected')) === 'true',
-      'Legacy paste draft falls back to link import',
+      'Legacy share URL is preserved when switching to link import',
     );
-    await dialog.getByRole('tab', { name: '投递接口' }).click();
+    await dialog.getByRole('tab', { name: '客户端投递' }).click();
     check(
-      await dialog.getByRole('button', { name: '填入示例' }).isVisible(),
+      await dialog
+        .getByRole('button', { name: '启用并生成投递 Key' })
+        .isVisible(),
       'API delivery remains usable',
     );
   }

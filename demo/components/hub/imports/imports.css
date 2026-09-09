@@ -1,0 +1,10 @@
+/* Import entry forms. Shared input and dialog primitives remain in forms.css. */
+.delivery-details {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.import-secret {
+  user-select: text;
+  overflow-wrap: anywhere;
+}

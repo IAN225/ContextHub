@@ -1,0 +1,112 @@
+/* search: see docs/frontend-styles.md for ownership and load order. */
+
+.journal-search-input {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-bottom: 1px solid #b9caa2;
+  padding: 10px 0 15px;
+  color: #9db783;
+  margin-bottom: 23px;
+}
+.journal-search-input input {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 18px;
+  flex: 1;
+  color: #7d9563;
+  font-family: 'SimSun', serif;
+  outline: none;
+}
+.journal-search-input input::placeholder {
+  color: #b1c09d;
+}
+.search-options {
+  display: flex;
+  gap: 13px;
+  max-width: 670px;
+  margin-bottom: 35px;
+}
+.search-options > button {
+  flex: 1;
+}
+.search-results > button {
+  display: flex;
+  align-items: flex-start;
+  gap: 17px;
+  width: 100%;
+  padding: 23px 0;
+  border-bottom: 1px solid #e1e9d4;
+  color: #a1b48c;
+  text-align: left;
+}
+.search-results > button:hover {
+  background: #f7faef;
+}
+.search-results > button > div {
+  flex: 1;
+  min-width: 0;
+}
+.search-result-icon {
+  padding-top: 19px;
+}
+.search-results small {
+  color: #99b082;
+}
+.search-results h3 {
+  font-size: 17px;
+  font-family: 'SimSun', serif;
+  font-weight: 400;
+  color: #7d9666;
+  line-height: 1.8;
+  margin: 9px 0;
+}
+.search-results p {
+  color: #98ad80;
+  line-height: 1.9;
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.search-results > button > svg {
+  margin-top: 24px;
+}
+@media (max-width: 480px) {
+  .search-options {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .search-options > button {
+    min-width: 120px;
+  }
+  .journal-search-input {
+    gap: 9px;
+  }
+  .journal-search-input input {
+    font-size: 15px;
+  }
+  .search-results > button {
+    gap: 10px;
+  }
+}
+.search-results small {
+  font-size: 12px;
+}
+.search-results p {
+  font-size: 14px;
+}
+@media (max-width: 480px) {
+  .search-results p {
+    font-size: 13px;
+  }
+  .search-results h3 {
+    font-size: 16px;
+  }
+  .journal-search-input input::placeholder {
+    font-size: 14px;
+  }
+  .search-results small {
+    font-size: 12px;
+  }
+}
