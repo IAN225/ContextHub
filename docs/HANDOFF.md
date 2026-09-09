@@ -26,7 +26,7 @@
 
 ## 代码入口
 
-此前改动和后续前端重构顺序见 [2026-09-09 修改记录与前端重构计划](2026-09-09-frontend-progress.md)。前三阶段均已完成：[状态与持久化](2026-09-09-state-persistence-progress.md)、[CSS 归属](2026-09-09-css-ownership-progress.md)、[复杂组件拆分](2026-09-09-component-boundaries-progress.md)。定位代码与样式见 [组件职责](frontend-components.md) 和 [样式归属](frontend-styles.md)。接下来是第四阶段性能测量与回归，仍保留本地 Demo 范围。
+此前改动和前端重构顺序见 [2026-09-09 修改记录与前端重构计划](2026-09-09-frontend-progress.md)。四个阶段均已完成：[状态与持久化](2026-09-09-state-persistence-progress.md)、[CSS 归属](2026-09-09-css-ownership-progress.md)、[复杂组件拆分](2026-09-09-component-boundaries-progress.md)、[性能测量与回归](2026-09-09-frontend-performance.md)。定位代码与样式见 [组件职责](frontend-components.md) 和 [样式归属](frontend-styles.md)。当前仍保留本地 Demo 范围，后续按设备体验与数据规模决定进一步工作。
 
 用户补充的长期要求：现有 Demo 是正式产品的视觉基准，重构要组件化、模块化，能直接定位样式所属组件，并按主题、共用控件、外壳、章节顺序演进风格。正式产品复用同一套前端源代码；不要另外复制出一套页面与 CSS。
 
@@ -38,7 +38,7 @@
 
 - `demo/app/page.tsx`：工作区外壳、章节状态和移动端章节滚动位置。
 - `demo/app/globals.css`：框架与全局基础；`theme.css`：主题变量；`styles.css`：唯一组件样式入口。原 `journal.css` 已迁出并删除，各章节规则位于相邻的 `components/hub/*.css`，完整对应表见样式约定。紧凑布局与断点跟随所属组件，封面比例仍统一为 0.72。`--notebook-open-duration` 与 `page.tsx` 的进入延时保持一致。
-- `demo/components/hub/transcript.tsx`：原文章节协调；`use-transcript-navigation.ts` 负责原生滚动与选择，`transcript-timeline.tsx` / `turn-detail.tsx` 负责展示。104px 间距与现有手势保留。
+- `demo/components/hub/transcript.tsx`：原文章节协调；`use-transcript-navigation.ts` 负责原生滚动与选择，`transcript-timeline.tsx` / `turn-detail.tsx` 负责展示。超过 400 个结果时，只绘制视口/目标附近刻度，保留原生完整滚动宽度、104px 间距与现有手势。
 - `demo/components/hub/input-modality.tsx`：输入方式与焦点视觉。
 - `demo/components/hub/shared.tsx`：基础组件与统一页面标题。
 - `demo/components/hub/memory-composer.tsx`：记忆包编排协调；`use-memory-reorder.ts` 负责排序，`memory-block-card.tsx` / `memory-block-editor.tsx` 负责卡片与编辑。摘要提示词编排仍使用 shared 内原组件。
@@ -47,6 +47,7 @@
 - `demo/components/hub/inbox-pet.tsx`、`inbox-pet.css`：无件／抱信两态像素图标；`inbox.css`：API 收件说明与非 API 确认窗口的局部布局。
 - `demo/components/hub/note-actions.tsx`、`note-actions.css`：Note 新建与搜索、展开聚焦和退出收起。
 - `demo/lib/domain.ts`：轮次、摘要水位、覆盖、记忆包规则。
+- `demo/lib/memory-search.ts`：按原文/摘要/Note 数组缓存搜索文本，仍统计完整命中数量并限制返回对象数。
 - `demo/lib/import.ts`：Chat Completions / Responses / Anthropic Messages 结构导入。
 - `demo/lib/hub-state.ts`、`use-hub.ts`：应用命令、旧数据加载与应用状态 hook。
 - `demo/lib/repository.ts`、`persistent-session.ts`、`store.ts`：IndexedDB 事务、单键保存生命周期及 React 适配；提交正式数据时通过 companion entry 同事务清理草稿。
@@ -54,6 +55,8 @@
 - `docs/superpowers/`：早期设计与实现计划；具体交互状态以当前源码及本说明为准。
 
 ## 最近验证结果
+
+第四阶段补充：40 项 Node 测试、TypeScript、应用范围 lint、构建、七组既有浏览器回归与四屏宽长列表回归通过；56 个既有界面状态视觉对照通过。受控的一万轮样本中，打开原文主线程耗时中位数从 376ms 降至 51ms，输入并保存 24 个字符墙钟耗时从 5,118ms 降至 1,514ms。及时保存策略保持原样，写入次数仍为 24；未保留会扩大立即刷新丢失窗口的延迟保存实验。完整方法、各规模数据与限制见第四阶段记录。
 
 第三阶段补充：37 项 Node 测试、TypeScript、应用范围 lint、生产构建、六组既有浏览器回归通过；新增四项组件生命周期场景在生产预览通过。从 `a83e48d` 基线到本次生产构建，四种宽度、56 个界面状态对照通过。仅拆职责，CSS、数据接口、存储键与手势算法保持不变。详见第三阶段接续记录。
 
@@ -94,6 +97,6 @@ node tests/workspace-controls.mjs
 - 全量 `pnpm lint` 仍会报告未使用的脚手架 UI 组件中的现有 a11y/React 编译器规则问题；本次修改涉及的应用代码检查已通过。
 - 尚无真实模型摘要、远程 API/MCP、OAuth、账号隔离、文件同步、向量检索或后台清理。连接页明确为模拟。
 - 第一阶段已修正隐藏摘要的模拟任务和隐藏连接页时钟；后续增加后台任务时，应继续通过显式可见性与命令接口处理生命周期。
-- 原生时间轴当前渲染全部节点，示例约 208 轮；更大数据量需要性能评估。
+- 原生时间轴已限制长列表的渲染节点，已测量至 10,000 轮。应用仍一次性载入数据并逐次保存整份主记录；更多轮次或大量附件应继续测量存储成本，分记录存储与迁移属于独立后续工作。
 - 下一轮先在用户实际手机上确认惯性/吸附/截停与紧凑布局，再按用户反馈继续；不要自行进入后端阶段。
 - 原始分享链接和观察材料仅留在原机器，未纳入仓库。浏览器数据也不会随 Git 迁移。

@@ -1,5 +1,6 @@
 'use client';
 import { ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react';
+import { Fragment, useMemo } from 'react';
 import { formatDate } from './shared';
 import type { Turn } from '@/lib/domain';
 import type { useTranscriptNavigation } from './use-transcript-navigation';
@@ -15,7 +16,32 @@ export function TranscriptTimeline({
   navigation: ReturnType<typeof useTranscriptNavigation>;
   mark: (id: string) => TurnCoverageMark;
 }) {
-  const { lane, currentIndex, setIndex, onScroll, onPointKeyDown } = navigation;
+  const {
+    lane,
+    currentIndex,
+    viewportIndex,
+    setIndex,
+    onScroll,
+    onPointKeyDown,
+  } = navigation;
+  const numbers = useMemo(
+    () => new Map(turns.map((turn, i) => [turn.id, i + 1])),
+    [turns],
+  );
+  // Keep the native scroll surface full width. Only its offscreen buttons are
+  // omitted; both the moving viewport and the discrete destination stay drawn.
+  const indices =
+    list.length <= 400
+      ? list.map((_, i) => i)
+      : [
+          ...new Set(
+            [viewportIndex, currentIndex].flatMap((center) =>
+              Array.from({ length: 33 }, (_, i) => center + i - 16).filter(
+                (i) => i >= 0 && i < list.length,
+              ),
+            ),
+          ),
+        ].sort((a, b) => a - b);
   return (
     <>
       <div className="timeline">
@@ -35,28 +61,46 @@ export function TranscriptTimeline({
         </div>
         <div ref={lane} className="timeline-viewport" onScroll={onScroll}>
           <div className="timeline-track">
-            {list.map((t, i) => {
+            {indices.map((i, position) => {
+              const t = list[i];
+              const skipped = i - (indices[position - 1] ?? -1) - 1;
               return (
-                <button
-                  key={t.id}
-                  className={`turn-point ${i === currentIndex ? 'selected' : ''} ${mark(t.id)}`}
-                  aria-pressed={i === currentIndex}
-                  tabIndex={i === currentIndex ? 0 : -1}
-                  onClick={() => setIndex(i)}
-                  onKeyDown={onPointKeyDown}
-                  aria-label={`查看第 ${turns.indexOf(t) + 1} 轮`}
-                >
-                  <span className="turn-number">
-                    {String(turns.indexOf(t) + 1).padStart(3, '0')}
-                  </span>
-                  <span className="point-stem" />
-                  <span className="point-dot" />
-                  <span className="point-time">
-                    {t.time ? formatDate(t.time).split(' ')[0] : '时间未知'}
-                  </span>
-                </button>
+                <Fragment key={t.id}>
+                  {skipped > 0 && (
+                    <div
+                      aria-hidden="true"
+                      style={{ flex: `0 0 ${skipped * 104}px` }}
+                    />
+                  )}
+                  <button
+                    data-turn-index={i}
+                    className={`turn-point ${i === currentIndex ? 'selected' : ''} ${mark(t.id)}`}
+                    aria-pressed={i === currentIndex}
+                    tabIndex={i === currentIndex ? 0 : -1}
+                    onClick={() => setIndex(i)}
+                    onKeyDown={onPointKeyDown}
+                    aria-label={`查看第 ${numbers.get(t.id)} 轮`}
+                  >
+                    <span className="turn-number">
+                      {String(numbers.get(t.id)).padStart(3, '0')}
+                    </span>
+                    <span className="point-stem" />
+                    <span className="point-dot" />
+                    <span className="point-time">
+                      {t.time ? formatDate(t.time).split(' ')[0] : '时间未知'}
+                    </span>
+                  </button>
+                </Fragment>
               );
             })}
+            {indices.at(-1)! < list.length - 1 && (
+              <div
+                aria-hidden="true"
+                style={{
+                  flex: `0 0 ${(list.length - 1 - indices.at(-1)!) * 104}px`,
+                }}
+              />
+            )}
           </div>
         </div>
       </div>

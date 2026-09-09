@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Search,
   ArrowUpRight,
@@ -17,6 +17,7 @@ import {
   SaveStatus,
 } from './shared';
 import type { Workspace } from '@/lib/domain';
+import { createMemorySearch } from '@/lib/memory-search';
 export function SearchPage({
   workspaces,
 }: {
@@ -35,43 +36,17 @@ export function SearchPage({
       kind: string;
       workspace: string;
     } | null>(null);
-  const hits = workspaces
-    .filter((w) => d.scope === 'all' || w.id === d.scope)
-    .flatMap((w) => [
-      ...w.turns
-        .filter((t) => t.status === 'normal')
-        .map((t) => ({
-          id: t.id,
-          title: t.title,
-          text: t.messages.map((m) => `${m.role}: ${m.content}`).join('\n\n'),
-          kind: 'turn',
-          workspace: w.name,
-        })),
-      ...w.summaries.map((s) => ({
-        id: s.id,
-        title: s.title,
-        text: s.text,
-        kind: 'summary',
-        workspace: w.name,
-      })),
-      ...w.notes
-        .filter((n) => n.status === 'normal')
-        .map((n) => ({
-          id: n.id,
-          title: n.title,
-          text: n.body,
-          kind: 'note',
-          workspace: w.name,
-        })),
-    ])
-    .filter(
-      (x) =>
-        (d.kind === 'all' || x.kind === d.kind) &&
-        d.query.trim() &&
-        `${x.title} ${x.text}`
-          .toLowerCase()
-          .includes(d.query.trim().toLowerCase()),
-    );
+  const [search] = useState(createMemorySearch);
+  const hits = useMemo(
+    () =>
+      search(workspaces, {
+        query: d.query,
+        scope: d.scope,
+        kind: d.kind,
+        limit: Number(d.limit),
+      }),
+    [search, workspaces, d.query, d.scope, d.kind, d.limit],
+  );
   return (
     <>
       <div className="section-heading compact">
@@ -124,14 +99,14 @@ export function SearchPage({
           <SaveStatus state={persistence}>{null}</SaveStatus>
         )}
         <span className="muted-label">
-          {d.query.trim() ? `找到 ${hits.length} 条相关记忆` : '请输入关键词'}
+          {d.query.trim() ? `找到 ${hits.total} 条相关记忆` : '请输入关键词'}
         </span>
         <small>本地关键词检索 · 不调用向量模型</small>
       </div>
       <div className="search-results">
-        {hits.slice(0, Number(d.limit)).map((x) => (
+        {hits.items.map((x) => (
           <button
-            key={`${x.workspace}-${x.kind}-${x.id}`}
+            key={`${x.workspaceId}-${x.kind}-${x.id}`}
             onClick={() => setSelected(x)}
           >
             <span className="search-result-icon">
@@ -172,7 +147,7 @@ export function SearchPage({
           </button>
         ))}
       </div>
-      {d.query && !hits.length && (
+      {d.query && !hits.total && (
         <Empty
           title="这一页暂时没找到"
           detail="可以换一个关键词，或扩大到所有手账。弃用和回收站内容不参与搜索。"

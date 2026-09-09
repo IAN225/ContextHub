@@ -2,7 +2,7 @@
 
 本轮围绕重复入口、API 收件语义、记忆包高度和 Note 操作方式调整。当前仍为本地前端 Demo，真实 API、后端和云端部署尚未接入。重构部分是后续计划，本轮未执行。
 
-后续执行记录：第一阶段见 [状态与持久化接续](2026-09-09-state-persistence-progress.md)；第二阶段见 [CSS 归属接续](2026-09-09-css-ownership-progress.md)；第三阶段已完成，见 [复杂组件拆分接续](2026-09-09-component-boundaries-progress.md)。文件归属、视觉基准与后续改版顺序见 [样式归属与演进约定](frontend-styles.md) 和 [组件职责](frontend-components.md)。下文保留最初计划以便追溯。
+后续执行记录：四个阶段均已完成，分别见 [状态与持久化接续](2026-09-09-state-persistence-progress.md)、[CSS 归属接续](2026-09-09-css-ownership-progress.md)、[复杂组件拆分接续](2026-09-09-component-boundaries-progress.md)、[性能测量与回归](2026-09-09-frontend-performance.md)。文件归属、视觉基准与后续改版顺序见 [样式归属与演进约定](frontend-styles.md) 和 [组件职责](frontend-components.md)。下文保留最初计划以便追溯。
 
 ## 今天完成的修改
 

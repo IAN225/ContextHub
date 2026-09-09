@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 import { Button, PageTitle, Segments, ChainMap, Empty } from './shared';
 import { coverage, type Workspace, type Turn, type Status } from '@/lib/domain';
@@ -25,14 +25,15 @@ export function Transcript({
     [rendered, setRendered] = useState(true),
     [query, setQuery] = useState(''),
     [filter, setFilter] = useState('normal');
-  const list = w.turns.filter(
-    (t) =>
-      t.status === filter &&
-      (!query ||
-        t.messages.some((m) =>
-          m.content.toLowerCase().includes(query.toLowerCase()),
-        )),
-  );
+  const list = useMemo(() => {
+    const needle = query.toLowerCase();
+    return w.turns.filter(
+      (t) =>
+        t.status === filter &&
+        (!needle ||
+          t.messages.some((m) => m.content.toLowerCase().includes(needle))),
+    );
+  }, [w.turns, filter, query]);
   const navigation = useTranscriptNavigation({
     initialCount: w.turns.length,
     turnCount: list.length,

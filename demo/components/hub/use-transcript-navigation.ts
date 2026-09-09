@@ -26,6 +26,7 @@ export function useTranscriptNavigation({
   const [index, setSelectedIndex] = useState(Math.max(0, initialCount - 1));
   const lane = useRef<HTMLDivElement>(null);
   const currentIndex = Math.min(index, Math.max(0, turnCount - 1));
+  const [viewportIndex, setViewportIndex] = useState(currentIndex);
   const selectedIndex = useRef(currentIndex);
   const touchSession = useRef(false);
   useLayoutEffect(() => {
@@ -144,11 +145,12 @@ export function useTranscriptNavigation({
     };
   }, [turnCount, active, setIndex]);
   function onScroll(e: UIEvent<HTMLDivElement>) {
-    if (!touchSession.current) return;
     const next = Math.max(
       0,
       Math.min(turnCount - 1, Math.round(e.currentTarget.scrollLeft / 104)),
     );
+    if (turnCount > 400) setViewportIndex(next);
+    if (!touchSession.current) return;
     selectedIndex.current = next;
     setSelectedIndex(next);
   }
@@ -163,11 +165,18 @@ export function useTranscriptNavigation({
         ),
       );
       setIndex(next);
-      const point = e.currentTarget.parentElement?.children[next] as
-        | HTMLButtonElement
-        | undefined;
+      const point = lane.current?.querySelector<HTMLButtonElement>(
+        `[data-turn-index="${next}"]`,
+      );
       point?.focus({ preventScroll: true });
     }
   }
-  return { lane, currentIndex, setIndex, onScroll, onPointKeyDown };
+  return {
+    lane,
+    currentIndex,
+    viewportIndex,
+    setIndex,
+    onScroll,
+    onPointKeyDown,
+  };
 }
