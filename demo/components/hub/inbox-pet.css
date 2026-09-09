@@ -1,6 +1,6 @@
 .inbox-pet-button {
   position: fixed;
-  z-index: 40;
+  z-index: var(--z-inbox-pet);
   right: 20px;
   bottom: 24px;
   display: flex;

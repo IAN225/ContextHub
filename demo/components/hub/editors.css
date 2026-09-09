@@ -1,0 +1,100 @@
+/* editors: see docs/frontend-styles.md for ownership and load order. */
+
+.attachment-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  margin: 10px 0;
+}
+.attachment-preview img {
+  max-height: 180px;
+  max-width: 100%;
+  border-radius: 7px;
+}
+.rich-editor {
+  border: 1px solid #dfe6d2;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--paper-input);
+}
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 11px;
+  border-bottom: 1px solid #e4ead9;
+  background: #f8fbf1;
+  color: #8fa678;
+  gap: 10px;
+}
+.editor-toolbar > div {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.editor-toolbar button {
+  padding: 5px;
+  color: #8ea676;
+  border-radius: 3px;
+}
+.editor-toolbar button:hover {
+  background: #eaf1df;
+  color: #738f58;
+}
+.rich-editor textarea {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  display: block;
+  padding: 17px;
+  color: #798868;
+  line-height: 2;
+}
+.editor-preview {
+  padding: 18px;
+}
+.attachment-strip {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.attachment-strip > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border: 1px solid #dce5cc;
+  background: #f5f8ee;
+  border-radius: 5px;
+  font-size: 10px;
+  color: #8aa170;
+}
+.attachment-strip img {
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+  border-radius: 3px;
+}
+@media (max-width: 480px) {
+  .attachment-strip > div {
+    max-width: 100%;
+  }
+  .attachment-strip span {
+    overflow-wrap: anywhere;
+  }
+}
+.rich-editor textarea {
+  font-size: 16px;
+}
+.editor-toolbar {
+  font-size: 12px;
+}
+@media (max-width: 480px) {
+  .rich-editor textarea {
+    font-size: 15px;
+  }
+  .editor-toolbar {
+    font-size: 11px;
+  }
+}

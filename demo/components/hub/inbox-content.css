@@ -1,0 +1,224 @@
+/* inbox: see docs/frontend-styles.md for ownership and load order. */
+.delivery-details {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.import-json-title {
+  font-size: 16px;
+  font-family: 'SimSun', serif;
+  color: #7b9362;
+  margin: 0 0 12px;
+}
+.inbox-layout {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  gap: 30px;
+}
+.inbox-list > button {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 18px 12px;
+  width: 100%;
+  text-align: left;
+  border-bottom: 1px solid #e3e9d9;
+}
+.inbox-list > button.selected {
+  background: #f1f6e8;
+}
+.inbox-item-icon {
+  color: #a4b78a;
+  padding-top: 3px;
+}
+.inbox-list h3 {
+  line-height: 1.7;
+  color: #81986a;
+  font-family: 'SimSun', serif;
+  font-weight: 400;
+  margin: 0 0 8px;
+}
+.inbox-list p {
+  color: #99ab83;
+  margin: 0 0 6px;
+}
+.inbox-list small {
+  color: #a7b88d;
+}
+.inbox-paper {
+  border: 1px solid #dfe7d2;
+  padding: 22px 27px;
+  border-radius: 3px;
+  background: #fffef8;
+  min-width: 0;
+}
+.inbox-paper-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e1e8d3;
+  margin-bottom: 20px;
+}
+.inbox-paper-top > div {
+  flex: 1;
+  min-width: 0;
+}
+.inbox-paper-top .eyebrow {
+  font-size: 9px;
+}
+.inbox-paper-top .note-title-input {
+  padding: 11px 0 8px;
+}
+.inbox-paper-top p {
+  color: #a2b48c;
+  margin: 0;
+  line-height: 1.8;
+}
+.inbox-paper .rich-editor {
+  margin-top: 20px;
+}
+.upload-selection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 22px 0 13px;
+  color: #9caf83;
+}
+.upload-selection .button {
+  font-size: 10px;
+  padding: 6px 8px;
+  min-height: 30px;
+}
+.upload-turns {
+  max-height: 570px;
+  overflow: auto;
+}
+.upload-turn {
+  padding: 18px 0;
+  border-bottom: 1px solid #e3ead8;
+}
+.upload-turn-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #92a572;
+  margin-bottom: 13px;
+  cursor: pointer;
+}
+.upload-turn-label > span:last-child {
+  margin-left: auto;
+  color: #b0be9b;
+}
+.upload-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 7px 0 7px 25px;
+}
+.upload-message small {
+  min-width: 54px;
+  color: #a7b88c;
+  padding-top: 4px;
+}
+.upload-message p {
+  color: #81956b;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.inbox-file-action {
+  padding-top: 22px;
+  display: flex;
+  gap: 15px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  border-top: 1px solid #e2e9d6;
+  margin-top: 24px;
+}
+.inbox-file-action .field {
+  flex: 1;
+  min-width: 190px;
+}
+.inbox-file-action .inline-note {
+  width: 100%;
+  margin: 0;
+}
+@media (max-width: 800px) {
+  .inbox-layout {
+    grid-template-columns: 1fr;
+  }
+  .inbox-list {
+    display: flex;
+    align-items: stretch;
+    overflow-x: auto;
+    padding-bottom: 7px;
+    gap: 10px;
+  }
+  .inbox-list .surface-head {
+    display: none;
+  }
+  .inbox-list > button {
+    width: 220px;
+    flex-shrink: 0;
+    border: 1px solid #e1e9d4;
+    border-radius: 4px;
+    padding: 15px;
+  }
+  .inbox-paper {
+    padding: 23px;
+  }
+}
+@media (max-width: 480px) {
+  .inbox-paper {
+    padding: 18px;
+  }
+  .upload-message {
+    padding-left: 10px;
+    gap: 8px;
+    flex-direction: column;
+  }
+  .inbox-file-action {
+    justify-content: flex-end;
+  }
+  .inbox-file-action .field {
+    min-width: 100%;
+    font-size: 12px;
+  }
+}
+.upload-message p {
+  font-size: 15px;
+}
+.upload-message small,
+.upload-turn-label,
+.upload-turn-label > span:last-child,
+.inbox-list p,
+.inbox-list small,
+.inbox-paper-top p,
+.upload-selection {
+  font-size: 12px;
+}
+.inbox-list h3 {
+  font-size: 16px;
+}
+.inbox-paper-top .note-title-input {
+  font-size: 24px;
+}
+@media (max-width: 480px) {
+  .upload-message p {
+    font-size: 14px;
+  }
+  .upload-message small,
+  .upload-turn-label,
+  .upload-turn-label > span:last-child {
+    font-size: 11px;
+  }
+  .upload-selection {
+    font-size: 12px;
+  }
+  .inbox-paper-top .note-title-input {
+    font-size: 22px;
+  }
+}

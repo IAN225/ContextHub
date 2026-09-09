@@ -1,0 +1,374 @@
+/* summary: see docs/frontend-styles.md for ownership and load order. */
+
+.summary-overview {
+  border-bottom: 1px solid #dee6d1;
+}
+.summary-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  color: #8ea07b;
+}
+.summary-controls input {
+  width: 54px;
+  padding: 4px 5px;
+  text-align: center;
+  margin: 0 3px;
+  font-family: Georgia, serif;
+  background: #fafcf4;
+  border-color: #dfe7d2;
+}
+.summary-switches {
+  display: flex;
+  align-items: center;
+  gap: 23px;
+  flex-wrap: wrap;
+  margin: 22px 0 0;
+}
+.summary-switches > span {
+  color: #94a27f;
+}
+.summary-overview .callout {
+  margin-top: 17px;
+}
+.summary-layout {
+  display: grid;
+  grid-template-columns: 245px minmax(0, 1fr);
+  gap: 30px;
+}
+.checkpoint-list .surface-head h2 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.checkpoint-list > button {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  text-align: left;
+  padding: 17px 8px 17px 4px;
+  width: 100%;
+  border-radius: 4px;
+  color: #8eaa72;
+}
+.checkpoint-list > button.selected {
+  background: #f0f6e7;
+}
+.checkpoint-list > button > div:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.checkpoint-list > button > svg {
+  align-self: center;
+  color: #adbd91;
+}
+.checkpoint-marker {
+  position: relative;
+  width: 15px;
+  flex-shrink: 0;
+  padding-top: 7px;
+  display: grid;
+  place-items: center;
+}
+.checkpoint-marker > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #adbf92;
+  z-index: 1;
+}
+.checkpoint-marker > i {
+  position: absolute;
+  left: 7px;
+  top: 10px;
+  width: 1px;
+  background: #e0e8d2;
+}
+.checkpoint-title {
+  line-height: 1.8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  color: #81996a;
+}
+.checkpoint-title .pill {
+  padding: 0 5px;
+}
+.checkpoint-list p {
+  color: #91a37c;
+  margin: 5px 0;
+}
+.checkpoint-list small {
+  color: #a1b184;
+}
+.checkpoint-help {
+  margin: 22px 6px !important;
+  line-height: 1.9 !important;
+}
+.summary-paper {
+  padding: 27px 31px 19px;
+  background:
+    linear-gradient(90deg, #f7f9ef55, transparent 8%), var(--paper-input);
+  border: 1px solid #e1e7d6;
+  border-radius: 3px;
+  position: relative;
+}
+.summary-paper-head {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #e1e7d6;
+  padding-bottom: 20px;
+  margin-bottom: 21px;
+  color: #a6b58c;
+}
+.summary-paper-head h2 {
+  font-family: 'SimSun', serif;
+  color: #7e9468;
+  font-size: 20px;
+  font-weight: 400;
+  margin: 0 0 9px;
+}
+.summary-paper-head p {
+  font-size: 10px;
+  color: #93a37d;
+  margin: 0;
+}
+.summary-paper-head .eyebrow {
+  font-size: 8px;
+  margin-bottom: 11px;
+}
+.summary-paper .markdown h3 {
+  margin-top: 20px;
+}
+.summary-paper-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 21px;
+  margin-top: 27px;
+  border-top: 1px solid #e1e8d4;
+  gap: 10px;
+}
+.summary-paper-footer > span {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 9px;
+  color: #97a87f;
+}
+.demo-disclaimer {
+  margin-top: 25px;
+}
+.selected-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #8b9e75;
+  font-size: 14px;
+}
+.selected-summary > span:nth-child(2) {
+  flex: 1;
+}
+.probe-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  border-bottom: 1px solid #e0e8d3;
+  padding: 15px 0;
+  font-size: 12px;
+}
+.probe-row code {
+  color: #8fa575;
+}
+.probe-row p {
+  grid-column: span 2;
+  font-size: 11px;
+  color: #91a17f;
+  line-height: 1.8;
+  margin: 0;
+}
+@media (max-width: 1100px) {
+  .summary-layout {
+    grid-template-columns: 205px minmax(0, 1fr);
+    gap: 22px;
+  }
+  .summary-paper {
+    padding: 23px;
+  }
+  .summary-switches {
+    gap: 17px;
+  }
+  .summary-controls {
+    gap: 12px;
+  }
+  .summary-controls label {
+    font-size: 10px;
+  }
+}
+@media (max-width: 800px) {
+  .summary-layout {
+    grid-template-columns: 1fr;
+  }
+  .checkpoint-list {
+    border-bottom: 1px solid #e0e8d4;
+    padding-bottom: 10px;
+  }
+  .checkpoint-list > button {
+    display: inline-flex;
+    margin-right: 8px;
+    vertical-align: top;
+  }
+  .checkpoint-marker > i,
+  .checkpoint-help {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .summary-controls {
+    gap: 14px;
+  }
+  .summary-controls > .action-row {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .summary-switches {
+    gap: 15px;
+  }
+  .summary-paper {
+    padding: 23px 19px;
+  }
+  .summary-paper-footer {
+    flex-wrap: wrap;
+  }
+  .checkpoint-list > button {
+    gap: 7px;
+  }
+  .checkpoint-list > button > svg {
+    display: none;
+  }
+}
+.summary-controls,
+.summary-switches > span {
+  font-size: 12px;
+}
+.summary-paper .markdown,
+.summary-paper .markdown h3 {
+  font-size: 15px;
+}
+.checkpoint-title {
+  font-size: 14px;
+}
+.checkpoint-list p,
+.checkpoint-list small,
+.checkpoint-title .pill {
+  font-size: 12px;
+}
+.checkpoint-list > button {
+  padding-top: 18px;
+  padding-bottom: 18px;
+}
+.checkpoint-marker > i {
+  height: 113px;
+}
+.summary-switches {
+  row-gap: 15px;
+}
+@media (max-width: 800px) {
+  .summary-layout {
+    gap: 24px;
+  }
+  .checkpoint-list > button {
+    width: calc(50% - 8px);
+  }
+}
+@media (max-width: 480px) {
+  .summary-controls,
+  .summary-controls label,
+  .summary-switches .checks,
+  .summary-switches > span {
+    font-size: 12px;
+  }
+  .checkpoint-title {
+    font-size: 13px;
+  }
+  .checkpoint-list p,
+  .checkpoint-list small {
+    font-size: 11px;
+  }
+  .checkpoint-title .pill {
+    font-size: 10px;
+  }
+  .summary-paper .markdown,
+  .summary-paper .markdown h3 {
+    font-size: 14px;
+  }
+  .summary-paper-head h2 {
+    font-size: 21px;
+  }
+  .summary-paper-head p,
+  .summary-paper-footer > span {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 760px) {
+  .summary-overview {
+    margin-top: 0;
+  }
+  .summary-controls {
+    gap: 8px;
+  }
+  .summary-switches {
+    gap: 8px 12px;
+  }
+  .summary-layout {
+    gap: 12px;
+  }
+  .checkpoint-list {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 168px;
+    grid-template-rows: 30px auto;
+    gap: 0 8px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding-bottom: 8px;
+  }
+  .checkpoint-list > .surface-head {
+    grid-row: 1;
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 0;
+  }
+  .checkpoint-list > button {
+    grid-row: 2;
+    width: 168px;
+    margin: 0;
+    padding: 9px 8px;
+  }
+  .checkpoint-list .checkpoint-help {
+    display: none;
+  }
+  .checkpoint-list .checkpoint-title {
+    font-size: 12px;
+  }
+  .checkpoint-list p {
+    margin: 3px 0;
+  }
+  .checkpoint-list small {
+    font-size: 10px;
+  }
+  .summary-paper {
+    padding: 16px;
+  }
+}
+.summary-overview {
+  padding: 4px 0 14px;
+  margin-bottom: 16px;
+}
+.summary-switches {
+  margin-top: 12px;
+}

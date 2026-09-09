@@ -5,7 +5,6 @@ import {
   PET_SIZE,
   type FloatingPoint,
 } from '@/lib/floating-position';
-import './inbox-pet.css';
 
 const positionKey = 'context-hub-inbox-pet-position';
 function viewport() {

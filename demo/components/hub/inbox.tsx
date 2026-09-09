@@ -1,5 +1,4 @@
 'use client';
-import './inbox.css';
 import { useState } from 'react';
 import {
   Link2,

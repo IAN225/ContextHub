@@ -9,7 +9,6 @@ import {
 } from 'react';
 import { flushSync } from 'react-dom';
 import { Pencil, Search, X } from 'lucide-react';
-import './note-actions.css';
 
 export function NoteActions({
   query,

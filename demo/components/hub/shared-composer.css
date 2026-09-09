@@ -1,0 +1,149 @@
+/* shared-composer: see docs/frontend-styles.md for ownership and load order. */
+
+.composer-guide {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.composer-guide span {
+  font-size: 10px;
+}
+.compose-block {
+  border: 1px solid #38464a;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.block-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px;
+}
+.block-spacer {
+  flex: 1;
+}
+.compose-block p {
+  margin: 0 35px 15px;
+  line-height: 1.7;
+}
+.compose-block textarea {
+  border: 0;
+  border-top: 1px solid #38464a;
+  border-radius: 0;
+  min-height: 90px;
+  font-size: 13px;
+}
+.drag-handle {
+  cursor: grab;
+}
+.composer-add {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  padding: 10px 0;
+}
+.composer-add button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 8px;
+  border: 1px dashed #3d5350;
+  border-radius: 5px;
+}
+@media (max-width: 767px) {
+  .block-head {
+    gap: 7px;
+  }
+  .block-head small {
+    display: none;
+  }
+  .composer-guide span {
+    font-size: 9px;
+  }
+}
+.composer-guide {
+  color: #8e9e78;
+}
+.composer-guide span {
+  color: #9aa984;
+}
+.compose-block {
+  background: #fbfcf7;
+  border-color: #dfe6d3;
+  border-radius: 5px;
+}
+.compose-block.summary {
+  border-color: #d4dfc5;
+  background: #eef4e5;
+}
+.compose-block.recent {
+  border-color: #d6e2e5;
+  background: #f0f5f6;
+}
+.compose-block.stars {
+  border-color: #e8dfc8;
+  background: #faf5e9;
+}
+.block-head {
+  color: #819669;
+}
+.block-head small {
+  color: #92a17e;
+}
+.compose-block.recent .block-head {
+  color: #839ba4;
+}
+.compose-block.stars .block-head {
+  color: #aa986e;
+}
+.compose-block p {
+  color: #96a580;
+}
+.compose-block textarea {
+  background: #fffefa;
+  border-top-color: #e1e7d6;
+  color: #7d8a6b;
+}
+.drag-handle {
+  color: #a7b88f;
+}
+.composer-add button {
+  border-color: #d6e2c7;
+  color: #89a16d;
+}
+.composer-add button:hover {
+  background: #edf5e4;
+}
+@media (max-width: 480px) {
+  .block-head {
+    padding: 11px 9px;
+    gap: 6px;
+  }
+  .compose-block p {
+    margin-left: 30px;
+  }
+}
+.composer-guide,
+.compose-block p,
+.block-head small {
+  font-size: 12px;
+}
+.block-head {
+  font-size: 14px;
+}
+.composer-add button {
+  font-size: 12px;
+}
+@media (max-width: 480px) {
+  .block-head {
+    font-size: 13px;
+  }
+  .composer-guide,
+  .compose-block p,
+  .composer-add button {
+    font-size: 11px;
+  }
+  .composer-guide span {
+    font-size: 10px;
+  }
+}
