@@ -19,7 +19,7 @@ type Drag = {
 };
 
 // The drag session reads current blocks without restarting as they reorder.
-export function useMemoryReorder(
+export function useBlockReorder(
   items: Block[],
   onChange: (blocks: Block[]) => void,
 ) {
@@ -117,11 +117,14 @@ export function useMemoryReorder(
     const key = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
+        e.stopPropagation();
         cancel();
       }
     };
     const tick = () => {
-      const main = list.current?.closest<HTMLElement>('.page-content');
+      const main = list.current?.closest<HTMLElement>(
+        '.hub-dialog, .page-content',
+      );
       const internal =
         main &&
         main.scrollHeight > main.clientHeight &&
@@ -145,13 +148,13 @@ export function useMemoryReorder(
       if (e.pointerId === drag.pointerId) cancel();
     };
     window.addEventListener('pointercancel', cancelPointer);
-    window.addEventListener('keydown', key);
+    window.addEventListener('keydown', key, true);
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener('pointermove', movePointer);
       window.removeEventListener('pointerup', finish);
       window.removeEventListener('pointercancel', cancelPointer);
-      window.removeEventListener('keydown', key);
+      window.removeEventListener('keydown', key, true);
     };
     // Coordinates live in the handlers; keep the drag session stable while cards reorder.
   }, [drag]);
@@ -159,7 +162,9 @@ export function useMemoryReorder(
   function startDrag(id: string, e: ReactPointerEvent<HTMLButtonElement>) {
     if (e.button !== 0 || !e.isPrimary) return;
     e.preventDefault();
-    const rect = e.currentTarget.closest('article')!.getBoundingClientRect();
+    const rect = e.currentTarget
+      .closest('[data-block-id]')!
+      .getBoundingClientRect();
     setDragPoint({ x: e.clientX, y: e.clientY });
     setDrag({
       id,

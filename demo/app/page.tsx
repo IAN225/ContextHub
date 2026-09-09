@@ -169,8 +169,10 @@ export default function Hub() {
   function notify(text: string) {
     setNotice(text);
   }
-  function upload(u: Upload) {
-    dispatch({ type: 'upload/add', upload: u });
+  async function upload(u: Upload) {
+    const origin = currentView.current;
+    if (!(await commit({ type: 'upload/add', upload: u }))) return false;
+    if (currentView.current !== origin) return true;
     if (inboxUploads([u]).length) {
       navigate('inbox');
       setModal('');
@@ -178,6 +180,7 @@ export default function Hub() {
     } else {
       setModal(u.kind === 'summary' ? 'review-workbench' : 'review-manual');
     }
+    return true;
   }
   function updateUpload(next: Upload) {
     dispatch({ type: 'upload/update', upload: next });
@@ -408,13 +411,11 @@ export default function Hub() {
                       <SummaryPage
                         w={w}
                         active={
-                          !home &&
-                          page === 'summary' &&
-                          !persistence.busy &&
-                          !persistence.error
+                          !home && page === 'summary' && persistence.ready
                         }
                         onCommand={onWorkspaceCommand}
                         onUpload={upload}
+                        onCommit={commitWorkspace}
                         pendingCount={candidates.length}
                         onReview={() => setModal('review-workbench')}
                       />

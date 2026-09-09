@@ -23,6 +23,7 @@ import {
   Empty,
 } from './shared';
 import type { SendWorkspaceCommand } from '@/lib/hub-state';
+import type { CommitWorkspaceCommand } from '@/lib/use-hub';
 import { useSummaryTask } from './use-summary-task';
 import { RestoreDialog } from './summary-restore-dialog';
 import { ModelSettings } from './summary-model-settings';
@@ -37,6 +38,7 @@ export function SummaryPage({
   w,
   active,
   onCommand,
+  onCommit,
   onUpload,
   pendingCount,
   onReview,
@@ -44,14 +46,15 @@ export function SummaryPage({
   w: Workspace;
   active: boolean;
   onCommand: SendWorkspaceCommand;
-  onUpload: (u: Upload) => void;
+  onCommit: CommitWorkspaceCommand;
+  onUpload: (u: Upload) => Promise<boolean>;
   pendingCount: number;
   onReview: () => void;
 }) {
   const [selected, setSelected] = useState(w.activeId),
     [modal, setModal] = useState(''),
     [restore, setRestore] = useState<Summary | null>(null);
-  const task = useSummaryTask(w, active, onCommand, setSelected);
+  const task = useSummaryTask(w, active, onCommand, onCommit, setSelected);
   const { running, message } = task;
   const c = coverage(w),
     s = w.summaries.find((s) => s.id === selected) ?? c.active;
@@ -61,7 +64,12 @@ export function SummaryPage({
         <div>
           <PageTitle>记忆摘要</PageTitle>
         </div>
-        <Button onClick={() => setModal('settings')}>
+        <Button
+          onClick={() => {
+            task.stop();
+            setModal('settings');
+          }}
+        >
           <Settings2 size={15} />
           摘要设置
         </Button>
@@ -71,7 +79,7 @@ export function SummaryPage({
           <span className="section-kicker">记忆覆盖状态</span>
           <span className="pill">
             {running
-              ? '模拟压缩中'
+              ? '压缩中'
               : c.pending.length
                 ? `${c.pending.length} 轮待压缩`
                 : '已到达保留窗口'}
@@ -116,13 +124,25 @@ export function SummaryPage({
             轮
           </label>
           <div className="action-row">
-            <Button onClick={() => setModal('workbench')}>
+            <Button
+              onClick={() => {
+                task.stop();
+                setModal('workbench');
+              }}
+            >
               <SlidersHorizontal size={14} />
               工作台
             </Button>
             <Button
               primary
-              disabled={!w.config.configured || !c.pending.length}
+              disabled={
+                (!running &&
+                  (!w.config.configured ||
+                    !w.config.modelEnabled ||
+                    !c.pending.length)) ||
+                !!task.unsaved ||
+                task.saving
+              }
               onClick={() => task.toggle()}
             >
               {running ? <Pause size={14} /> : <Play size={14} />}{' '}
@@ -150,9 +170,9 @@ export function SummaryPage({
             />
             后续自动压缩
           </label>
-          <span>仅当前摘要页内模拟运行</span>
+          <span>仅当前摘要页内运行；离开后暂停</span>
         </div>
-        {!w.config.configured && (
+        {(!w.config.configured || !w.config.modelEnabled) && (
           <p className="callout">
             首次压缩需要先配置摘要模型，然后手动点击开始。
           </p>
@@ -170,6 +190,32 @@ export function SummaryPage({
           </p>
         )}
       </div>
+      {task.error && (
+        <p className="callout warning" role="alert">
+          {task.error}
+        </p>
+      )}
+      {task.unsaved && (
+        <div className="summary-unsaved">
+          <label className="field">
+            尚未应用的生成结果
+            <textarea readOnly value={task.unsaved.summary.text} rows={6} />
+          </label>
+          <div className="action-row">
+            <Button
+              disabled={task.saving}
+              onClick={() => {
+                void task.retrySave();
+              }}
+            >
+              重试保存检查点
+            </Button>
+            <Button disabled={task.saving} onClick={() => task.discardResult()}>
+              放弃此结果
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="summary-layout">
         <aside className="checkpoint-list">
           <div className="surface-head">
@@ -246,14 +292,10 @@ export function SummaryPage({
         </article>
       </div>
       <p className="inline-note demo-disclaimer">
-        演示批次使用原文摘录生成检查点，未调用模型；提示词与能力配置用于评审交互。
+        每批调用已配置的模型。仅完整结果保存成功后推进水位；中断或失败不会用摘录代替摘要。
       </p>
       {modal === 'settings' && (
-        <ModelSettings
-          w={w}
-          onCommand={onCommand}
-          onClose={() => setModal('')}
-        />
+        <ModelSettings w={w} onCommit={onCommit} onClose={() => setModal('')} />
       )}{' '}
       {modal === 'workbench' && (
         <SummaryWorkbench

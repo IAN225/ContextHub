@@ -23,7 +23,7 @@
 | 弹窗、表单、提示条、选择器 | `components/hub/forms.css` | `shared.tsx` 的 Modal/Picker、各表单 |
 | Markdown、原始文本、段落与工具文本 | `components/hub/shared-content.css` | `shared.tsx` 的 Markdown |
 | 摘要覆盖条、当前轮次书签 | `components/hub/shared-coverage.css` | `shared.tsx` 的覆盖条 |
-| 摘要提示词的块编排 | `components/hub/shared-composer.css` | `shared.tsx` 的 Composer |
+| 摘要提示词的块编排 | `components/hub/shared-composer.css` | `prompt-composer.tsx` 的 Composer |
 | 富文本工具栏、编辑预览、附件 | `components/hub/editors.css` | `editors.tsx` |
 | 三种导入入口专属布局、投递信息与 Key | `components/hub/imports/imports.css` | `imports/manual-import.tsx`、`imports/link-import.tsx`、`imports/delivery-settings.tsx` |
 | 工作区外壳、顶栏、章节菜单、纸张容器、移动端滚动区、通知 | `components/hub/shell.css` | `app/page.tsx` |

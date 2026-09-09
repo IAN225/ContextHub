@@ -38,6 +38,27 @@ async function check(name, run) {
     reducedMotion: 'reduce',
   });
   const errors = [];
+  // Browser regressions must never call a user's paid model connection.
+  await page.route('**/api/summary/**', async (route) => {
+    const action = new URL(route.request().url()).pathname.split('/').at(-1);
+    const body =
+      action === 'connection'
+        ? {
+            ready: true,
+            baseUrl: 'https://synthetic.example/v1',
+            model: 'component-lifecycle-demo',
+            protocol: 'openai',
+            message: '独立测试连接',
+          }
+        : action === 'generate'
+          ? {
+              text: '独立回归测试候选摘要',
+              model: 'component-lifecycle-demo',
+              protocol: 'openai',
+            }
+          : { probes: [] };
+    await route.fulfill({ json: body });
+  });
   page.setDefaultTimeout(10000);
   console.log(`RUN ${name}`);
   page.on('pageerror', (error) => errors.push(error.message));
@@ -105,7 +126,7 @@ try {
       let dialog = page.getByRole('dialog');
       await dialog.getByText('✓ 配置草稿已保存', { exact: true }).waitFor();
       await dialog
-        .getByPlaceholder('输入任意模型名，仅演示')
+        .getByPlaceholder('模型名称，或使用本地连接中的默认值')
         .fill('component-lifecycle-demo');
       await dialog.getByText('✓ 配置草稿已保存', { exact: true }).waitFor();
       await dialog
@@ -116,11 +137,12 @@ try {
       dialog = page.getByRole('dialog');
       await page.waitForFunction(
         () =>
-          document.querySelector('input[placeholder="输入任意模型名，仅演示"]')
-            .value === 'component-lifecycle-demo',
+          document.querySelector(
+            'input[placeholder="模型名称，或使用本地连接中的默认值"]',
+          ).value === 'component-lifecycle-demo',
       );
       await dialog
-        .getByRole('button', { name: '保存演示配置', exact: true })
+        .getByRole('button', { name: '保存摘要配置', exact: true })
         .click();
       await page.getByRole('button', { name: '工作台', exact: true }).click();
       dialog = page.getByRole('dialog');
@@ -147,7 +169,7 @@ try {
         '保持完整轮次与候选归属',
       );
       await dialog
-        .getByRole('button', { name: '生成候选并预览（模拟）', exact: true })
+        .getByRole('button', { name: '生成候选并预览', exact: true })
         .click();
       const review = page.getByRole('dialog', {
         name: '确认候选摘要',

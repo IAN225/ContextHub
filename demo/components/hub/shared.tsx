@@ -1,17 +1,5 @@
 'use client';
-import {
-  Check,
-  Copy,
-  Plus,
-  X,
-  GripVertical,
-  ChevronUp,
-  ChevronDown,
-  FileText,
-  Layers,
-  Star,
-  MessageSquare,
-} from 'lucide-react';
+import { Check, Copy, X, MessageSquare } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import {
   Dialog,
@@ -27,8 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Block, Workspace } from '@/lib/domain';
-import { coverage, uid } from '@/lib/domain';
+import type { Workspace } from '@/lib/domain';
+import { coverage } from '@/lib/domain';
 export function PageTitle({ children }: { children: ReactNode }) {
   return <h1>{children}</h1>;
 }
@@ -291,123 +279,7 @@ export function ChainMap({
     </div>
   );
 }
-export const blockLabels = {
-  text: '自定义文本',
-  summary: '当前活跃摘要',
-  recent: '原文滑动窗口',
-  stars: '标星 Note id 列表',
-};
-const blockIcons = {
-  text: FileText,
-  summary: Layers,
-  recent: MessageSquare,
-  stars: Star,
-};
-export function Composer({
-  blocks,
-  onChange,
-}: {
-  blocks: Block[];
-  onChange: (b: Block[]) => void;
-}) {
-  const [drag, setDrag] = useState<number | null>(null);
-  function move(i: number, j: number) {
-    if (j < 0 || j >= blocks.length) return;
-    const b = [...blocks];
-    b.splice(j, 0, b.splice(i, 1)[0]);
-    onChange(b);
-  }
-  return (
-    <div className="composer">
-      <div className="composer-guide">
-        按顺序拼装文本 <span>拖动排序 · 长文动态引用</span>
-      </div>
-      {blocks.map((b, i) => {
-        const Icon = blockIcons[b.type];
-        return (
-          <div
-            key={b.id}
-            className={`compose-block ${b.type}`}
-            draggable
-            onDragStart={() => setDrag(i)}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={() => {
-              if (drag !== null) move(drag, i);
-              setDrag(null);
-            }}
-          >
-            <div className="block-head">
-              <GripVertical size={16} className="drag-handle" />
-              <Icon size={16} />
-              <span>{blockLabels[b.type]}</span>
-              <span className="block-spacer" />
-              {b.type !== 'text' && <small>动态引用</small>}
-              <button
-                aria-label="上移"
-                className="icon-button tiny"
-                onClick={() => move(i, i - 1)}
-                disabled={i === 0}
-              >
-                <ChevronUp size={14} />
-              </button>
-              <button
-                aria-label="下移"
-                className="icon-button tiny"
-                onClick={() => move(i, i + 1)}
-                disabled={i === blocks.length - 1}
-              >
-                <ChevronDown size={14} />
-              </button>
-              <button
-                aria-label="移除块"
-                className="icon-button tiny"
-                onClick={() => onChange(blocks.filter((x) => x.id !== b.id))}
-              >
-                <X size={14} />
-              </button>
-            </div>
-            {b.type === 'text' ? (
-              <textarea
-                aria-label="自定义文本"
-                value={b.text ?? ''}
-                onChange={(e) =>
-                  onChange(
-                    blocks.map((x) =>
-                      x.id === b.id ? { ...x, text: e.target.value } : x,
-                    ),
-                  )
-                }
-                placeholder="输入你想对模型说的话…"
-              />
-            ) : (
-              <p>调用时自动读取最新内容，保持完整轮次。</p>
-            )}
-          </div>
-        );
-      })}
-      <div className="composer-add">
-        {Object.entries(blockLabels).map(([k, l]) => (
-          <button
-            key={k}
-            onClick={() =>
-              onChange([
-                ...blocks,
-                {
-                  id: uid(),
-                  type: k as Block['type'],
-                  ...(k === 'text' ? { text: '' } : {}),
-                },
-              ])
-            }
-          >
-            <Plus size={13} />
-            {l}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+export { Composer, blockLabels } from './prompt-composer';
 export function Empty({
   title,
   detail,

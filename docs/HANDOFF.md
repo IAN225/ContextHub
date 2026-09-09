@@ -2,13 +2,16 @@
 
 ## 当前范围与用户偏好
 
-- 2026-09-09 最新授权：摘要后做，先落地手动复制、链接解析、客户端投递三种导入，要求插件化、模块化、方便维护。本轮只增加导入所需的本地服务与持久化队列；真实模型、OAuth、远程 MCP 和云端部署仍未接入。
+- 2026-09-09 最新授权：导入完成后开始真实摘要压缩，并统一提示词拖动预览。用户自行创建 API，要求本地留待填文件且不上传；已留 `demo/.env.summary.local` 并验证忽略。真实供应商验收待填写配置；OAuth、远程 MCP 和云端部署仍未接入。
 - React 19 / TypeScript / Vinext / Tailwind / Shadcn Base UI，实际代码位于 `demo/`。
 - 视觉是浅色手账与纸张风格；首页把工作区呈现为笔记本封面，点开进入工作区。
 - 原文、摘要、Note、记忆包、连接在同一工作区内局部切换，保留已访问页的状态。
 - 用户明确要求不使用子智能体。优先直接处理已有授权工作，避免反复确认。
 
 ## 已完成
+
+- 摘要阶段：四协议适配、完整轮次预算计划、提示词展开、实际结果检查点、版本保护、原子保存、失败暂停与保存重试。旧演示配置不会自动触发模型调用；摘要与记忆包共用实时指针排序。见 [摘要压缩说明](summary-compression.md)。
+- 摘要验证：67 项单元测试、类型检查、应用 lint、构建及独立假模型 HTTP 检查通过。HTTP 检查发现并修复 Workers 重定向参数不兼容与跨请求缓存响应流的问题。真实 API、压缩质量和本次浏览器交互 QA 尚未验证。
 
 - 2026-09-09 前端维护：所有宽度的手账外壳固定到窗口高度，仅章节内容纵向滚动；移除收件原文、Payload、记忆包只读内容的额外滚动层。首页保留必要整页滚动但隐藏轴，内部统一细圆角滑块、透明轨道并去掉上下箭头。分享导入保存成功后直接打开收件箱，旧链接一并纳入；手动复制继续单独确认，摘要流程不变。
 - 本次维护验证：54 项领域/解析/持久化/路由测试、TypeScript、应用 lint、构建通过，更新后的本地首页 HTTP 200。新增验证覆盖链接收件刷新后保留、归档幂等、旧链接/客户端按原顺序合并以及手动/候选隔离。本轮没有运行浏览器 QA；滚动与布局属于有意改版，旧视觉基线不作为一致性验收。
@@ -19,7 +22,7 @@
 
 - 工作区书架、新建与编辑，原文完整轮次的搜索、浏览、编辑、插入、弃用与回收站。
 - 原文消息中的工具调用与结果保持在发起 user 的同一完整轮次；不保存隐藏思考。
-- 摘要检查点、处理水位、覆盖区间、原文窗口、回退与缺口；确定性摘录模拟压缩。
+- 摘要检查点、处理水位、覆盖区间、原文窗口、回退与缺口；实际模型增量压缩。
 - Note 编辑、草稿、版本、标星、回收站；记忆包编排、预览、复制；收件箱与请求 JSON 导入。
 - 本地 IndexedDB 保存应用状态、草稿和手动添加的素材；实验性浏览器内两个只读预览工具。
 - 鼠标/触屏点击输入不画外圈，键盘导航有可见焦点。触屏非编辑区域不误选文字。
@@ -48,7 +51,7 @@
 - `demo/components/hub/transcript.tsx`：原文章节协调；`use-transcript-navigation.ts` 负责原生滚动与选择，`transcript-timeline.tsx` / `turn-detail.tsx` 负责展示。超过 400 个结果时，只绘制视口/目标附近刻度，保留原生完整滚动宽度、104px 间距与现有手势。
 - `demo/components/hub/input-modality.tsx`：输入方式与焦点视觉。
 - `demo/components/hub/shared.tsx`：基础组件与统一页面标题。
-- `demo/components/hub/memory-composer.tsx`：记忆包编排协调；`use-memory-reorder.ts` 负责排序，`memory-block-card.tsx` / `memory-block-editor.tsx` 负责卡片与编辑。摘要提示词编排仍使用 shared 内原组件。
+- `demo/components/hub/memory-composer.tsx`：记忆包编排协调；`use-block-reorder.ts` 负责共用排序，`memory-block-card.tsx` / `memory-block-editor.tsx` 负责卡片与编辑。摘要提示词在 `prompt-composer.tsx`，复用同一排序 hook；shared 保留兼容导出。
 - `demo/components/hub/summary.tsx`：摘要章节；设置、工作台、回退确认分别位于 `summary-model-settings.tsx`、`summary-workbench.tsx`、`summary-restore-dialog.tsx`。
 - `demo/components/hub/import-dialog.tsx`：导入入口；`upload-review.tsx`：收件确认状态；`upload-turn-preview.tsx` / `upload-archive-actions.tsx`：完整轮次预览与归档选择。
 - `demo/components/hub/inbox-pet.tsx`、`inbox-pet.css`：无件／抱信两态像素图标；`inbox.css`：统一收件说明与手动/候选确认窗口的局部布局。
@@ -58,7 +61,7 @@
 - `demo/lib/import.ts`：旧解析函数的兼容出口；新的文本/请求/分享插件在 `demo/lib/imports/`，服务端适配在其 `server/`，三种入口表单在 `components/hub/imports/`。
 - `demo/lib/hub-state.ts`、`use-hub.ts`：应用命令、旧数据加载与应用状态 hook。
 - `demo/lib/repository.ts`、`persistent-session.ts`、`store.ts`：IndexedDB 事务、单键保存生命周期及 React 适配；提交正式数据时通过 companion entry 同事务清理草稿。
-- `demo/components/hub/use-summary-task.ts`：摘要模拟任务与章节可见性。
+- `demo/components/hub/use-summary-task.ts`：真实摘要请求、保存失败重试与章节可见性。`demo/lib/summary/` 拆分计划、提示词、协议适配、连接和路由。
 - `docs/superpowers/`：早期设计与实现计划；具体交互状态以当前源码及本说明为准。
 
 ## 最近验证结果
@@ -104,8 +107,8 @@ node tests/workspace-controls.mjs
 - 前端重构按“状态与持久化边界 → CSS 归属与重复覆盖 → 复杂组件拆分 → 性能与回归”推进，具体范围与验收见今日记录。不要一次性重写整个界面。
 
 - 全量 `pnpm lint` 仍会报告未使用的脚手架 UI 组件中的现有 a11y/React 编译器规则问题；本次修改涉及的应用代码检查已通过。
-- 尚无真实模型摘要、远程 MCP、OAuth、云端账号、文件同步、向量检索或后台清理。导入 API 是真实本地服务，连接页中的记忆 MCP/OAuth 仍为模拟。
+- 真实摘要已实现，供应商验收待填配置；尚无远程 MCP、OAuth、云端账号、文件同步、向量检索或后台清理。导入 API 是真实本地服务，连接页中的记忆 MCP/OAuth 仍为模拟。
 - 第一阶段已修正隐藏摘要的模拟任务和隐藏连接页时钟；后续增加后台任务时，应继续通过显式可见性与命令接口处理生命周期。
 - 原生时间轴已限制长列表的渲染节点，已测量至 10,000 轮。应用仍一次性载入数据并逐次保存整份主记录；更多轮次或大量附件应继续测量存储成本，分记录存储与迁移属于独立后续工作。
-- 用户已将下一阶段明确为三种真实导入；实体手机惯性/吸附/截停体验仍待后续确认。来源站点限制导致分享联网成功路径尚未完成验收，优先根据用户实际平台与可用样本继续验证。
+- 当前下一步为填写本地摘要配置并做真实模型验收；实体手机惯性/吸附/截停仍待后续确认。来源站点限制导致分享联网成功路径尚未完成验收，后续根据实际平台与可用样本继续验证。
 - 原始分享链接和观察材料仅留在原机器，未纳入仓库。浏览器数据也不会随 Git 迁移。

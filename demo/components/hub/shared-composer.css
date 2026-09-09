@@ -8,6 +8,43 @@
 .composer-guide span {
   font-size: 10px;
 }
+.compose-block-list {
+  position: relative;
+}
+.compose-block.is-placeholder {
+  border: 1px dashed #8b9c70;
+  background: #eaf0df;
+}
+.compose-block.is-placeholder > * {
+  opacity: 0.2;
+}
+.compose-drag-handle {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  min-height: 32px;
+  touch-action: none;
+  cursor: grab;
+  color: #a7b88f;
+}
+.compose-drag-handle:active {
+  cursor: grabbing;
+}
+.compose-drag-ghost {
+  position: fixed;
+  z-index: var(--z-memory-drag);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #a9b88e;
+  border-radius: 7px;
+  background: #f8fbf1;
+  color: #536044;
+  box-shadow: 0 10px 25px #3e502930;
+  font-size: 13px;
+}
 .compose-block {
   border: 1px solid #38464a;
   margin-bottom: 12px;

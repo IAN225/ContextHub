@@ -9,7 +9,7 @@ import {
   type Block,
   type Workspace,
 } from '@/lib/domain';
-import { useMemoryReorder } from './use-memory-reorder';
+import { useBlockReorder } from './use-block-reorder';
 import { MemoryBlockCard } from './memory-block-card';
 import { MemoryBlockEditor } from './memory-block-editor';
 export function MemoryComposer({
@@ -20,7 +20,7 @@ export function MemoryComposer({
   onChange: (blocks: Block[]) => void;
 }) {
   const [editing, setEditing] = useState<string | null>(null);
-  const { list, drag, dragPoint, move, startDrag } = useMemoryReorder(
+  const { list, drag, dragPoint, move, startDrag } = useBlockReorder(
     w.blocks,
     onChange,
   );

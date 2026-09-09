@@ -1,4 +1,9 @@
 /* summary: see docs/frontend-styles.md for ownership and load order. */
+.summary-unsaved {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+}
 
 .summary-overview {
   border-bottom: 1px solid #dee6d1;

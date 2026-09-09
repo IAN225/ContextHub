@@ -5,9 +5,29 @@ import {
   restoreSummary,
   coverage,
   memoryText,
-  compressBatch,
+  uid,
   type Workspace,
 } from '../lib/domain.ts';
+import {
+  applyGeneratedCheckpoint,
+  checkpointFromResult,
+  planCompression,
+} from '../lib/summary/planning.ts';
+// Synthetic model text belongs in tests; production never substitutes excerpts.
+function compressBatch(w: Workspace) {
+  const plan = planCompression(w);
+  return plan
+    ? applyGeneratedCheckpoint(
+        w,
+        checkpointFromResult(
+          plan,
+          { text: 'Test model summary', model: 'test', protocol: 'openai' },
+          uid(),
+          '2026-09-09',
+        ),
+      )
+    : w;
+}
 
 const turns = Array.from({ length: 8 }, (_, i) => ({
   id: `t${i + 1}`,
@@ -48,7 +68,13 @@ const workspace = (): Workspace => ({
     { id: 'b3', type: 'stars' },
   ],
   tokens: [],
-  config: { configured: true, auto: false, batch: 2, review: true },
+  config: {
+    configured: true,
+    modelEnabled: true,
+    auto: false,
+    batch: 2,
+    review: true,
+  },
   started: true,
 });
 

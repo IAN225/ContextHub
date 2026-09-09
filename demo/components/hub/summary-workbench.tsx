@@ -1,9 +1,12 @@
 'use client';
+import { useEffect, useRef, useState } from 'react';
 import { FlaskConical } from 'lucide-react';
 import { Button, Modal, Picker, SaveStatus } from './shared';
 import { TextEditor } from './editors';
 import { usePersistent } from '@/lib/store';
 import { uid, now, type Workspace, type Upload } from '@/lib/domain';
+import { requestSummary } from '@/lib/summary/client';
+import { planWorkbench } from '@/lib/summary/planning';
 export function SummaryWorkbench({
   w,
   onCreate,
@@ -12,7 +15,7 @@ export function SummaryWorkbench({
   onReview,
 }: {
   w: Workspace;
-  onCreate: (u: Upload) => void;
+  onCreate: (u: Upload) => Promise<boolean>;
   onClose: () => void;
   pendingCount: number;
   onReview: () => void;
@@ -27,10 +30,52 @@ export function SummaryWorkbench({
     selected = w.turns
       .slice(Math.max(0, d.from - 1), d.to)
       .filter((t) => t.status === 'normal');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [candidate, setCandidate] = useState<Upload | null>(null);
+  const request = useRef<AbortController | null>(null);
+  useEffect(() => () => request.current?.abort(), []);
+  async function generate() {
+    if (busy) return;
+    const controller = new AbortController();
+    request.current = controller;
+    setBusy(true);
+    setError('');
+    try {
+      let upload = candidate;
+      if (!upload) {
+        const plan = planWorkbench(w, selected, s, d.instruction);
+        const result = await requestSummary(plan.input, controller.signal);
+        if (controller.signal.aborted) return;
+        upload = {
+          id: uid(),
+          title: '工作台候选摘要',
+          kind: 'summary',
+          channel: 'workbench',
+          source: `摘要工作台 · ${result.model}`,
+          turns: [],
+          workspaceId: w.id,
+          covered: plan.covered,
+          summaryText: result.text,
+          createdAt: now(),
+        };
+        setCandidate(upload);
+      }
+      if (await onCreate(upload)) onClose();
+      else setError('候选已生成，但保存失败。点击重试保存，不会再次调用模型。');
+    } catch (failure) {
+      if (!controller.signal.aborted)
+        setError(
+          failure instanceof Error ? failure.message : '候选摘要生成失败。',
+        );
+    } finally {
+      if (!controller.signal.aborted) setBusy(false);
+    }
+  }
   return (
     <Modal
       title="摘要工作台"
-      description="选择历史摘要和重点原文生成候选，预览确认后再设为活跃摘要。"
+      description="选择历史摘要和重点原文调用模型生成候选，预览确认后再设为活跃摘要。"
       onClose={onClose}
     >
       {pendingCount > 0 && (
@@ -100,43 +145,41 @@ export function SummaryWorkbench({
         <Button
           primary
           disabled={
+            busy ||
             !p.ready ||
+            !Number.isInteger(d.from) ||
+            !Number.isInteger(d.to) ||
             d.from < 1 ||
             d.to < d.from ||
             d.to > w.turns.length ||
-            !w.config.configured
+            !w.config.configured ||
+            !w.config.modelEnabled
           }
           onClick={() => {
-            onCreate({
-              id: uid(),
-              title: '工作台候选摘要',
-              kind: 'summary',
-              channel: 'workbench',
-              source: '摘要工作台 · 模拟生成',
-              turns: [],
-              workspaceId: w.id,
-              covered: [
-                ...new Set([
-                  ...(s?.covered ?? []),
-                  ...selected.map((t) => t.id),
-                ]),
-              ],
-              summaryText: [
-                s?.text ?? '',
-                `\n## 整理要求\n${d.instruction}`,
-                `\n## 重点原文（演示摘录）\n${selected.map((t) => `- ${t.messages.find((m) => m.role === 'user')?.content}`).join('\n')}`,
-              ].join('\n'),
-              createdAt: now(),
-            });
-            onClose();
+            void generate();
           }}
         >
           <FlaskConical size={15} />
-          生成候选并预览（模拟）
+          {busy
+            ? '正在生成并保存…'
+            : candidate
+              ? '重试保存候选'
+              : '生成候选并预览'}
         </Button>
       </div>
-      {!w.config.configured && (
-        <p className="inline-note">请先配置演示摘要模型。</p>
+      {(!w.config.configured || !w.config.modelEnabled) && (
+        <p className="inline-note">请先配置摘要模型。</p>
+      )}
+      {error && (
+        <p role="alert" className="error-text">
+          {error}
+        </p>
+      )}
+      {candidate && error && (
+        <label className="field">
+          尚未保存的候选
+          <textarea readOnly rows={6} value={candidate.summaryText} />
+        </label>
       )}
     </Modal>
   );

@@ -36,6 +36,11 @@ export type Summary = {
   text: string;
   covered: string[];
   createdAt: string;
+  generation?: {
+    model: string;
+    protocol: string;
+    usage?: { input?: number; output?: number };
+  };
 };
 export type Note = {
   id: string;
@@ -69,6 +74,7 @@ export type Token = {
 };
 export type Config = {
   configured: boolean;
+  modelEnabled?: boolean;
   auto: boolean;
   batch: number;
   review: boolean;
@@ -219,38 +225,6 @@ export function restoreSummary(
     ...w,
     activeId: id,
     watermark: mode === 'rewind' ? (last?.id ?? null) : w.watermark,
-  };
-}
-export function compressBatch(
-  w: Workspace,
-  identity = { id: uid(), createdAt: now() },
-): Workspace {
-  const c = coverage(w),
-    batch = c.pending.slice(0, Math.max(1, w.config.batch));
-  if (!batch.length || !w.config.configured) return w;
-  const summary: Summary = {
-    id: identity.id,
-    title: '增量摘要',
-    createdAt: identity.createdAt,
-    covered: [
-      ...new Set([...(c.active?.covered ?? []), ...batch.map((t) => t.id)]),
-    ],
-    text: [
-      c.active?.text ?? '## 对话延续提示',
-      `\n### 新增记忆（演示摘录 · ${batch.length} 轮）`,
-      ...batch.map(
-        (t) =>
-          `- ${t.messages.find((m) => m.role === 'user')?.content.slice(0, 140) ?? t.title}`,
-      ),
-    ].join('\n'),
-  };
-  return {
-    ...w,
-    summaries: [...w.summaries, summary].slice(-30),
-    activeId: summary.id,
-    watermark: batch.at(-1)!.id,
-    started: true,
-    firstComplete: w.firstComplete || c.pending.length <= batch.length,
   };
 }
 export function memoryText(w: Workspace, blocks = w.blocks) {

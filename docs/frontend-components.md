@@ -18,7 +18,7 @@
 | 文件 | 负责内容 |
 | --- | --- |
 | `summary.tsx` | 覆盖状态、压缩控制、检查点选择与阅读、弹窗入口 |
-| `use-summary-task.ts` | 模拟批次的启停、可见性和工作区命令；沿用第一阶段边界 |
+| `use-summary-task.ts` | 真实批次请求、可见性、过期校验、原子提交与保存失败重试 |
 | `summary-model-settings.tsx` | 模型/预算、提示词编排、能力示例及配置草稿 |
 | `summary-workbench.tsx` | 起始摘要与完整轮次范围、整理要求、带来源手账 ID 的候选生成 |
 | `summary-restore-dialog.tsx` | keep/rewind 选择、应用前覆盖预览；摘要页和收件确认共同使用 |
@@ -30,7 +30,8 @@
 | 文件 | 负责内容 |
 | --- | --- |
 | `memory-composer.tsx` | 块列表、添加、编辑对象 ID、块更新与拖动浮层 |
-| `use-memory-reorder.ts` | Pointer Events 排序、边缘滚动、补位动画、取消恢复及监听器清理 |
+| `use-block-reorder.ts` | 摘要和记忆包共用 Pointer Events 排序、边缘滚动、补位动画、取消恢复及监听器清理 |
+| `prompt-composer.tsx` | 摘要提示词编排 UI，复用共用排序 hook；shared 保留兼容导出 |
 | `memory-block-card.tsx` | 块标题、预览、编辑入口、拖动把手和上下移动按钮 |
 | `memory-block-editor.tsx` | 自定义摘要、原文窗口、Note 选择与删除入口 |
 

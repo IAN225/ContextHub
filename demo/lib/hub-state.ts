@@ -1,5 +1,4 @@
 import {
-  compressBatch,
   restoreSummary,
   uploadChannel,
   type Block,
@@ -11,6 +10,10 @@ import {
   type Upload,
   type Workspace,
 } from './domain.ts';
+import {
+  applyGeneratedCheckpoint,
+  type GeneratedCheckpoint,
+} from './summary/planning.ts';
 
 export type HubState = {
   schemaVersion: 1;
@@ -35,7 +38,7 @@ export type WorkspaceCommand =
   | { type: 'note/status'; noteId: string; status: Status; at: string }
   | { type: 'summary/config'; patch: Partial<Config> }
   | { type: 'summary/retain'; retain: number }
-  | { type: 'summary/compress'; id: string; at: string }
+  | { type: 'summary/generated'; generated: GeneratedCheckpoint }
   | { type: 'summary/restore'; summaryId: string; mode: 'keep' | 'rewind' }
   | { type: 'memory/set'; blocks: Block[] }
   | { type: 'token/create'; token: Token }
@@ -159,6 +162,14 @@ export function applyWorkspaceCommand(
     case 'summary/config': {
       const config = { ...w.config, ...command.patch };
       if (config.review) config.auto = false;
+      // A saved demo toggle never authorizes a newly connected paid model.
+      if (config.modelEnabled && !w.config.modelEnabled)
+        return {
+          ...w,
+          config: { ...config, auto: false },
+          started: false,
+          firstComplete: false,
+        };
       return { ...w, config };
     }
     case 'summary/retain':
@@ -166,8 +177,8 @@ export function applyWorkspaceCommand(
         ...w,
         retain: Math.max(1, Math.min(500, Math.floor(command.retain) || 1)),
       };
-    case 'summary/compress':
-      return compressBatch(w, { id: command.id, createdAt: command.at });
+    case 'summary/generated':
+      return applyGeneratedCheckpoint(w, command.generated);
     case 'summary/restore':
       return {
         ...restoreSummary(w, command.summaryId, command.mode),
@@ -407,6 +418,8 @@ export function normalizeHubState(raw: unknown): HubState {
     requireShape(
       record(item.config) &&
         typeof item.config.configured === 'boolean' &&
+        (item.config.modelEnabled === undefined ||
+          typeof item.config.modelEnabled === 'boolean') &&
         typeof item.config.auto === 'boolean' &&
         typeof item.config.review === 'boolean' &&
         Number.isFinite(item.config.batch),

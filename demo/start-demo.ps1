@@ -18,4 +18,4 @@ if ($Dev) {
 if ($LASTEXITCODE -ne 0) { throw '构建失败，请检查上面的错误。' }
 & $taskNodePath --import './scripts/local-runtime.mjs' './node_modules/wrangler/bin/wrangler.js' d1 migrations apply DB --local --config 'dist/server/wrangler.json' --persist-to '.wrangler/state'
 if ($LASTEXITCODE -ne 0) { throw '收件数据库初始化失败，请检查上面的错误。' }
-& $taskNodePath --import './scripts/local-runtime.mjs' './node_modules/wrangler/bin/wrangler.js' dev --config 'dist/server/wrangler.json' --persist-to '.wrangler/state' --ip 127.0.0.1 --port 3000
+& $taskNodePath './scripts/start-local.mjs'
