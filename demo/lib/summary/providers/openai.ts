@@ -80,9 +80,18 @@ export const responsesSummary: SummaryProvider = {
     if (data.error || data.incomplete_details)
       completed('incomplete', ['completed']);
     const parts: string[] = [];
+    let hasThinkingOutput = false;
     for (const output of array(data.output)) {
       const item = object(output);
-      if (item.type === 'reasoning') continue;
+      if (item.type === 'reasoning') {
+        // Keep only evidence that output exists, never the thinking text itself.
+        hasThinkingOutput ||=
+          Boolean(string(item.encrypted_content).trim()) ||
+          [...array(item.content), ...array(item.summary)].some((part) =>
+            Boolean(string(object(part).text).trim()),
+          );
+        continue;
+      }
       if (item.type !== 'message' || item.role !== 'assistant')
         completed('unexpected_item', ['message']);
       completed(item.status, ['completed']);
@@ -94,8 +103,18 @@ export const responsesSummary: SummaryProvider = {
       }
     }
     const usage = object(data.usage);
+    const thinkingTokens = count(
+      object(usage.output_tokens_details).reasoning_tokens,
+    );
     return {
       text: visibleText(parts.join('\n')),
+      thinkingEvidence: {
+        tokens:
+          thinkingTokens !== undefined && Number.isInteger(thinkingTokens)
+            ? thinkingTokens
+            : undefined,
+        hasOutput: hasThinkingOutput,
+      },
       usage: {
         input: count(usage.input_tokens),
         output: count(usage.output_tokens),

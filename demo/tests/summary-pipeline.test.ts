@@ -87,6 +87,54 @@ const req = (
     },
     body: JSON.stringify(body),
   });
+void test('local Responses thinking setting overrides stale browser settings and preserves unconfigured connections', async () => {
+  for (const forced of ['关闭', undefined]) {
+    const connection = {
+      ...env,
+      CONTEXT_HUB_SUMMARY_PROTOCOL: 'responses',
+      CONTEXT_HUB_SUMMARY_THINKING: forced,
+    };
+    const original = {
+      ...input(),
+      config: { ...input().config, thinking: 'high' },
+    };
+    assert.equal(summaryConnectionStatus(connection).thinking, forced);
+    await generateSummary(
+      original,
+      connection,
+      undefined,
+      async (url, init) => {
+        assert.equal(url, 'https://provider.example/v1/responses');
+      assert.ok(typeof init?.body === 'string');
+      const body = JSON.parse(init.body);
+        assert.deepEqual(body.reasoning, { effort: forced ? 'none' : 'high' });
+        assert.equal(body.max_output_tokens, 512);
+        assert.equal(body.thinking, undefined);
+        return Response.json({
+          status: 'completed',
+          output: [
+            {
+              type: 'message',
+              role: 'assistant',
+              status: 'completed',
+              content: [{ type: 'output_text', text: 'Test summary' }],
+            },
+          ],
+        });
+      },
+    );
+    assert.equal(original.config.thinking, 'high');
+  }
+  const invalid = { ...env, CONTEXT_HUB_SUMMARY_THINKING: 'invalid' };
+  assert.equal(summaryConnectionStatus(invalid).ready, false);
+  await assert.rejects(
+    () =>
+      generateSummary(input(), invalid, undefined, async () => {
+        assert.fail('invalid settings must not call upstream');
+      }),
+    /不支持的思考设置/,
+  );
+});
 void test('old demo configuration cannot start model calls and explicit activation clears demo auto-run state', () => {
   const w = workspace();
   delete w.config.modelEnabled;

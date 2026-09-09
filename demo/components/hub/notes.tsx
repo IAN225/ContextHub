@@ -156,7 +156,7 @@ function NoteEditor({
             : '普通 Note 用于日记、流水账与临时记录，可搜索或按 id 读取。'
           : note.status === 'deprecated'
             ? '弃用 Note 只供用户查看，不提供给模型。'
-            : `删除于 ${formatDate(note.deletedAt ?? null)}。正式版 30 天后清除；本地 demo 不自动清理。`}
+            : `删除于 ${formatDate(note.deletedAt ?? null)}。保留 30 天后清理；可在“本地数据”中提前清空。缺少删除时间的旧记录需手动清理。`}
       </p>
       {history && (
         <Modal

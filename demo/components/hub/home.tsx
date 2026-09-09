@@ -1,5 +1,12 @@
 'use client';
-import { ArrowUpRight, Plus, Search, Orbit, ArrowRight } from 'lucide-react';
+import {
+  ArrowUpRight,
+  Plus,
+  Search,
+  Orbit,
+  ArrowRight,
+  Database,
+} from 'lucide-react';
 import { coverage, type Workspace } from '@/lib/domain';
 
 export function JournalHome({
@@ -9,6 +16,8 @@ export function JournalHome({
   onNew,
   onSearch,
   onAccount,
+  onData,
+  onImport,
 }: {
   openingId: string | null;
   workspaces: Workspace[];
@@ -16,6 +25,8 @@ export function JournalHome({
   onNew: () => void;
   onSearch: () => void;
   onAccount: () => void;
+  onData: () => void;
+  onImport: () => void;
 }) {
   return (
     <div className="journal-home" inert={!!openingId} aria-busy={!!openingId}>
@@ -25,6 +36,14 @@ export function JournalHome({
           <span>Context Hub</span>
         </button>
         <div>
+          <button
+            className="journal-header-action"
+            onClick={onData}
+            aria-label="本地数据与备份"
+          >
+            <Database size={17} />
+            <span>本地数据</span>
+          </button>
           <button className="journal-header-action" onClick={onSearch}>
             <Search size={17} />
             <span>搜索记忆</span>
@@ -45,6 +64,15 @@ export function JournalHome({
           </h1>
           <span>一个窗口，一本手账</span>
         </div>
+        {!workspaces.length && (
+          <div className="callout">
+            <p>还没有手账。创建一本空白手账，或导入已有对话。</p>
+            <button className="journal-header-action" onClick={onImport}>
+              <Plus size={17} />
+              收录对话
+            </button>
+          </div>
+        )}
         <div className="notebook-grid">
           {workspaces.map((w, i) => {
             const c = coverage(w);
@@ -127,7 +155,7 @@ export function JournalHome({
       </main>
       <footer className="journal-home-footer">
         <span>CONTEXT HUB · PERSONAL MEMORY JOURNAL</span>
-        <span>本地 Demo · 示例数据仅保存在此浏览器</span>
+        <span>数据保存在此浏览器 · 可从“本地数据”导出备份</span>
       </footer>
     </div>
   );

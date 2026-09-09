@@ -50,6 +50,7 @@ export function usePersistent<T>(
       error: snapshot.error,
       commit: session.commit,
       commitWith: session.commitWith,
+      transact: session.transact,
       retry: session.retry,
     },
   ] as const;

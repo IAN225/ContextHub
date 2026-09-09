@@ -106,7 +106,14 @@ export async function generateSummary(
       '本次提示词与输出预留超出上下文预算。',
     );
   const provider = summaryProvider(connection.protocol);
-  const request = provider.build(input, connection.model, connection.apiKey);
+  const effectiveInput = connection.thinking
+    ? { ...input, config: { ...input.config, thinking: connection.thinking } }
+    : input;
+  const request = provider.build(
+    effectiveInput,
+    connection.model,
+    connection.apiKey,
+  );
   const body = JSON.stringify(request.body);
   if (new TextEncoder().encode(body).length > MAX_SUMMARY_BYTES)
     throw new SummaryError(

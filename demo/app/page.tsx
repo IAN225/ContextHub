@@ -19,8 +19,10 @@ import {
   Check,
   BookOpen,
   ChevronRight,
+  Database,
 } from 'lucide-react';
 import { JournalHome } from '@/components/hub/home';
+import { DataManager } from '@/components/hub/data-manager';
 import { Transcript } from '@/components/hub/transcript';
 import { SummaryPage } from '@/components/hub/summary';
 import { NotesPage } from '@/components/hub/notes';
@@ -56,7 +58,11 @@ const navigation = [
   { id: 'connect', label: '连接', icon: Plug },
 ];
 export default function Hub() {
-  const { data, persistence, dispatch, commit } = useHub();
+  const { data, persistence, dispatch, commit, cleanup } = useHub();
+  const [emptyWorkspace] = useState(() => ({
+    ...blankWorkspace('尚未创建手账'),
+    id: 'empty-workspace',
+  }));
   const [workspaceId, setWorkspaceId] = useState('ws-everyday'),
     [page, setPage] = useState('archive'),
     [visitedPages, setVisitedPages] = useState(['archive']),
@@ -67,7 +73,9 @@ export default function Hub() {
     [editing, setEditing] = useState<Turn | undefined>(),
     [notice, setNotice] = useState('');
   const w =
-    data.workspaces.find((w) => w.id === workspaceId) ?? data.workspaces[0];
+    data.workspaces.find((w) => w.id === workspaceId) ??
+    data.workspaces[0] ??
+    emptyWorkspace;
   const onWorkspaceCommand = useCallback(
     (command: WorkspaceCommand) => {
       dispatch({ type: 'workspace', workspaceId: w.id, command });
@@ -79,10 +87,10 @@ export default function Hub() {
       commit({ type: 'workspace', workspaceId: w.id, command }, companion),
     [commit, w.id],
   );
-  const currentView = useRef({ workspaceId: w.id, modal, page, home });
+  const currentView = useRef({ workspaceId, modal, page, home });
   useLayoutEffect(() => {
-    currentView.current = { workspaceId: w.id, modal, page, home };
-  }, [w.id, modal, page, home]);
+    currentView.current = { workspaceId, modal, page, home };
+  }, [workspaceId, modal, page, home]);
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(''), 4500);
@@ -95,8 +103,11 @@ export default function Hub() {
     (uploads: Upload[]) => commit({ type: 'upload/receive', uploads }),
     [commit],
   );
-  const deliveryInbox = useDeliveryInbox(persistence.ready, receiveDeliveries);
-  useDemoMemoryTools(w);
+  const deliveryInbox = useDeliveryInbox(
+    persistence.ready && modal !== 'data',
+    receiveDeliveries,
+  );
+  useDemoMemoryTools(w, data.workspaces.length > 0);
   const main = useRef<HTMLElement>(null);
   const opening = useRef(false);
   const chapterScroll = useRef<Record<string, number>>({});
@@ -287,6 +298,16 @@ export default function Hub() {
             重试读取
           </Button>
         )}
+        {persistence.error && (
+          <Button onClick={() => setModal('data')}>从备份恢复</Button>
+        )}
+        {modal === 'data' && (
+          <DataManager
+            saved={false}
+            onClose={() => setModal('')}
+            onCleanup={cleanup}
+          />
+        )}
       </div>
     );
   return (
@@ -299,6 +320,8 @@ export default function Hub() {
           onNew={() => setModal('new-workspace')}
           onSearch={() => navigate('search')}
           onAccount={() => setModal('account')}
+          onData={() => setModal('data')}
+          onImport={() => setModal('import')}
         />
       )}
       {home && persistence.error && (
@@ -337,6 +360,13 @@ export default function Hub() {
               </span>
             </div>
             <div className="reader-actions">
+              <button
+                className="icon-button"
+                aria-label="本地数据与备份"
+                onClick={() => setModal('data')}
+              >
+                <Database size={17} />
+              </button>
               <span className="save-state">
                 <span
                   className={`status-dot ${persistence.error ? 'error' : ''}`}
@@ -371,6 +401,7 @@ export default function Hub() {
                 {navigation.map((n) => (
                   <button
                     key={n.id}
+                    disabled={!data.workspaces.length}
                     className={page === n.id ? 'selected' : ''}
                     aria-current={page === n.id ? 'page' : undefined}
                     onClick={() => navigate(n.id)}
@@ -393,71 +424,80 @@ export default function Hub() {
                 </div>
               )}
               <main className="page-content" key={w.id} ref={main}>
-                {visitedPages.map((panel) => (
-                  <div
-                    key={panel}
-                    className="chapter-panel"
-                    hidden={page !== panel}
-                  >
-                    {panel === 'archive' ? (
-                      <Transcript
-                        w={w}
-                        active={!home && page === 'archive'}
-                        onCommand={onWorkspaceCommand}
-                        onInsert={insert}
-                        onEdit={edit}
-                      />
-                    ) : panel === 'summary' ? (
-                      <SummaryPage
-                        w={w}
-                        active={
-                          !home && page === 'summary' && persistence.ready
-                        }
-                        onCommand={onWorkspaceCommand}
-                        onUpload={upload}
-                        onCommit={commitWorkspace}
-                        pendingCount={candidates.length}
-                        onReview={() => setModal('review-workbench')}
-                      />
-                    ) : panel === 'notes' ? (
-                      <NotesPage
-                        w={w}
-                        onCommand={onWorkspaceCommand}
-                        onCommit={commitWorkspace}
-                      />
-                    ) : panel === 'memory' ? (
-                      <MemoryPage w={w} onCommand={onWorkspaceCommand} />
-                    ) : panel === 'inbox' ? (
-                      <>
-                        {deliveryInbox.error && (
-                          <p role="alert" className="callout warning">
-                            {deliveryInbox.error}
-                          </p>
-                        )}
-                        <InboxPage
-                          uploads={deliveries}
+                {visitedPages
+                  .filter(
+                    (panel) =>
+                      data.workspaces.length > 0 ||
+                      ['inbox', 'search'].includes(panel),
+                  )
+                  .map((panel) => (
+                    <div
+                      key={panel}
+                      className="chapter-panel"
+                      hidden={page !== panel}
+                    >
+                      {panel === 'archive' ? (
+                        <Transcript
+                          w={w}
+                          active={!home && page === 'archive'}
+                          onCommand={onWorkspaceCommand}
+                          onInsert={insert}
+                          onEdit={edit}
+                        />
+                      ) : panel === 'summary' ? (
+                        <SummaryPage
+                          w={w}
+                          active={
+                            !home &&
+                            page === 'summary' &&
+                            persistence.ready &&
+                            modal !== 'data'
+                          }
+                          onCommand={onWorkspaceCommand}
+                          onUpload={upload}
+                          onCommit={commitWorkspace}
+                          pendingCount={candidates.length}
+                          onReview={() => setModal('review-workbench')}
+                        />
+                      ) : panel === 'notes' ? (
+                        <NotesPage
+                          w={w}
+                          onCommand={onWorkspaceCommand}
+                          onCommit={commitWorkspace}
+                        />
+                      ) : panel === 'memory' ? (
+                        <MemoryPage w={w} onCommand={onWorkspaceCommand} />
+                      ) : panel === 'inbox' ? (
+                        <>
+                          {deliveryInbox.error && (
+                            <p role="alert" className="callout warning">
+                              {deliveryInbox.error}
+                            </p>
+                          )}
+                          <InboxPage
+                            uploads={deliveries}
+                            workspaces={data.workspaces}
+                            currentId={w.id}
+                            onUpdate={updateUpload}
+                            onRemove={removeUpload}
+                            onImport={importUpload}
+                            onSummary={applySummary}
+                          />
+                        </>
+                      ) : panel === 'connect' ? (
+                        <ConnectionsPage
+                          w={w}
+                          active={!home && page === 'connect'}
+                          onCommand={onWorkspaceCommand}
+                        />
+                      ) : (
+                        <SearchPage
                           workspaces={data.workspaces}
                           currentId={w.id}
-                          onUpdate={updateUpload}
-                          onRemove={removeUpload}
-                          onImport={importUpload}
-                          onSummary={applySummary}
                         />
-                      </>
-                    ) : panel === 'connect' ? (
-                      <ConnectionsPage
-                        w={w}
-                        active={!home && page === 'connect'}
-                        onCommand={onWorkspaceCommand}
-                      />
-                    ) : (
-                      <SearchPage
-                        workspaces={data.workspaces}
-                        currentId={w.id}
-                      />
-                    )}
-                  </div>
-                ))}
+                      )}
+                    </div>
+                  ))}
               </main>
             </div>
           </div>
@@ -530,6 +570,14 @@ export default function Hub() {
             手账与草稿保存在当前浏览器。客户端投递先保存在本机服务的收件队列，浏览器接收成功后清除服务端正文。账号与云端同步尚未接入。
           </p>
         </Modal>
+      )}
+      {modal === 'data' && (
+        <DataManager
+          state={data}
+          saved={persistence.saved && !persistence.busy}
+          onClose={() => setModal('')}
+          onCleanup={cleanup}
+        />
       )}
       <InboxPet count={deliveries.length} onClick={() => navigate('inbox')} />
       {notice && (

@@ -12,6 +12,7 @@ import {
   type SummaryEnvironment,
 } from './config.ts';
 import { generateSummary, readSummaryBody } from './service.ts';
+import { thinkingProbe } from '../thinking-probe.ts';
 
 const headers = { 'Cache-Control': 'no-store' };
 function localRequest(request: Request) {
@@ -142,7 +143,7 @@ export function createSummaryHandler() {
             fetcher,
           );
           if (action !== 'probe') return Response.json(result, { headers });
-          const { protocol } = readSummaryConnection(env);
+          const { protocol, thinking } = readSummaryConnection(env);
           const fallback = {
             openai: 'max_completion_tokens',
             responses: 'max_output_tokens',
@@ -162,13 +163,11 @@ export function createSummaryHandler() {
               detail: '本次请求成功并返回完整正文；不代表已验证最大输出上限。',
             },
           ];
-          if (input.config.thinking && input.config.thinking !== '未设置')
-            probes.push({
-              field: '思考设置',
-              status: '无法确认是否生效',
-              detail:
-                '接口接受了本次请求，但仅凭响应成功无法证明思考强度生效。',
-            });
+          const effectiveThinking = thinking || input.config.thinking;
+          if (effectiveThinking && effectiveThinking !== '未设置')
+            probes.push(
+              thinkingProbe(effectiveThinking, result.thinkingEvidence),
+            );
           return Response.json(
             {
               probes,

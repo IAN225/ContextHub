@@ -15,7 +15,7 @@ type ModelContext = {
   ) => void | Promise<void>;
 };
 /** Optional page-local preview tools; this is not a remote MCP service. */
-export function useDemoMemoryTools(workspace: Workspace) {
+export function useDemoMemoryTools(workspace: Workspace, enabled = true) {
   const current = useRef(workspace);
   useEffect(() => {
     current.current = workspace;
@@ -23,7 +23,7 @@ export function useDemoMemoryTools(workspace: Workspace) {
   useEffect(() => {
     const context = (document as Document & { modelContext?: ModelContext })
       .modelContext;
-    if (!context?.registerTool) return;
+    if (!enabled || !context?.registerTool) return;
     const lifecycle = new AbortController();
     const definitions: BrowserTool[] = [
       {
@@ -92,5 +92,5 @@ export function useDemoMemoryTools(workspace: Workspace) {
       }
     }
     return () => lifecycle.abort();
-  }, []);
+  }, [enabled]);
 }

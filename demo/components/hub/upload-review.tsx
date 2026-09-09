@@ -32,7 +32,9 @@ export function UploadReview({
   delivery = false,
 }: UploadReviewProps & { delivery?: boolean }) {
   const [selected, setSelected] = useState(uploads[0]?.id),
-    [target, setTarget] = useState(currentId),
+    [target, setTarget] = useState(
+      workspaces.some((w) => w.id === currentId) ? currentId : 'new',
+    ),
     [checked, setChecked] = useState<string[]>([]),
     [restore, setRestore] = useState(false),
     [remove, setRemove] = useState(false);

@@ -20,7 +20,16 @@ export type HubState = {
   workspaces: Workspace[];
   uploads: Upload[];
   deliveryReceipts?: string[];
+  trashRestoredAt?: string;
 };
+export function createEmptyHubState(): HubState {
+  return {
+    schemaVersion: 1,
+    workspaces: [],
+    uploads: [],
+    deliveryReceipts: [],
+  };
+}
 export type WorkspaceCommand =
   | { type: 'workspace/rename'; name: string }
   | { type: 'turn/save'; turn: Turn; insert: boolean; afterId: string | null }
@@ -361,11 +370,7 @@ function validTurns(value: unknown): value is Turn[] {
 export function normalizeHubState(raw: unknown): HubState {
   requireShape(record(raw));
   requireShape(raw.schemaVersion === undefined || raw.schemaVersion === 1);
-  requireShape(
-    Array.isArray(raw.workspaces) &&
-      raw.workspaces.length > 0 &&
-      Array.isArray(raw.uploads),
-  );
+  requireShape(Array.isArray(raw.workspaces) && Array.isArray(raw.uploads));
   let changed = raw.schemaVersion !== 1;
   requireShape(
     raw.deliveryReceipts === undefined ||

@@ -54,6 +54,7 @@ export default defineConfig(async ({ command }) => {
     'CONTEXT_HUB_SUMMARY_MODEL',
     'CONTEXT_HUB_SUMMARY_API_KEY',
     'CONTEXT_HUB_SUMMARY_PROTOCOL',
+    'CONTEXT_HUB_SUMMARY_THINKING',
   ];
   if (command === 'serve') {
     const path = fileURLToPath(

@@ -169,6 +169,22 @@ export function createPersistentSession<T>(
     ) => {
       return submit(value, (next) => write({ key, value: next }));
     },
+    transact: (
+      plan: (current: T) => { value: T; companions: StorageEntry[] },
+    ) => {
+      let companions: StorageEntry[] = [];
+      return submit(
+        (current) => {
+          const result = plan(current);
+          companions = result.companions;
+          return result.value;
+        },
+        async (next) => {
+          await repository.write([{ key, value: next }, ...companions]);
+          return true;
+        },
+      );
+    },
     retry: async () => {
       if (!snapshot.ready) return load();
       if (snapshot.busy) return;

@@ -120,6 +120,7 @@ export function ModelSettings({
                           ? 'Gemini'
                           : '自定义 / 中转',
                     outputField: '自动',
+                    thinking: connection.thinking ?? d.thinking,
                   });
               }}
             >
@@ -211,19 +212,26 @@ export function ModelSettings({
             </label>
             <label className="field">
               思考设置
-              <Picker
-                label="思考设置"
-                value={d.thinking!}
-                onChange={(thinking) => setD({ ...d, thinking })}
-                options={[
-                  '未设置',
-                  '关闭',
-                  '开启',
-                  'low',
-                  'medium',
-                  'high',
-                ].map((v) => ({ value: v, label: v }))}
-              />
+              {connection?.thinking ? (
+                <input
+                  value={`${connection.thinking}（本地配置固定）`}
+                  readOnly
+                />
+              ) : (
+                <Picker
+                  label="思考设置"
+                  value={d.thinking!}
+                  onChange={(thinking) => setD({ ...d, thinking })}
+                  options={[
+                    '未设置',
+                    '关闭',
+                    '开启',
+                    'low',
+                    'medium',
+                    'high',
+                  ].map((v) => ({ value: v, label: v }))}
+                />
+              )}
             </label>
           </div>
           <p className="callout">
@@ -252,8 +260,9 @@ export function ModelSettings({
       ) : (
         <div className="form-stack">
           <p className="callout warning">
-            字段被接受 ≠
-            能力已经生效。测试会向当前模型发送一条简短请求，可能产生费用；成功只表明本次参数被接受，不保证思考强度生效。
+            测试会发送一条简短请求，可能产生费用。Responses
+            思考检测依据本次响应的思考 token
+            数及思考输出；缺少信息时显示无法确认。最大输出上限和具体思考强度仍需单独验证。
           </p>
           <Button
             disabled={testing || !p.ready || !connection?.ready}
@@ -267,7 +276,15 @@ export function ModelSettings({
           {probes.map((r, i) => (
             <div className="probe-row" key={i}>
               <code>{r.field}</code>
-              <span className={r.status === '明确报错' ? 'amber' : 'mint'}>
+              <span
+                className={
+                  ['明确报错', '与设置不符', '无法确认是否生效'].includes(
+                    r.status,
+                  )
+                    ? 'amber'
+                    : 'mint'
+                }
+              >
                 {r.status}
               </span>
               <p>{r.detail}</p>

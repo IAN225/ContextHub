@@ -3,6 +3,7 @@ import {
   MAX_SUMMARY_TEXT,
   type SummaryInput,
   type SummaryProtocol,
+  type ThinkingEvidence,
 } from '../contracts.ts';
 export type ProviderRequest = {
   path: string;
@@ -12,6 +13,7 @@ export type ProviderRequest = {
 export type ParsedSummary = {
   text: string;
   usage?: { input?: number; output?: number };
+  thinkingEvidence?: ThinkingEvidence;
 };
 export type SummaryProvider = {
   id: SummaryProtocol;

@@ -230,7 +230,10 @@ void test('legacy loading preserves drafts, custom blocks, extras and channel ow
 });
 void test('future versions and damaged state cannot be migrated into writable seed data', () => {
   assert.throws(() => normalizeHubState({ ...fixture(), schemaVersion: 999 }));
-  assert.throws(() => normalizeHubState({ workspaces: [], uploads: [] }));
+  assert.deepEqual(
+    normalizeHubState({ workspaces: [], uploads: [] }).workspaces,
+    [],
+  );
   const damaged = fixture();
   (damaged.workspaces[0] as unknown as { turns: unknown }).turns = null;
   assert.throws(() => normalizeHubState(damaged));

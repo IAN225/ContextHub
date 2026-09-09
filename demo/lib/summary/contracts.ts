@@ -21,17 +21,29 @@ export type SummaryResult = {
   model: string;
   protocol: SummaryProtocol;
   usage?: { input?: number; output?: number };
+  thinkingEvidence?: ThinkingEvidence;
+};
+export type ThinkingEvidence = {
+  tokens?: number;
+  hasOutput: boolean;
 };
 export type SummaryConnection = {
   ready: boolean;
   baseUrl: string;
   model: string;
   protocol: SummaryProtocol;
+  thinking?: string;
   message: string;
 };
 export type SummaryProbe = {
   field: string;
-  status: '字段被接受' | '明确报错' | '无法确认是否生效';
+  status:
+    | '字段被接受'
+    | '明确报错'
+    | '无法确认是否生效'
+    | '已观察到思考'
+    | '本次未产生思考'
+    | '与设置不符';
   detail: string;
 };
 export class SummaryError extends Error {

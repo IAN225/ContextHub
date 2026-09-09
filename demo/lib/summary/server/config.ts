@@ -5,12 +5,14 @@ import {
   type SummaryProtocol,
 } from '../contracts.ts';
 import { summaryProvider } from '../providers/index.ts';
+import { effort } from '../providers/shared.ts';
 
 export type SummaryEnvironment = {
   CONTEXT_HUB_SUMMARY_BASE_URL?: string;
   CONTEXT_HUB_SUMMARY_MODEL?: string;
   CONTEXT_HUB_SUMMARY_API_KEY?: string;
   CONTEXT_HUB_SUMMARY_PROTOCOL?: string;
+  CONTEXT_HUB_SUMMARY_THINKING?: string;
 };
 export function normalizeBaseUrl(value: string) {
   let url: URL;
@@ -54,23 +56,27 @@ export function readSummaryConnection(env: SummaryEnvironment) {
       '本地模型名称或凭据格式无效。',
     );
   const provider = summaryProvider(protocol);
+  const thinking = env.CONTEXT_HUB_SUMMARY_THINKING?.trim() || undefined;
+  if (thinking) effort(thinking);
   return {
     baseUrl: normalizeBaseUrl(baseUrl),
     model,
     apiKey,
     protocol: provider.id,
+    thinking,
   };
 }
 export function summaryConnectionStatus(
   env: SummaryEnvironment,
 ): SummaryConnection {
   try {
-    const { baseUrl, model, protocol } = readSummaryConnection(env);
+    const { baseUrl, model, protocol, thinking } = readSummaryConnection(env);
     return {
       ready: true,
       baseUrl,
       model,
       protocol,
+      thinking,
       message: '本地凭据已配置，尚需实际请求验证连接。',
     };
   } catch (error) {
