@@ -42,12 +42,12 @@
 | --- | --- |
 | `import-dialog.tsx` | 三种入口切换、持久化导入草稿、解析任务取消和预览提交 |
 | `imports/manual-import.tsx`、`imports/link-import.tsx`、`imports/delivery-settings.tsx` | 手动复制、分享解析和真实客户端投递各自的表单 |
-| `inbox.tsx` | API 收件箱章节标题和内容入口 |
+| `inbox.tsx` | 分享链接与客户端投递的收件箱章节标题和内容入口 |
 | `upload-review.tsx` | 收件选择、标题/正文编辑、完整轮次选择状态、删除/回退确认 |
 | `upload-turn-preview.tsx` | 完整轮次勾选、消息预览与批量删除入口 |
 | `upload-archive-actions.tsx` | 归档手账选择、拼接/新建入口或应用候选摘要入口 |
 
-选择状态与归档目标留在 `UploadReview`，预览和操作区是受控组件。切换收件清空轮次勾选；删除按完整轮次处理。归档和候选应用通过上层 Promise 回调提交。手动复制与分享导入共用确认窗口，API 收件独立，摘要工作台保持各手账归属。导入插件与服务在 `lib/imports/`，归档规则留在 `lib/domain.ts`、`lib/hub-state.ts`；完整边界见 [导入维护说明](conversation-imports.md)。导入表单专属样式归 `imports/imports.css`，收件预览归 `inbox-content.css`、`inbox.css`，共用输入与弹窗仍使用原有样式。
+选择状态与归档目标留在 `UploadReview`，预览和操作区是受控组件。切换收件清空轮次勾选；删除按完整轮次处理。归档和候选应用通过上层 Promise 回调提交。分享链接与客户端投递通过 `inboxUploads` 共用收件箱和小猫计数，保留各自 channel/provenance；旧链接自动纳入。手动复制保留确认窗口，摘要工作台保持各手账归属。导入插件与服务在 `lib/imports/`，归档规则留在 `lib/domain.ts`、`lib/hub-state.ts`；完整边界见 [导入维护说明](conversation-imports.md)。导入表单专属样式归 `imports/imports.css`，收件预览归 `inbox-content.css`、`inbox.css`，共用输入与弹窗仍使用原有样式。
 
 ## 验证与后续修改
 

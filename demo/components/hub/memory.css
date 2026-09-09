@@ -1,7 +1,5 @@
 /* memory: see docs/frontend-styles.md for ownership and load order. */
 .memory-preview-scroll {
-  max-height: 367px;
-  overflow: auto;
   padding: 18px;
   background: #fafcf5;
   border: 1px solid #e3ead8;
@@ -234,7 +232,6 @@
 }
 .memory-layout-editable .memory-preview-scroll {
   margin-top: 0;
-  max-height: 430px;
   padding: 13px;
 }
 .memory-layout-editable .memory-preview-scroll pre {
@@ -262,8 +259,6 @@
 .memory-editor-preview {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  max-height: 32dvh;
-  overflow: auto;
   background: #f7f8f2;
   border: 1px solid #e1e6d7;
   padding: 12px;
@@ -273,8 +268,6 @@
 .memory-note-options {
   display: grid;
   gap: 6px;
-  max-height: 40dvh;
-  overflow: auto;
 }
 .memory-note-options button {
   display: flex;
@@ -336,8 +329,5 @@
   }
   .memory-block-open strong {
     font-size: 12px;
-  }
-  .memory-layout-editable .memory-preview-scroll {
-    max-height: 300px;
   }
 }

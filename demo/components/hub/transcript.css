@@ -214,8 +214,6 @@
   font-family: var(--font-geist-mono);
   font-size: 12px;
   line-height: 1.85;
-  overflow: auto;
-  max-height: 520px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   margin: 0;

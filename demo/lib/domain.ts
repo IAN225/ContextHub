@@ -120,12 +120,17 @@ export function pendingUploads(
   workspaceId?: string,
 ) {
   return uploads.filter((u) => {
-    // Older browser data had no channel. Keep those drafts in their original
-    // workflow; only known delivery protocols belong to the API inbox.
+    // Resolve older browser data without rewriting its source or provenance.
     const origin = uploadChannel(u);
     return (
       origin === channel && (!workspaceId || u.workspaceId === workspaceId)
     );
+  });
+}
+export function inboxUploads(uploads: Upload[]) {
+  return uploads.filter((u) => {
+    const channel = uploadChannel(u);
+    return channel === 'api' || channel === 'link';
   });
 }
 export function uploadChannel(u: Upload): UploadChannel {

@@ -27,7 +27,7 @@ export function LinkImport({
         />
       </label>
       <p className="inline-note">
-        读取公开的对话内容后先预览。链接失效、需要登录或站点限制访问时会说明原因；未取得的附件会保留缺失标记。
+        读取公开对话后放入收件箱，可在那里查看原文和选择手账归档。链接失效或站点限制访问时会说明原因；未取得的附件会保留缺失标记。
       </p>
       <Button
         primary
@@ -35,7 +35,7 @@ export function LinkImport({
         onClick={onSubmit}
       >
         <Link2 size={15} />
-        {busy ? '正在读取分享…' : '解析并预览'}
+        {busy ? '正在读取分享…' : '导入收件箱'}
       </Button>
     </div>
   );

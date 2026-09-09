@@ -43,7 +43,7 @@ import {
   uid,
   now,
   pendingUploads,
-  uploadChannel,
+  inboxUploads,
   type Workspace,
   type Turn,
   type Upload,
@@ -88,10 +88,8 @@ export default function Hub() {
     const timer = setTimeout(() => setNotice(''), 4500);
     return () => clearTimeout(timer);
   }, [notice]);
-  const deliveries = pendingUploads(data.uploads, 'api');
-  const directImports = data.uploads.filter((u) =>
-    ['manual', 'link'].includes(uploadChannel(u)),
-  );
+  const deliveries = inboxUploads(data.uploads);
+  const directImports = pendingUploads(data.uploads, 'manual');
   const candidates = pendingUploads(data.uploads, 'workbench', w.id);
   const receiveDeliveries = useCallback(
     (uploads: Upload[]) => commit({ type: 'upload/receive', uploads }),
@@ -173,12 +171,12 @@ export default function Hub() {
   }
   function upload(u: Upload) {
     dispatch({ type: 'upload/add', upload: u });
-    if (pendingUploads([u], 'api').length) {
+    if (inboxUploads([u]).length) {
       navigate('inbox');
       setModal('');
-      notify('已收到客户端上下文，确认后可归档到手账。');
+      notify('对话已放入收件箱，可随时归档到手账。');
     } else {
-      setModal(u.kind === 'summary' ? 'review-workbench' : 'review-link');
+      setModal(u.kind === 'summary' ? 'review-workbench' : 'review-manual');
     }
   }
   function updateUpload(next: Upload) {
@@ -187,7 +185,13 @@ export default function Hub() {
   async function importConversation(u: Upload) {
     const origin = currentView.current;
     const saved = await commit({ type: 'upload/add', upload: u });
-    if (saved && currentView.current === origin) setModal('review-link');
+    if (saved && currentView.current === origin) {
+      if (inboxUploads([u]).length) {
+        navigate('inbox');
+        setModal('');
+        notify('对话已放入收件箱，可随时归档到手账。');
+      } else setModal('review-manual');
+    }
     return saved;
   }
   function removeUpload(id: string) {
@@ -492,14 +496,14 @@ export default function Hub() {
           onDeliveryEnabled={deliveryInbox.activate}
           onClose={() => setModal('')}
           pendingCount={directImports.length}
-          onReview={() => setModal('review-link')}
+          onReview={() => setModal('review-manual')}
         />
       )}{' '}
-      {(modal === 'review-link' || modal === 'review-workbench') && (
+      {(modal === 'review-manual' || modal === 'review-workbench') && (
         <Modal
-          title={modal === 'review-link' ? '确认对话导入' : '确认候选摘要'}
+          title={modal === 'review-manual' ? '确认对话导入' : '确认候选摘要'}
           description={
-            modal === 'review-link'
+            modal === 'review-manual'
               ? '预览后选择手账归档；未确认的内容可从收录对话入口继续处理。'
               : '确认后设为活跃摘要；未确认的候选会保留在当前手账的摘要工作台。'
           }
@@ -508,7 +512,7 @@ export default function Hub() {
           <div className="upload-review-dialog">
             <UploadReview
               key={`${modal}-${w.id}`}
-              uploads={modal === 'review-link' ? directImports : candidates}
+              uploads={modal === 'review-manual' ? directImports : candidates}
               workspaces={data.workspaces}
               currentId={w.id}
               onUpdate={updateUpload}

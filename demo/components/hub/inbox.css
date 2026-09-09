@@ -14,18 +14,11 @@
 .upload-review-dialog .inbox-paper {
   padding: 16px;
 }
-.upload-review-dialog .upload-turns {
-  max-height: min(42dvh, 380px);
-}
 .workbench-pending {
   margin-bottom: 16px;
 }
 @media (max-width: 800px) {
   .upload-review-dialog .inbox-layout {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .upload-review-dialog .inbox-list {
-    max-height: 160px;
-    overflow-y: auto;
   }
 }

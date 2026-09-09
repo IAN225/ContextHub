@@ -73,6 +73,8 @@
   --paper-input: #fffef9;
   --paper-surface: #fffdf8;
   --paper-canvas: #f2efe8;
+  --scroll-thumb: #a6ae9570;
+  --scroll-thumb-hover: #889775a6;
   /* Framework compatibility and typography. */
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);

@@ -68,7 +68,11 @@ export function ImportDialog({
         !(await onUpload(upload)) &&
         mounted.current
       )
-        setError('未能保存导入预览，请重试。输入内容仍在。');
+        setError(
+          tab === 'link'
+            ? '未能保存到收件箱，请重试。链接仍在。'
+            : '未能保存导入预览，请重试。输入内容仍在。',
+        );
     } catch (e) {
       if (!controller.signal.aborted && mounted.current)
         setError(e instanceof Error ? e.message : '导入失败，请重试。');
@@ -82,7 +86,9 @@ export function ImportDialog({
       description={
         tab === 'api'
           ? '接收客户端发送的上下文，确认后归档。'
-          : '导入后先预览完整轮次，再选择归档到哪本手账。'
+          : tab === 'link'
+            ? '读取分享内容后放入收件箱，随时查看和归档。'
+            : '导入后先预览完整轮次，再选择归档到哪本手账。'
       }
       onClose={onClose}
     >
@@ -102,9 +108,9 @@ export function ImportDialog({
       />
       {tab !== 'api' && (
         <div className="form-stack">
-          {pendingCount > 0 && (
+          {tab === 'manual' && pendingCount > 0 && (
             <Button onClick={onReview}>
-              继续确认已有导入（{pendingCount}）
+              继续确认手动导入（{pendingCount}）
             </Button>
           )}
           <label className="field">

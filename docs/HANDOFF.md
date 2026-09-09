@@ -10,6 +10,8 @@
 
 ## 已完成
 
+- 2026-09-09 前端维护：所有宽度的手账外壳固定到窗口高度，仅章节内容纵向滚动；移除收件原文、Payload、记忆包只读内容的额外滚动层。首页保留必要整页滚动但隐藏轴，内部统一细圆角滑块、透明轨道并去掉上下箭头。分享导入保存成功后直接打开收件箱，旧链接一并纳入；手动复制继续单独确认，摘要流程不变。
+- 本次维护验证：54 项领域/解析/持久化/路由测试、TypeScript、应用 lint、构建通过，更新后的本地首页 HTTP 200。新增验证覆盖链接收件刷新后保留、归档幂等、旧链接/客户端按原顺序合并以及手动/候选隔离。本轮没有运行浏览器 QA；滚动与布局属于有意改版，旧视觉基线不作为一致性验收。
 - 三种对话导入按“独立解析插件 → 统一完整轮次 → 共用预览归档”接入。复制文本支持角色边界/代码围栏，JSON 复用请求协议解析；链接读取真实来源，失败不再生成示例；客户端支持三个协议的普通/流式收件回执和模型列表。
 - 新增 D1/SQLite 收件队列、真实投递 Key 轮换/吊销、会话隔离、幂等去重和先本地保存再 ack。服务运行时即使页面关闭也能收件，接收成功后清除队列正文，凭证阻止重试复活已处理收件。既有手账/草稿仍在 IndexedDB。
 - 源码、使用步骤、插件扩展入口、错误码、迁移、数据边界与来源联网限制见 [对话导入说明](conversation-imports.md)。`pnpm build → pnpm db:init → pnpm start` 使用原来的 3000 端口；生产预览统一持久化到 `demo/.wrangler/state`，不要将队列放进会被构建清理的 `dist/`。
@@ -37,11 +39,11 @@
 
 2026-09-09 入口收敛：收录对话只保留顶栏入口，Note 新建与搜索合并为原搜索栏位置的透明双按钮：去掉外框、填充、阴影和玻璃效果，只留中间竖线，收起尺寸从 96×44 缩至 80×36，图标从 19 缩至 17px。左笔新建、右放大镜向左展开输入并同步聚焦，点击外部或 Escape 清空查询并反向收起；筛选和搜索无结果有各自空状态。原文的 Markdown/原始文本切换集中到轮次工具栏，作用于当前轮次所有模型回复。搜索、手账和 Note 的功能名称统一。
 
-收件箱仅接收对话 API 投递的上下文，全局只挂载一个自由悬浮的像素小猫入口；有待归档 API 内容时切换抱信图案和数量。鼠标、触屏拖动共用 Pointer Events，超过 6px 后判为拖动并抑制打开点击，松手后记住位置；方向键也可移动，Escape 或触控取消恢复原位，视口变化时限制在可见范围。手动复制与分享导入共用独立确认窗口，工作台候选摘要在各自流程处理。`pendingUploads` 兼容旧版协议来源、分享导入和带手账归属的候选；新增 manual 通道不混入 API 提醒。本轮已经接入真实本地投递 API，尚未部署远程服务。
+收件箱统一接收分享链接和对话 API 投递，全局只挂载一个自由悬浮的像素小猫入口；`inboxUploads` 统一列表与抱信数量，兼容旧链接并保持来源标记。鼠标、触屏拖动共用 Pointer Events，超过 6px 后判为拖动并抑制打开点击，松手后记住位置；方向键也可移动，Escape 或触控取消恢复原位，视口变化时限制在可见范围。手动复制保留独立确认窗口，工作台候选摘要在各自流程处理；`pendingUploads` 仍供按通道/手账筛选。本地投递 API 已接入，尚未部署远程服务。
 
 记忆包每张组件卡片只有一个编辑点击区域，名称与“动态引用／自定义”状态保持同一行，长名称截断并保留完整可访问名称。拖拽把手及上下移动按钮保留。
 
-- `demo/app/page.tsx`：工作区外壳、章节状态和移动端章节滚动位置。
+- `demo/app/page.tsx`：工作区外壳、章节状态和所有宽度的章节滚动位置。
 - `demo/app/globals.css`：框架与全局基础；`theme.css`：主题变量；`styles.css`：唯一组件样式入口。原 `journal.css` 已迁出并删除，各章节规则位于相邻的 `components/hub/*.css`，完整对应表见样式约定。紧凑布局与断点跟随所属组件，封面比例仍统一为 0.72。`--notebook-open-duration` 与 `page.tsx` 的进入延时保持一致。
 - `demo/components/hub/transcript.tsx`：原文章节协调；`use-transcript-navigation.ts` 负责原生滚动与选择，`transcript-timeline.tsx` / `turn-detail.tsx` 负责展示。超过 400 个结果时，只绘制视口/目标附近刻度，保留原生完整滚动宽度、104px 间距与现有手势。
 - `demo/components/hub/input-modality.tsx`：输入方式与焦点视觉。
@@ -49,7 +51,7 @@
 - `demo/components/hub/memory-composer.tsx`：记忆包编排协调；`use-memory-reorder.ts` 负责排序，`memory-block-card.tsx` / `memory-block-editor.tsx` 负责卡片与编辑。摘要提示词编排仍使用 shared 内原组件。
 - `demo/components/hub/summary.tsx`：摘要章节；设置、工作台、回退确认分别位于 `summary-model-settings.tsx`、`summary-workbench.tsx`、`summary-restore-dialog.tsx`。
 - `demo/components/hub/import-dialog.tsx`：导入入口；`upload-review.tsx`：收件确认状态；`upload-turn-preview.tsx` / `upload-archive-actions.tsx`：完整轮次预览与归档选择。
-- `demo/components/hub/inbox-pet.tsx`、`inbox-pet.css`：无件／抱信两态像素图标；`inbox.css`：API 收件说明与非 API 确认窗口的局部布局。
+- `demo/components/hub/inbox-pet.tsx`、`inbox-pet.css`：无件／抱信两态像素图标；`inbox.css`：统一收件说明与手动/候选确认窗口的局部布局。
 - `demo/components/hub/note-actions.tsx`、`note-actions.css`：Note 新建与搜索、展开聚焦和退出收起。
 - `demo/lib/domain.ts`：轮次、摘要水位、覆盖、记忆包规则。
 - `demo/lib/memory-search.ts`：按原文/摘要/Note 数组缓存搜索文本，仍统计完整命中数量并限制返回对象数。

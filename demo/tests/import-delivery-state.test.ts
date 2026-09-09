@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { blankWorkspace } from '../lib/domain.ts';
+import { blankWorkspace, inboxUploads } from '../lib/domain.ts';
 import {
   applyHubCommand,
   normalizeHubState,
@@ -8,6 +8,41 @@ import {
 } from '../lib/hub-state.ts';
 import { importManual } from '../lib/imports/manual.ts';
 import { normalizeImportDraft } from '../lib/imports/draft.ts';
+
+void test('link inbox content survives reload and archives once without changing source data', () => {
+  const link = {
+    ...importManual('用户：linked question\n助手：linked answer'),
+    channel: 'link' as const,
+    source: 'ChatGPT 分享链接',
+  };
+  let state: HubState = {
+    schemaVersion: 1,
+    workspaces: [blankWorkspace('target')],
+    uploads: [],
+  };
+  state = applyHubCommand(state, { type: 'upload/add', upload: link });
+  state = normalizeHubState(JSON.parse(JSON.stringify(state)));
+  assert.equal(inboxUploads(state.uploads).length, 1);
+  assert.equal(inboxUploads(state.uploads)[0].source, link.source);
+  const command = {
+    type: 'upload/archive' as const,
+    uploadId: link.id,
+    target: state.workspaces[0].id,
+    batchId: 'linked-batch',
+  };
+  state = applyHubCommand(state, command);
+  state = applyHubCommand(state, command);
+  assert.equal(inboxUploads(state.uploads).length, 0);
+  assert.equal(state.workspaces[0].turns.length, 1);
+  assert.deepEqual(
+    state.workspaces[0].turns[0].messages,
+    link.turns[0].messages,
+  );
+  assert.equal(
+    state.workspaces[0].turns[0].provenance?.parser,
+    link.provenance?.parser,
+  );
+});
 
 void test('a server retry never replaces edited pending content or resurrects an archived delivery', () => {
   let state: HubState = {

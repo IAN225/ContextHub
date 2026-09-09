@@ -17,7 +17,7 @@
 | 想调整的内容 | 样式文件 | 对应组件或入口 |
 | --- | --- | --- |
 | 主题色、共用间距、浮层层级、主要动画参数、框架 token 映射 | `app/theme.css` | 整个前端 |
-| 框架引入、元素默认值、键盘焦点、触屏文本选择、减少动态效果 | `app/globals.css` | `input-modality.tsx`、根布局 |
+| 框架引入、元素默认值、统一滚动条、键盘焦点、触屏文本选择、减少动态效果 | `app/globals.css` | `input-modality.tsx`、根布局 |
 | 样式加载顺序 | `app/styles.css` | `app/layout.tsx` |
 | 按钮、分段选项、搜索输入、页面标题、通用 surface、保存提示、空状态 | `components/hub/shared.css` | `shared.tsx` 与共用展示 |
 | 弹窗、表单、提示条、选择器 | `components/hub/forms.css` | `shared.tsx` 的 Modal/Picker、各表单 |
@@ -36,13 +36,15 @@
 | 连接、授权演示、工具目录、手账设置 | `components/hub/connections.css` | `connections.tsx` |
 | 全局搜索与结果列表 | `components/hub/search.css` | `search.tsx` |
 | 收件内容、导入布局、轮次预览与归档区 | `components/hub/inbox-content.css` | `import-dialog.tsx`、`upload-review.tsx`、`upload-turn-preview.tsx`、`upload-archive-actions.tsx` |
-| API 收件说明、候选确认弹窗中的收件布局 | `components/hub/inbox.css` | `inbox.tsx`、`app/page.tsx` |
+| 统一收件说明、候选确认弹窗中的收件布局 | `components/hub/inbox.css` | `inbox.tsx`、`app/page.tsx` |
 | 像素小猫、数量提醒、浮动动画 | `components/hub/inbox-pet.css` | `inbox-pet.tsx` |
 
 例如，Note 的正文工具栏变形，先查 `notes.css` 中 `.note-paper .editor-toolbar`，再查 `editors.css` 的共用 `.editor-toolbar`；不要去原文或首页文件添加修补规则。所有编辑器都需要改变时才修改共用文件。
 
 ## 修改规则
 
+- 滚动归属（2026-09-09 有意调整）：所有宽度下 `.open-journal` 使用 `100dvh`，顶栏和章节栏固定，`.journal-reader`、`.journal-sheet`、`.page-content` 通过 flex 和 `min-height: 0` 分配剩余高度。只有 `.page-content` 承担章节纵向滚动，少量内容不产生滚动。首页内容超出窗口时仍可整页滚动，但 html/body 隐藏滚动条。内部原生滚动条统一为透明轨道、细圆角滑块，无上下箭头；颜色来自 theme 的 `--scroll-thumb` 系列。
+- 只读收件轮次、Payload、记忆包预览和块编辑预览不再额外限制高度、叠加纵向滚动；弹窗由 `.hub-dialog` 统一滚动。文本输入框、横向时间轴和窄屏横向列表保留必要滚动。不要为短页面加固定内容最小高度，也不要在各章节重复修补滚动条。
 - 先选责任组件，再编辑它现有的选择器和断点规则。不要重新建立一个大覆盖文件，也不要在文件末尾不断追加“最终修复”。
 - 共用样式先加载，所属章节后加载。章节对共用控件的特例带上自身根类，例如 `.note-paper .rich-editor`；不要从一个章节文件全局覆盖 `.button` 或 `textarea`。
 - 当前采用带业务前缀的普通 CSS，并保留既有类名。组件旁存放样式，入口集中加载；不要再在 TSX 中按挂载时机零散 import 这些 CSS。未来抽成独立前端包时导出同一个样式入口。

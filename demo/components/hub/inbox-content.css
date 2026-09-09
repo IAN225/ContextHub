@@ -80,10 +80,6 @@
   padding: 6px 8px;
   min-height: 30px;
 }
-.upload-turns {
-  max-height: 570px;
-  overflow: auto;
-}
 .upload-turn {
   padding: 18px 0;
   border-bottom: 1px solid #e3ead8;

@@ -15,12 +15,14 @@ const upload = (
   ...patch,
 });
 
-void test('API inbox excludes link imports and summary candidates, including older saved items', () => {
+void test('protocol filtering preserves link provenance while the inbox combines old and new deliveries in order', () => {
   const items = [
     upload('link', { source: 'Claude 分享链接 · 示例' }),
     upload('chat', { source: '/v1/chat/completions' }),
     upload('responses', { source: '/v1/responses' }),
+    upload('new-link', { channel: 'link', source: 'ChatGPT' }),
     upload('messages', { source: '/v1/messages' }),
+    upload('manual', { channel: 'manual' }),
     upload('summary', { kind: 'summary', workspaceId: 'ws-a' }),
   ];
   assert.deepEqual(
@@ -29,8 +31,13 @@ void test('API inbox excludes link imports and summary candidates, including old
   );
   assert.deepEqual(
     domain.pendingUploads(items, 'link').map((u) => u.id),
-    ['link'],
+    ['link', 'new-link'],
   );
+  assert.deepEqual(
+    domain.inboxUploads(items).map((u) => u.id),
+    ['link', 'chat', 'responses', 'new-link', 'messages'],
+  );
+  assert.equal(domain.inboxUploads(items)[0], items[0]);
 });
 
 void test('explicit delivery channel works with a client display name instead of a protocol URL', () => {
