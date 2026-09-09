@@ -59,6 +59,29 @@ export function Button({
     </button>
   );
 }
+export function SaveStatus({
+  state,
+  children,
+}: {
+  state: { ready: boolean; error: string; retry: () => Promise<void> };
+  children: ReactNode;
+}) {
+  if (!state.error) return <>{children}</>;
+  return (
+    <span role="alert">
+      {state.error}{' '}
+      <button
+        type="button"
+        className="text-button"
+        onClick={() => {
+          void state.retry();
+        }}
+      >
+        {state.ready ? '重试保存' : '重试读取'}
+      </button>
+    </span>
+  );
+}
 export function Modal({
   title,
   description,

@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus,
   Star,
@@ -20,10 +20,15 @@ import {
   Modal,
   Empty,
   formatDate,
+  SaveStatus,
 } from './shared';
 import { TextEditor } from './editors';
 import { NoteActions } from './note-actions';
 import { uid, now, type Workspace, type Note, type Status } from '@/lib/domain';
+import type { SendWorkspaceCommand } from '@/lib/hub-state';
+import type { CommitWorkspaceCommand } from '@/lib/use-hub';
+import type { StorageEntry } from '@/lib/repository';
+type NoteContent = { title: string; body: string; editor: string };
 function NoteEditor({
   note,
   w,
@@ -33,7 +38,7 @@ function NoteEditor({
 }: {
   note: Note;
   w: Workspace;
-  onSave: (n: Note) => void;
+  onSave: (content: NoteContent, draft: StorageEntry) => Promise<boolean>;
   onStatus: (s: Status) => void;
   onStar: () => void;
 }) {
@@ -43,21 +48,23 @@ function NoteEditor({
   });
   const [history, setHistory] = useState(false),
     [message, setMessage] = useState('');
-  function save() {
-    const next = {
-      ...note,
-      title: d.title.trim() || '无标题 Note',
-      body: d.body,
-      updatedAt: now(),
-      editor: '我',
-      versions: [
-        { title: note.title, body: note.body, time: note.updatedAt },
-        ...note.versions,
-      ].slice(0, 5),
-    };
-    onSave(next);
-    setMessage('已保存新版本');
-    setTimeout(() => setMessage(''), 2000);
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(''), 2000);
+    return () => clearTimeout(timer);
+  }, [message]);
+  async function save() {
+    const saved = await p.commitWith(d, (entry) =>
+      onSave(
+        {
+          title: d.title.trim() || '无标题 Note',
+          body: d.body,
+          editor: '我',
+        },
+        entry,
+      ),
+    );
+    if (saved) setMessage('已保存新版本');
   }
   return (
     <article className="note-paper">
@@ -127,11 +134,17 @@ function NoteEditor({
       />
       <div className="note-paper-footer">
         <span>
-          {p.error ||
-            message ||
-            (p.saved ? '✓ 本地草稿已保存' : '正在保存草稿…')}
+          <SaveStatus state={p}>
+            {message || (p.saved ? '✓ 本地草稿已保存' : '正在保存草稿…')}
+          </SaveStatus>
         </span>
-        <Button primary disabled={!p.ready} onClick={save}>
+        <Button
+          primary
+          disabled={!p.ready || p.busy}
+          onClick={() => {
+            void save();
+          }}
+        >
           <Check size={15} />
           保存版本
         </Button>
@@ -160,25 +173,13 @@ function NoteEditor({
                   <p>{v.body.slice(0, 180)}</p>
                 </div>
                 <Button
-                  onClick={() => {
-                    const next = {
-                      ...note,
-                      title: v.title,
-                      body: v.body,
-                      updatedAt: now(),
-                      editor: '我（历史恢复）',
-                      versions: [
-                        {
-                          title: note.title,
-                          body: note.body,
-                          time: note.updatedAt,
-                        },
-                        ...note.versions,
-                      ].slice(0, 5),
-                    };
-                    onSave(next);
-                    setD({ title: v.title, body: v.body });
-                    setHistory(false);
+                  disabled={!p.ready || p.busy}
+                  onClick={async () => {
+                    const restored = { title: v.title, body: v.body };
+                    const saved = await p.commitWith(restored, (entry) =>
+                      onSave({ ...restored, editor: '我（历史恢复）' }, entry),
+                    );
+                    if (saved) setHistory(false);
                   }}
                 >
                   <RotateCcw size={14} />
@@ -203,7 +204,7 @@ function NewNote({
   onClose,
 }: {
   w: Workspace;
-  onCreate: (n: Note) => void;
+  onCreate: (n: Note, draft: StorageEntry) => Promise<boolean>;
   onClose: () => void;
 }) {
   const [d, setD, p] = usePersistent(`new-note-${w.id}`, {
@@ -215,7 +216,9 @@ function NewNote({
     <Modal
       title="新建 Note"
       description="不用把一切都藏在历史里。把希望再次被找到的内容，单独留下来。"
-      onClose={onClose}
+      onClose={() => {
+        if (!p.busy) onClose();
+      }}
     >
       <label className="field">
         标题
@@ -240,26 +243,34 @@ function NewNote({
       </label>
       <div className="form-actions">
         <span className="save-caption">
-          {p.error || (p.saved ? '✓ 草稿已保存' : '正在保存…')}
+          <SaveStatus state={p}>
+            {p.saved ? '✓ 草稿已保存' : '正在保存…'}
+          </SaveStatus>
         </span>
-        <Button onClick={onClose}>保留草稿</Button>
+        <Button disabled={p.busy} onClick={onClose}>
+          保留草稿
+        </Button>
         <Button
           primary
-          disabled={!p.ready || !d.body.trim()}
+          disabled={!p.ready || p.busy || !d.body.trim()}
           onClick={async () => {
-            if (!(await p.commit({ title: '', body: '', star: false }))) return;
-            onCreate({
-              id: `note-${uid().slice(0, 8)}`,
-              title: d.title.trim() || '无标题 Note',
-              body: d.body,
-              star: d.star,
-              status: 'normal',
-              createdAt: now(),
-              updatedAt: now(),
-              editor: '我',
-              source: '手动创建',
-              versions: [],
-            });
+            await p.commitWith({ title: '', body: '', star: false }, (entry) =>
+              onCreate(
+                {
+                  id: `note-${uid().slice(0, 8)}`,
+                  title: d.title.trim() || '无标题 Note',
+                  body: d.body,
+                  star: d.star,
+                  status: 'normal',
+                  createdAt: now(),
+                  updatedAt: now(),
+                  editor: '我',
+                  source: '手动创建',
+                  versions: [],
+                },
+                entry,
+              ),
+            );
           }}
         >
           <Plus size={15} />
@@ -271,10 +282,12 @@ function NewNote({
 }
 export function NotesPage({
   w,
-  onChange,
+  onCommand,
+  onCommit,
 }: {
   w: Workspace;
-  onChange: (w: Workspace) => void;
+  onCommand: SendWorkspaceCommand;
+  onCommit: CommitWorkspaceCommand;
 }) {
   const [id, setId] = useState(w.notes[0]?.id),
     [filter, setFilter] = useState('all'),
@@ -300,9 +313,6 @@ export function NotesPage({
     setQuery(value);
   }
   const selected = list.find((n) => n.id === id) ?? list[0];
-  function update(n: Note) {
-    onChange({ ...w, notes: w.notes.map((x) => (x.id === n.id ? n : x)) });
-  }
   return (
     <>
       <div className="section-heading compact">
@@ -361,15 +371,26 @@ export function NotesPage({
             key={selected.id}
             note={selected}
             w={w}
-            onSave={update}
+            onSave={(content, entry) =>
+              onCommit(
+                {
+                  type: 'note/save',
+                  noteId: selected.id,
+                  ...content,
+                  at: now(),
+                },
+                entry,
+              )
+            }
             onStar={() =>
-              update({ ...selected, star: !selected.star, updatedAt: now() })
+              onCommand({ type: 'note/star', noteId: selected.id, at: now() })
             }
             onStatus={(status) =>
-              update({
-                ...selected,
+              onCommand({
+                type: 'note/status',
+                noteId: selected.id,
                 status,
-                deletedAt: status === 'trash' ? now() : undefined,
+                at: now(),
               })
             }
           />
@@ -400,11 +421,17 @@ export function NotesPage({
         <NewNote
           w={w}
           onClose={() => setCreate(false)}
-          onCreate={(n) => {
-            onChange({ ...w, notes: [n, ...w.notes] });
-            setId(n.id);
-            setFilter('all');
-            setCreate(false);
+          onCreate={async (n, entry) => {
+            const saved = await onCommit(
+              { type: 'note/create', note: n },
+              entry,
+            );
+            if (saved) {
+              setId(n.id);
+              setFilter('all');
+              setCreate(false);
+            }
+            return saved;
           }}
         />
       )}

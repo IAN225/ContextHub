@@ -114,17 +114,19 @@ export function pendingUploads(
   return uploads.filter((u) => {
     // Older browser data had no channel. Keep those drafts in their original
     // workflow; only known delivery protocols belong to the API inbox.
-    const origin =
-      u.kind === 'summary'
-        ? 'workbench'
-        : (u.channel ??
-          (/^\/v1\/(chat\/completions|responses|messages)$/.test(u.source)
-            ? 'api'
-            : 'link'));
+    const origin = uploadChannel(u);
     return (
       origin === channel && (!workspaceId || u.workspaceId === workspaceId)
     );
   });
+}
+export function uploadChannel(u: Upload): UploadChannel {
+  return u.kind === 'summary'
+    ? 'workbench'
+    : (u.channel ??
+        (/^\/v1\/(chat\/completions|responses|messages)$/.test(u.source)
+          ? 'api'
+          : 'link'));
 }
 export const uid = () =>
   globalThis.crypto?.randomUUID?.() ??
@@ -206,14 +208,17 @@ export function restoreSummary(
     watermark: mode === 'rewind' ? (last?.id ?? null) : w.watermark,
   };
 }
-export function compressBatch(w: Workspace): Workspace {
+export function compressBatch(
+  w: Workspace,
+  identity = { id: uid(), createdAt: now() },
+): Workspace {
   const c = coverage(w),
     batch = c.pending.slice(0, Math.max(1, w.config.batch));
   if (!batch.length || !w.config.configured) return w;
   const summary: Summary = {
-    id: uid(),
+    id: identity.id,
     title: '增量摘要',
-    createdAt: now(),
+    createdAt: identity.createdAt,
     covered: [
       ...new Set([...(c.active?.covered ?? []), ...batch.map((t) => t.id)]),
     ],

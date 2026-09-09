@@ -8,7 +8,14 @@ import {
   StickyNote,
 } from 'lucide-react';
 import { usePersistent } from '@/lib/store';
-import { Modal, PageTitle, Markdown, Empty, Picker } from './shared';
+import {
+  Modal,
+  PageTitle,
+  Markdown,
+  Empty,
+  Picker,
+  SaveStatus,
+} from './shared';
 import type { Workspace } from '@/lib/domain';
 export function SearchPage({
   workspaces,
@@ -16,7 +23,7 @@ export function SearchPage({
   workspaces: Workspace[];
   currentId: string;
 }) {
-  const [d, setD] = usePersistent('search-draft', {
+  const [d, setD, persistence] = usePersistent('search-draft', {
       query: '',
       scope: 'all',
       kind: 'all',
@@ -113,6 +120,9 @@ export function SearchPage({
         />
       </div>
       <div className="surface-head">
+        {persistence.error && (
+          <SaveStatus state={persistence}>{null}</SaveStatus>
+        )}
         <span className="muted-label">
           {d.query.trim() ? `找到 ${hits.length} 条相关记忆` : '请输入关键词'}
         </span>

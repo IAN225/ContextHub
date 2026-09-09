@@ -18,9 +18,11 @@ import {
   Picker,
   CopyButton,
   formatDate,
+  SaveStatus,
 } from './shared';
 import { usePersistent } from '@/lib/store';
 import { uid, now, type Workspace, type Token } from '@/lib/domain';
+import type { SendWorkspaceCommand } from '@/lib/hub-state';
 const tools = [
   [
     'memory_bootstrap',
@@ -40,16 +42,23 @@ const tools = [
 ];
 export function ConnectionsPage({
   w,
-  onChange,
+  onCommand,
+  active,
 }: {
   w: Workspace;
-  onChange: (w: Workspace) => void;
+  onCommand: SendWorkspaceCommand;
+  active: boolean;
 }) {
   const [clock, setClock] = useState(() => Date.now());
   useEffect(() => {
+    if (!active) return;
+    const initial = setTimeout(() => setClock(Date.now()), 0);
     const timer = setInterval(() => setClock(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(timer);
+    };
+  }, [active]);
   const [modal, setModal] = useState(''),
     [oauth, setOauth] = useState('ChatGPT'),
     [reveal, setReveal] = useState<Token | null>(null);
@@ -68,17 +77,12 @@ export function ConnectionsPage({
       revoked: false,
       kind,
     };
-    onChange({ ...w, tokens: [...w.tokens, t] });
+    onCommand({ type: 'token/create', token: t });
     setModal('');
     if (kind === 'token') setReveal(t);
   }
   function revoke(t: Token) {
-    onChange({
-      ...w,
-      tokens: w.tokens.map((x) =>
-        x.id === t.id ? { ...x, revoked: true } : x,
-      ),
-    });
+    onCommand({ type: 'token/revoke', tokenId: t.id });
   }
   return (
     <>
@@ -211,14 +215,10 @@ export function ConnectionsPage({
                             ).toISOString(),
                             revoked: false,
                           };
-                          onChange({
-                            ...w,
-                            tokens: [
-                              ...w.tokens.map((x) =>
-                                x.id === t.id ? { ...x, revoked: true } : x,
-                              ),
-                              next,
-                            ],
+                          onCommand({
+                            type: 'token/rotate',
+                            tokenId: t.id,
+                            token: next,
                           });
                           setReveal(next);
                         }}
@@ -268,7 +268,9 @@ export function ConnectionsPage({
         </label>
         <Button
           disabled={!d.workspaceName.trim()}
-          onClick={() => onChange({ ...w, name: d.workspaceName.trim() })}
+          onClick={() =>
+            onCommand({ type: 'workspace/rename', name: d.workspaceName })
+          }
         >
           保存名称
         </Button>
@@ -307,7 +309,9 @@ export function ConnectionsPage({
           </p>
           <div className="form-actions">
             <span className="save-caption">
-              {p.saved ? '✓ 草稿已保存' : '保存中…'}
+              <SaveStatus state={p}>
+                {p.saved ? '✓ 草稿已保存' : '保存中…'}
+              </SaveStatus>
             </span>
             <Button
               primary

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Layers,
   Play,
@@ -25,13 +25,15 @@ import {
   Picker,
   formatDate,
   Empty,
+  SaveStatus,
 } from './shared';
 import { TextEditor } from './editors';
 import { usePersistent } from '@/lib/store';
+import type { SendWorkspaceCommand } from '@/lib/hub-state';
+import { useSummaryTask } from './use-summary-task';
 import {
   coverage,
   restoreSummary,
-  compressBatch,
   uid,
   now,
   type Workspace,
@@ -145,11 +147,11 @@ export function RestoreDialog({
 }
 export function ModelSettings({
   w,
-  onChange,
+  onCommand,
   onClose,
 }: {
   w: Workspace;
-  onChange: (w: Workspace) => void;
+  onCommand: SendWorkspaceCommand;
   onClose: () => void;
 }) {
   const [d, setD, p] = usePersistent<Config>(`model-draft-${w.id}`, {
@@ -359,14 +361,19 @@ export function ModelSettings({
       )}
       <div className="form-actions">
         <span className="save-caption">
-          {p.error || (p.saved ? '✓ 配置草稿已保存' : '正在保存…')}
+          <SaveStatus state={p}>
+            {p.saved ? '✓ 配置草稿已保存' : '正在保存…'}
+          </SaveStatus>
         </span>
         <Button onClick={onClose}>保留草稿</Button>
         <Button
           primary
           disabled={!p.ready || !d.model?.trim()}
           onClick={() => {
-            onChange({ ...w, config: { ...d, configured: true } });
+            onCommand({
+              type: 'summary/config',
+              patch: { ...d, configured: true },
+            });
             onClose();
           }}
         >
@@ -466,7 +473,9 @@ function Workbench({
       />
       <div className="form-actions">
         <span className="save-caption">
-          {p.saved ? '✓ 草稿已保存' : '正在保存…'}
+          <SaveStatus state={p}>
+            {p.saved ? '✓ 草稿已保存' : '正在保存…'}
+          </SaveStatus>
         </span>
         <Button
           primary
@@ -514,65 +523,26 @@ function Workbench({
 }
 export function SummaryPage({
   w,
-  onChange,
+  active,
+  onCommand,
   onUpload,
   pendingCount,
   onReview,
 }: {
   w: Workspace;
-  onChange: (w: Workspace) => void;
+  active: boolean;
+  onCommand: SendWorkspaceCommand;
   onUpload: (u: Upload) => void;
   pendingCount: number;
   onReview: () => void;
 }) {
   const [selected, setSelected] = useState(w.activeId),
     [modal, setModal] = useState(''),
-    [running, setRunning] = useState(false),
-    [message, setMessage] = useState(''),
     [restore, setRestore] = useState<Summary | null>(null);
+  const task = useSummaryTask(w, active, onCommand, setSelected);
+  const { running, message } = task;
   const c = coverage(w),
     s = w.summaries.find((s) => s.id === selected) ?? c.active;
-  useEffect(() => {
-    if (!running) return;
-    const timer = setTimeout(() => {
-      const next = compressBatch(w);
-      if (next === w) {
-        setRunning(false);
-        setMessage('已到达近期原文保留窗口。');
-        return;
-      }
-      onChange(next);
-      setSelected(next.activeId);
-      if (w.config.review) {
-        setRunning(false);
-        setMessage('本批检查点已保存，等待你检查后继续。');
-      } else if (!coverage(next).pending.length) {
-        setRunning(false);
-        setMessage('本次压缩完成，近期原文保持完整。');
-      }
-    }, 900);
-    return () => clearTimeout(timer);
-  }, [running, w, onChange]);
-  useEffect(() => {
-    if (
-      w.config.auto &&
-      w.started &&
-      w.config.configured &&
-      c.pending.length &&
-      !running &&
-      !w.config.review
-    ) {
-      const timer = setTimeout(() => setRunning(true), 50);
-      return () => clearTimeout(timer);
-    }
-  }, [
-    w.config.auto,
-    w.config.review,
-    w.started,
-    w.config.configured,
-    c.pending.length,
-    running,
-  ]);
   return (
     <>
       <div className="section-heading compact">
@@ -606,8 +576,8 @@ export function SummaryPage({
               max={500}
               value={w.retain}
               onChange={(e) =>
-                onChange({
-                  ...w,
+                onCommand({
+                  type: 'summary/retain',
                   retain: Math.max(1, Math.min(500, Number(e.target.value))),
                 })
               }
@@ -623,10 +593,9 @@ export function SummaryPage({
               max={100}
               value={w.config.batch}
               onChange={(e) =>
-                onChange({
-                  ...w,
-                  config: {
-                    ...w.config,
+                onCommand({
+                  type: 'summary/config',
+                  patch: {
                     batch: Math.max(1, Math.min(100, Number(e.target.value))),
                   },
                 })
@@ -642,12 +611,7 @@ export function SummaryPage({
             <Button
               primary
               disabled={!w.config.configured || !c.pending.length}
-              onClick={() => {
-                setMessage('');
-                if (running && w.config.auto)
-                  onChange({ ...w, config: { ...w.config, auto: false } });
-                setRunning(!running);
-              }}
+              onClick={() => task.toggle()}
             >
               {running ? <Pause size={14} /> : <Play size={14} />}{' '}
               {running ? '暂停' : !w.started ? '开始首次压缩' : '继续压缩'}
@@ -659,14 +623,7 @@ export function SummaryPage({
             <Switch
               checked={w.config.review}
               onCheckedChange={(review) =>
-                onChange({
-                  ...w,
-                  config: {
-                    ...w.config,
-                    review,
-                    auto: review ? false : w.config.auto,
-                  },
-                })
+                onCommand({ type: 'summary/config', patch: { review } })
               }
             />
             每批生成后暂停检查
@@ -676,7 +633,7 @@ export function SummaryPage({
               checked={w.config.auto}
               disabled={!(w.firstComplete ?? w.started) || w.config.review}
               onCheckedChange={(auto) =>
-                onChange({ ...w, config: { ...w.config, auto } })
+                onCommand({ type: 'summary/config', patch: { auto } })
               }
             />
             后续自动压缩
@@ -780,7 +737,11 @@ export function SummaryPage({
         演示批次使用原文摘录生成检查点，未调用模型；提示词与能力配置用于评审交互。
       </p>
       {modal === 'settings' && (
-        <ModelSettings w={w} onChange={onChange} onClose={() => setModal('')} />
+        <ModelSettings
+          w={w}
+          onCommand={onCommand}
+          onClose={() => setModal('')}
+        />
       )}{' '}
       {modal === 'workbench' && (
         <Workbench
@@ -797,14 +758,10 @@ export function SummaryPage({
           summary={restore}
           onClose={() => setRestore(null)}
           onApply={(mode) => {
-            setRunning(false);
-            onChange({
-              ...restoreSummary(w, restore.id, mode),
-              config: { ...w.config, auto: false },
-            });
+            task.stop('活跃摘要与处理水位已更新。');
+            onCommand({ type: 'summary/restore', summaryId: restore.id, mode });
             setSelected(restore.id);
             setRestore(null);
-            setMessage('活跃摘要与处理水位已更新。');
           }}
         />
       )}

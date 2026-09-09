@@ -1,7 +1,6 @@
 'use client';
 import {
   useState,
-  useMemo,
   useRef,
   useLayoutEffect,
   useEffect,
@@ -32,12 +31,12 @@ import { ConnectionsPage } from '@/components/hub/connections';
 import { SearchPage } from '@/components/hub/search';
 import { TurnEditor, NewWorkspace } from '@/components/hub/editors';
 import { Button, Modal } from '@/components/hub/shared';
-import { createSeed } from '@/lib/seed';
-import { usePersistent } from '@/lib/store';
+import { useHub } from '@/lib/use-hub';
+import type { WorkspaceCommand } from '@/lib/hub-state';
+import type { StorageEntry } from '@/lib/repository';
 import { useDemoMemoryTools } from '@/lib/webmcp';
 import {
   blankWorkspace,
-  restoreSummary,
   uid,
   now,
   pendingUploads,
@@ -53,8 +52,7 @@ const navigation = [
   { id: 'connect', label: '连接', icon: Plug },
 ];
 export default function Hub() {
-  const initial = useMemo(() => createSeed(), []);
-  const [data, setData, persistence] = usePersistent('hub-state-v1', initial);
+  const { data, persistence, dispatch, commit } = useHub();
   const [workspaceId, setWorkspaceId] = useState('ws-everyday'),
     [page, setPage] = useState('archive'),
     [visitedPages, setVisitedPages] = useState(['archive']),
@@ -66,6 +64,26 @@ export default function Hub() {
     [notice, setNotice] = useState('');
   const w =
     data.workspaces.find((w) => w.id === workspaceId) ?? data.workspaces[0];
+  const onWorkspaceCommand = useCallback(
+    (command: WorkspaceCommand) => {
+      dispatch({ type: 'workspace', workspaceId: w.id, command });
+    },
+    [dispatch, w.id],
+  );
+  const commitWorkspace = useCallback(
+    (command: WorkspaceCommand, companion?: StorageEntry) =>
+      commit({ type: 'workspace', workspaceId: w.id, command }, companion),
+    [commit, w.id],
+  );
+  const currentView = useRef({ workspaceId: w.id, modal, page, home });
+  useLayoutEffect(() => {
+    currentView.current = { workspaceId: w.id, modal, page, home };
+  }, [w.id, modal, page, home]);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(''), 4500);
+    return () => clearTimeout(timer);
+  }, [notice]);
   const deliveries = pendingUploads(data.uploads, 'api');
   const linkImports = pendingUploads(data.uploads, 'link');
   const candidates = pendingUploads(data.uploads, 'workbench', w.id);
@@ -139,18 +157,11 @@ export default function Hub() {
     setPage(target);
     setHome(false);
   }
-  function update(next: Workspace) {
-    setData((d) => ({
-      ...d,
-      workspaces: d.workspaces.map((x) => (x.id === next.id ? next : x)),
-    }));
-  }
   function notify(text: string) {
     setNotice(text);
-    setTimeout(() => setNotice(''), 4500);
   }
   function upload(u: Upload) {
-    setData((d) => ({ ...d, uploads: [u, ...d.uploads] }));
+    dispatch({ type: 'upload/add', upload: u });
     if (pendingUploads([u], 'api').length) {
       navigate('inbox');
       setModal('');
@@ -160,58 +171,58 @@ export default function Hub() {
     }
   }
   function updateUpload(next: Upload) {
-    setData((d) => ({
-      ...d,
-      uploads: d.uploads.map((u) => (u.id === next.id ? next : u)),
-    }));
+    dispatch({ type: 'upload/update', upload: next });
   }
   function removeUpload(id: string) {
-    setData((d) => ({ ...d, uploads: d.uploads.filter((u) => u.id !== id) }));
+    dispatch({ type: 'upload/remove', uploadId: id });
   }
-  function importUpload(u: Upload, target: string) {
-    const imported = u.turns.map((t) => ({ ...t, id: uid() }));
+  async function importUpload(u: Upload, target: string) {
+    const origin = currentView.current;
     const fresh =
       target === 'new'
-        ? {
-            ...blankWorkspace(u.title, u.turns[0]?.source ?? '导入'),
-            turns: imported,
-          }
+        ? blankWorkspace(u.title, u.turns[0]?.source ?? '导入')
         : null;
-    setData((d) => ({
-      ...d,
-      uploads: d.uploads.filter((x) => x.id !== u.id),
-      workspaces: fresh
-        ? [...d.workspaces, fresh]
-        : d.workspaces.map((x) =>
-            x.id === target ? { ...x, turns: [...x.turns, ...imported] } : x,
-          ),
-    }));
-    openWorkspace(fresh?.id ?? target);
-    setModal('');
-    notify('对话已完整收进手账。');
+    const saved = await commit({
+      type: 'upload/archive',
+      uploadId: u.id,
+      target: fresh ?? target,
+      batchId: uid(),
+    });
+    if (!saved) {
+      notify('归档失败，待归档内容已保留。');
+      return false;
+    }
+    if (currentView.current === origin) {
+      openWorkspace(fresh?.id ?? target);
+      setModal('');
+      notify('对话已完整收进手账。');
+    }
+    return true;
   }
-  function applySummary(u: Upload, target: Workspace, mode: 'keep' | 'rewind') {
-    const s = {
-      id: `candidate-${u.id}`,
-      title: u.title,
-      text: u.summaryText ?? '',
-      covered: u.covered ?? [],
-      createdAt: now(),
-    };
-    const next = restoreSummary(
-      { ...target, summaries: [...target.summaries, s].slice(-30) },
-      s.id,
+  async function applySummary(
+    u: Upload,
+    target: Workspace,
+    mode: 'keep' | 'rewind',
+  ) {
+    const origin = currentView.current;
+    const saved = await commit({
+      type: 'upload/summary',
+      uploadId: u.id,
+      workspaceId: target.id,
       mode,
-    );
-    setData((d) => ({
-      ...d,
-      uploads: d.uploads.filter((x) => x.id !== u.id),
-      workspaces: d.workspaces.map((x) => (x.id === next.id ? next : x)),
-    }));
-    setWorkspaceId(next.id);
-    navigate('summary');
-    setModal('');
-    notify('候选摘要已设为活跃，原文处理水位按你的选择更新。');
+      at: now(),
+    });
+    if (!saved) {
+      notify('摘要保存失败，候选内容已保留。');
+      return false;
+    }
+    if (currentView.current === origin) {
+      setWorkspaceId(target.id);
+      navigate('summary');
+      setModal('');
+      notify('候选摘要已设为活跃，原文处理水位按你的选择更新。');
+    }
+    return true;
   }
   function edit(t: Turn) {
     setEditing(t);
@@ -223,27 +234,35 @@ export default function Hub() {
     setAfterId(id);
     setModal('turn');
   }
-  function saveTurn(turn: Turn) {
-    if (editing)
-      update({
-        ...w,
-        turns: w.turns.map((t) => (t.id === turn.id ? turn : t)),
-      });
-    else {
-      const at = afterId ? w.turns.findIndex((t) => t.id === afterId) + 1 : 0;
-      const turns = [...w.turns];
-      turns.splice(at, 0, turn);
-      update({ ...w, turns });
+  async function saveTurn(turn: Turn, companion: StorageEntry) {
+    const origin = currentView.current;
+    const saved = await commitWorkspace(
+      { type: 'turn/save', turn, insert: !editing, afterId },
+      companion,
+    );
+    if (saved && currentView.current === origin) {
+      setModal('');
+      notify('完整轮次已保存。');
     }
-    setModal('');
-    notify('完整轮次已保存。');
+    return saved;
   }
   if (!persistence.ready)
     return (
       <div className="loading-screen">
         <BookOpen size={38} />
         <h1>Context Hub</h1>
-        <p>正在翻开你的手账…</p>
+        <p role={persistence.error ? 'alert' : undefined}>
+          {persistence.error || '正在翻开你的手账…'}
+        </p>
+        {persistence.error && (
+          <Button
+            onClick={() => {
+              void persistence.retry();
+            }}
+          >
+            重试读取
+          </Button>
+        )}
       </div>
     );
   return (
@@ -257,6 +276,18 @@ export default function Hub() {
           onSearch={() => navigate('search')}
           onAccount={() => setModal('account')}
         />
+      )}
+      {home && persistence.error && (
+        <div role="alert" className="callout warning">
+          {persistence.error}
+          <Button
+            onClick={() => {
+              void persistence.retry();
+            }}
+          >
+            重试保存
+          </Button>
+        </div>
       )}
       {(!home || openingId) && (
         <div
@@ -328,6 +359,13 @@ export default function Hub() {
               {persistence.error && (
                 <div role="alert" className="callout warning">
                   {persistence.error}
+                  <Button
+                    onClick={() => {
+                      void persistence.retry();
+                    }}
+                  >
+                    重试保存
+                  </Button>
                 </div>
               )}
               <main className="page-content" key={w.id} ref={main}>
@@ -340,23 +378,33 @@ export default function Hub() {
                     {panel === 'archive' ? (
                       <Transcript
                         w={w}
-                        active={page === 'archive'}
-                        onChange={update}
+                        active={!home && page === 'archive'}
+                        onCommand={onWorkspaceCommand}
                         onInsert={insert}
                         onEdit={edit}
                       />
                     ) : panel === 'summary' ? (
                       <SummaryPage
                         w={w}
-                        onChange={update}
+                        active={
+                          !home &&
+                          page === 'summary' &&
+                          !persistence.busy &&
+                          !persistence.error
+                        }
+                        onCommand={onWorkspaceCommand}
                         onUpload={upload}
                         pendingCount={candidates.length}
                         onReview={() => setModal('review-workbench')}
                       />
                     ) : panel === 'notes' ? (
-                      <NotesPage w={w} onChange={update} />
+                      <NotesPage
+                        w={w}
+                        onCommand={onWorkspaceCommand}
+                        onCommit={commitWorkspace}
+                      />
                     ) : panel === 'memory' ? (
-                      <MemoryPage w={w} onChange={update} />
+                      <MemoryPage w={w} onCommand={onWorkspaceCommand} />
                     ) : panel === 'inbox' ? (
                       <InboxPage
                         uploads={deliveries}
@@ -368,7 +416,11 @@ export default function Hub() {
                         onSummary={applySummary}
                       />
                     ) : panel === 'connect' ? (
-                      <ConnectionsPage w={w} onChange={update} />
+                      <ConnectionsPage
+                        w={w}
+                        active={!home && page === 'connect'}
+                        onCommand={onWorkspaceCommand}
+                      />
                     ) : (
                       <SearchPage
                         workspaces={data.workspaces}
@@ -395,11 +447,18 @@ export default function Hub() {
       {modal === 'new-workspace' && (
         <NewWorkspace
           onClose={() => setModal('')}
-          onCreate={(name, platform) => {
+          onCreate={async (name, platform, companion) => {
+            const origin = currentView.current;
             const x = blankWorkspace(name, platform);
-            setData((d) => ({ ...d, workspaces: [...d.workspaces, x] }));
-            setModal('');
-            openWorkspace(x.id);
+            const saved = await commit(
+              { type: 'workspace/create', workspace: x },
+              companion,
+            );
+            if (saved && currentView.current === origin) {
+              setModal('');
+              openWorkspace(x.id);
+            }
+            return saved;
           }}
         />
       )}{' '}

@@ -20,6 +20,7 @@ import {
   Segments,
   Empty,
   formatDate,
+  SaveStatus,
 } from './shared';
 import { TextEditor } from './editors';
 import { RestoreDialog } from './summary';
@@ -56,7 +57,7 @@ export function ImportDialog({
     protocol: 'chat',
     json: '',
   });
-  const [key, setKey] = usePersistent('delivery-demo-key', {
+  const [key, setKey, keySave] = usePersistent('delivery-demo-key', {
     value: '',
     revoked: false,
   });
@@ -270,7 +271,7 @@ export function ImportDialog({
               </Button>
               <Button
                 primary
-                disabled={!d.json.trim()}
+                disabled={!p.ready || !keySave.ready || !d.json.trim()}
                 onClick={() => {
                   try {
                     const turns = parseDelivery(JSON.parse(d.json), d.protocol);
@@ -305,7 +306,10 @@ export function ImportDialog({
         </p>
       )}
       <span className="save-caption">
-        {p.error || (p.saved ? '✓ 导入草稿已保存' : '正在保存草稿…')}
+        <SaveStatus state={p}>
+          {p.saved ? '✓ 导入草稿已保存' : '正在保存草稿…'}
+        </SaveStatus>
+        {keySave.error && <SaveStatus state={keySave}>{null}</SaveStatus>}
       </span>
     </Modal>
   );
@@ -316,8 +320,12 @@ type UploadReviewProps = {
   currentId: string;
   onUpdate: (u: Upload) => void;
   onRemove: (id: string) => void;
-  onImport: (u: Upload, target: string) => void;
-  onSummary: (u: Upload, w: Workspace, mode: 'keep' | 'rewind') => void;
+  onImport: (u: Upload, target: string) => Promise<boolean>;
+  onSummary: (
+    u: Upload,
+    w: Workspace,
+    mode: 'keep' | 'rewind',
+  ) => Promise<boolean>;
 };
 
 export function InboxPage(props: UploadReviewProps) {
@@ -546,9 +554,8 @@ export function UploadReview({
           w={w}
           summary={candidate}
           onClose={() => setRestore(false)}
-          onApply={(mode) => {
-            onSummary(u, w, mode);
-            setRestore(false);
+          onApply={async (mode) => {
+            if (await onSummary(u, w, mode)) setRestore(false);
           }}
         />
       )}

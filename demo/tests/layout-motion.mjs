@@ -17,13 +17,11 @@ try {
     await page.goto('http://127.0.0.1:3000/');
     const book = page.locator('.notebook-item').first();
     await book.waitFor();
-    const cover = await book
-      .locator('.notebook-cover')
-      .evaluate((e) => ({
-        width: e.offsetWidth,
-        height: e.offsetHeight,
-        top: e.getBoundingClientRect().top,
-      }));
+    const cover = await book.locator('.notebook-cover').evaluate((e) => ({
+      width: e.offsetWidth,
+      height: e.offsetHeight,
+      top: e.getBoundingClientRect().top,
+    }));
     console.log('Cover', width, cover);
     check(
       Math.abs(cover.width / cover.height - 0.72) < 0.025,
@@ -56,7 +54,14 @@ try {
       `${width}: entry reuses the prepared archive`,
     );
     await page.waitForFunction(
-      () => !document.getAnimations().some((a) => a.playState === 'running'),
+      () =>
+        !document
+          .getAnimations()
+          .some(
+            (a) =>
+              a.playState === 'running' &&
+              Number.isFinite(a.effect?.getComputedTiming().endTime),
+          ),
     );
     const archive = await page.locator('.turn-detail').boundingBox();
     const heading = await page.locator('.section-heading').boundingBox();

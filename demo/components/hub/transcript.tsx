@@ -31,16 +31,17 @@ import {
   formatDate,
 } from './shared';
 import { coverage, type Workspace, type Turn, type Status } from '@/lib/domain';
+import type { SendWorkspaceCommand } from '@/lib/hub-state';
 export function Transcript({
   w,
   active = true,
-  onChange,
+  onCommand,
   onInsert,
   onEdit,
 }: {
   w: Workspace;
   active?: boolean;
-  onChange: (w: Workspace) => void;
+  onCommand: SendWorkspaceCommand;
   onInsert: (after: string | null) => void;
   onEdit: (t: Turn) => void;
 }) {
@@ -184,19 +185,11 @@ export function Transcript({
   }, [list.length, active, setIndex]);
   function status(s: Status) {
     if (!current) return;
-    onChange({
-      ...w,
-      turns: w.turns.map((t) =>
-        t.id === current.id
-          ? {
-              ...t,
-              status: s,
-              ...(s === 'trash'
-                ? { deletedAt: new Date().toISOString() }
-                : { deletedAt: undefined }),
-            }
-          : t,
-      ),
+    onCommand({
+      type: 'turn/status',
+      turnId: current.id,
+      status: s,
+      at: new Date().toISOString(),
     });
   }
   const recent = new Set(c.recent.map((t) => t.id)),
