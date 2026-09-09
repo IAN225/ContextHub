@@ -1,15 +1,4 @@
 /* inbox: see docs/frontend-styles.md for ownership and load order. */
-.delivery-details {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.import-json-title {
-  font-size: 16px;
-  font-family: 'SimSun', serif;
-  color: #7b9362;
-  margin: 0 0 12px;
-}
 .inbox-layout {
   display: grid;
   grid-template-columns: 230px minmax(0, 1fr);

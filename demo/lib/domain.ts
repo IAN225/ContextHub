@@ -11,6 +11,12 @@ export type Attachment = {
   type: string;
   url: string;
 };
+export type ImportProvenance = {
+  parser: string;
+  version: number;
+  sourceUrl?: string;
+  issues: { code: string; message: string }[];
+};
 export type Turn = {
   id: string;
   title: string;
@@ -22,6 +28,7 @@ export type Turn = {
   attachments?: Attachment[];
   tokens?: number;
   cache?: number;
+  provenance?: ImportProvenance;
 };
 export type Summary = {
   id: string;
@@ -92,7 +99,7 @@ export type Workspace = {
   started: boolean;
   firstComplete?: boolean;
 };
-export type UploadChannel = 'api' | 'link' | 'workbench';
+export type UploadChannel = 'api' | 'link' | 'manual' | 'workbench';
 export type Upload = {
   id: string;
   title: string;
@@ -105,6 +112,7 @@ export type Upload = {
   workspaceId?: string;
   covered?: string[];
   channel?: UploadChannel;
+  provenance?: ImportProvenance;
 };
 export function pendingUploads(
   uploads: Upload[],

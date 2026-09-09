@@ -234,8 +234,11 @@ try {
     await snapshot('turn-editor');
     await close();
     await page.getByRole('button', { name: '收录对话', exact: true }).click();
+    await page.getByRole('tab', { name: '手动复制' }).click();
+    await snapshot('import-manual');
+    await page.getByRole('tab', { name: '分享链接' }).click();
     await snapshot('import-link');
-    await page.getByRole('tab', { name: '发布对话 API' }).click();
+    await page.getByRole('tab', { name: '客户端投递' }).click();
     await snapshot('import-api');
     await close();
     for (const [label, name] of [

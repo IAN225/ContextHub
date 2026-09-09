@@ -16,6 +16,7 @@ export type HubState = {
   schemaVersion: 1;
   workspaces: Workspace[];
   uploads: Upload[];
+  deliveryReceipts?: string[];
 };
 export type WorkspaceCommand =
   | { type: 'workspace/rename'; name: string }
@@ -44,6 +45,7 @@ export type HubCommand =
   | { type: 'workspace'; workspaceId: string; command: WorkspaceCommand }
   | { type: 'workspace/create'; workspace: Workspace }
   | { type: 'upload/add'; upload: Upload }
+  | { type: 'upload/receive'; uploads: Upload[] }
   | { type: 'upload/update'; upload: Upload }
   | { type: 'upload/remove'; uploadId: string }
   | {
@@ -227,6 +229,21 @@ export function applyHubCommand(
           ...state.uploads.filter((u) => u.id !== command.upload.id),
         ],
       };
+    case 'upload/receive': {
+      const receipts = new Set(state.deliveryReceipts ?? []);
+      const existing = new Set(state.uploads.map((u) => u.id));
+      const incoming = command.uploads.filter(
+        (u) => !receipts.has(u.id) && !existing.has(u.id),
+      );
+      const changed = command.uploads.some((u) => !receipts.has(u.id));
+      if (!changed) return state;
+      for (const upload of command.uploads) receipts.add(upload.id);
+      return {
+        ...state,
+        uploads: [...incoming, ...state.uploads],
+        deliveryReceipts: [...receipts],
+      };
+    }
     case 'upload/update':
       return {
         ...state,
@@ -339,6 +356,11 @@ export function normalizeHubState(raw: unknown): HubState {
       Array.isArray(raw.uploads),
   );
   let changed = raw.schemaVersion !== 1;
+  requireShape(
+    raw.deliveryReceipts === undefined ||
+      (Array.isArray(raw.deliveryReceipts) &&
+        raw.deliveryReceipts.every((id) => typeof id === 'string')),
+  );
   const workspaces = raw.workspaces.map((item: unknown) => {
     requireShape(identified(item));
     requireShape(
@@ -409,7 +431,7 @@ export function normalizeHubState(raw: unknown): HubState {
     requireShape(
       item.channel === undefined ||
         (typeof item.channel === 'string' &&
-          ['api', 'link', 'workbench'].includes(item.channel)),
+          ['api', 'link', 'manual', 'workbench'].includes(item.channel)),
     );
     const upload = item as unknown as Upload;
     const channel = uploadChannel(upload);

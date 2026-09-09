@@ -25,6 +25,7 @@
 | 摘要覆盖条、当前轮次书签 | `components/hub/shared-coverage.css` | `shared.tsx` 的覆盖条 |
 | 摘要提示词的块编排 | `components/hub/shared-composer.css` | `shared.tsx` 的 Composer |
 | 富文本工具栏、编辑预览、附件 | `components/hub/editors.css` | `editors.tsx` |
+| 三种导入入口专属布局、投递信息与 Key | `components/hub/imports/imports.css` | `imports/manual-import.tsx`、`imports/link-import.tsx`、`imports/delivery-settings.tsx` |
 | 工作区外壳、顶栏、章节菜单、纸张容器、移动端滚动区、通知 | `components/hub/shell.css` | `app/page.tsx` |
 | 首页书架、笔记本封面、进入反馈 | `components/hub/home.css` | `home.tsx` |
 | 原文时间轴、刻度、轮次详情、消息、Payload/元数据 | `components/hub/transcript.css` | `transcript.tsx`、`transcript-timeline.tsx`、`turn-detail.tsx` |
@@ -63,7 +64,7 @@
 
 ## 视觉回归
 
-`demo/tests/style-parity.mjs` 使用独立 Chrome 上下文和固定日期，覆盖 320 / 390 / 768 / 1280px。它记录首页、搜索、五个章节、收件箱、原文插入、导入的两个标签、Note 搜索与历史版本、减少动态效果。
+`demo/tests/style-parity.mjs` 使用独立 Chrome 上下文和固定日期，覆盖 320 / 390 / 768 / 1280px。它记录首页、搜索、五个章节、收件箱、原文插入、导入的三个标签、Note 搜索与历史版本、减少动态效果。真实导入阶段已将脚本更新为 60 个状态，当前尚未重新采集截图；此前 56 个状态通过的结论属于前端重构阶段，导入页面的有意变化需要另行验收。
 
 每个状态比较固定视口 PNG，以及所有已布局元素（含视口以下内容）的矩形、常用计算样式、`::before` 和 `::after`。不使用整页截图，避免截图时临时改变 Chrome 视口而重新触发动画或改变桌宠位置。采集时跳过原生页面过渡快照，有限动画完成后取样，无限浮动动画固定在起点；真实动画和输入交互另由现有 `layout-motion.mjs` 等脚本检查。
 

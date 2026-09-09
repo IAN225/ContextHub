@@ -37,11 +37,13 @@ import { useHub } from '@/lib/use-hub';
 import type { WorkspaceCommand } from '@/lib/hub-state';
 import type { StorageEntry } from '@/lib/repository';
 import { useDemoMemoryTools } from '@/lib/webmcp';
+import { useDeliveryInbox } from '@/lib/imports/use-delivery-inbox';
 import {
   blankWorkspace,
   uid,
   now,
   pendingUploads,
+  uploadChannel,
   type Workspace,
   type Turn,
   type Upload,
@@ -87,8 +89,15 @@ export default function Hub() {
     return () => clearTimeout(timer);
   }, [notice]);
   const deliveries = pendingUploads(data.uploads, 'api');
-  const linkImports = pendingUploads(data.uploads, 'link');
+  const directImports = data.uploads.filter((u) =>
+    ['manual', 'link'].includes(uploadChannel(u)),
+  );
   const candidates = pendingUploads(data.uploads, 'workbench', w.id);
+  const receiveDeliveries = useCallback(
+    (uploads: Upload[]) => commit({ type: 'upload/receive', uploads }),
+    [commit],
+  );
+  const deliveryInbox = useDeliveryInbox(persistence.ready, receiveDeliveries);
   useDemoMemoryTools(w);
   const main = useRef<HTMLElement>(null);
   const opening = useRef(false);
@@ -174,6 +183,12 @@ export default function Hub() {
   }
   function updateUpload(next: Upload) {
     dispatch({ type: 'upload/update', upload: next });
+  }
+  async function importConversation(u: Upload) {
+    const origin = currentView.current;
+    const saved = await commit({ type: 'upload/add', upload: u });
+    if (saved && currentView.current === origin) setModal('review-link');
+    return saved;
   }
   function removeUpload(id: string) {
     dispatch({ type: 'upload/remove', uploadId: id });
@@ -408,15 +423,22 @@ export default function Hub() {
                     ) : panel === 'memory' ? (
                       <MemoryPage w={w} onCommand={onWorkspaceCommand} />
                     ) : panel === 'inbox' ? (
-                      <InboxPage
-                        uploads={deliveries}
-                        workspaces={data.workspaces}
-                        currentId={w.id}
-                        onUpdate={updateUpload}
-                        onRemove={removeUpload}
-                        onImport={importUpload}
-                        onSummary={applySummary}
-                      />
+                      <>
+                        {deliveryInbox.error && (
+                          <p role="alert" className="callout warning">
+                            {deliveryInbox.error}
+                          </p>
+                        )}
+                        <InboxPage
+                          uploads={deliveries}
+                          workspaces={data.workspaces}
+                          currentId={w.id}
+                          onUpdate={updateUpload}
+                          onRemove={removeUpload}
+                          onImport={importUpload}
+                          onSummary={applySummary}
+                        />
+                      </>
                     ) : panel === 'connect' ? (
                       <ConnectionsPage
                         w={w}
@@ -466,18 +488,19 @@ export default function Hub() {
       )}{' '}
       {modal === 'import' && (
         <ImportDialog
-          onUpload={upload}
+          onUpload={importConversation}
+          onDeliveryEnabled={deliveryInbox.activate}
           onClose={() => setModal('')}
-          pendingCount={linkImports.length}
+          pendingCount={directImports.length}
           onReview={() => setModal('review-link')}
         />
       )}{' '}
       {(modal === 'review-link' || modal === 'review-workbench') && (
         <Modal
-          title={modal === 'review-link' ? '确认分享导入' : '确认候选摘要'}
+          title={modal === 'review-link' ? '确认对话导入' : '确认候选摘要'}
           description={
             modal === 'review-link'
-              ? '预览后选择手账归档；未确认的内容会保留在分享链接导入流程中。'
+              ? '预览后选择手账归档；未确认的内容可从收录对话入口继续处理。'
               : '确认后设为活跃摘要；未确认的候选会保留在当前手账的摘要工作台。'
           }
           onClose={() => setModal('')}
@@ -485,7 +508,7 @@ export default function Hub() {
           <div className="upload-review-dialog">
             <UploadReview
               key={`${modal}-${w.id}`}
-              uploads={modal === 'review-link' ? linkImports : candidates}
+              uploads={modal === 'review-link' ? directImports : candidates}
               workspaces={data.workspaces}
               currentId={w.id}
               onUpdate={updateUpload}
@@ -499,7 +522,7 @@ export default function Hub() {
       {modal === 'account' && (
         <Modal title="这本手账，只在此处" onClose={() => setModal('')}>
           <p className="callout">
-            这是本地交互原型，使用示例账号。真实账号、接口与云端存储尚未连接。数据保存在当前浏览器中。
+            手账与草稿保存在当前浏览器。客户端投递先保存在本机服务的收件队列，浏览器接收成功后清除服务端正文。账号与云端同步尚未接入。
           </p>
         </Modal>
       )}

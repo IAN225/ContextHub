@@ -199,20 +199,21 @@ try {
   );
 
   await check(
-    'Link preview removes whole turns and archives the remaining content once',
+    'Manual preview removes whole turns and archives the remaining content once',
     async (page) => {
       await open(page);
       const initial = await state(page);
       const source = initial.workspaces[0];
       await page.getByRole('button', { name: '收录对话', exact: true }).click();
+      await page.getByRole('tab', { name: '手动复制', exact: true }).click();
       await page
-        .getByRole('textbox', { name: '分享链接', exact: true })
-        .fill('https://chatgpt.com/share/component-lifecycle');
-      await page
-        .getByRole('button', { name: '预览此类链接的导入示例', exact: true })
-        .click();
+        .getByRole('textbox', { name: '复制的对话', exact: true })
+        .fill(
+          '用户：第一条问题\n助手：第一条回答\n用户：第二条问题\n助手：第二条回答',
+        );
+      await page.getByRole('button', { name: '预览导入', exact: true }).click();
       const review = page.getByRole('dialog', {
-        name: '确认分享导入',
+        name: '确认对话导入',
         exact: true,
       });
       assert.equal(await review.locator('.upload-turn').count(), 2);

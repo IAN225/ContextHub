@@ -16,5 +16,6 @@
 @import '../components/hub/connections.css';
 @import '../components/hub/search.css';
 @import '../components/hub/inbox-content.css';
+@import '../components/hub/imports/imports.css';
 @import '../components/hub/inbox.css';
 @import '../components/hub/inbox-pet.css';
