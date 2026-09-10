@@ -4,7 +4,12 @@ import {
   string,
   type ParsedConversation,
 } from '../contracts.ts';
-import type { Message } from '../../domain.ts';
+import type { Message, Attachment } from '../../domain.ts';
+import {
+  attachmentFromReference,
+  attachmentMarker,
+  parseMediaBlock,
+} from '../../attachments.ts';
 
 // React Router's table is data, never JavaScript. No eval or page execution.
 export function decodeRouterTable(text: string): unknown {
@@ -165,13 +170,16 @@ export function parseChatGPTShare(html: string): ParsedConversation {
     const type = string(content.content_type);
     if (['thoughts', 'reasoning_recap', 'reasoning'].includes(type)) continue;
     const parts = Array.isArray(content.parts) ? content.parts : [content.text];
+    const attachments: Attachment[] = [];
     let body = parts
       .map((part) => {
         if (typeof part === 'string') return part;
         const p = record(part);
         if (p.content_type === 'image_asset_pointer' || p.asset_pointer) {
-          missing = true;
-          return '[图片引用：分享未提供可保存素材]';
+          const media = parseMediaBlock({ ...p, type: 'image_asset_pointer' })!;
+          attachments.push(media);
+          missing ||= media.status !== 'stored';
+          return attachmentMarker(media);
         }
         if (typeof p.text === 'string') return p.text;
         if (Object.keys(p).length) {
@@ -186,8 +194,18 @@ export function parseChatGPTShare(html: string): ParsedConversation {
       Array.isArray(record(m.metadata).attachments) &&
       (record(m.metadata).attachments as unknown[]).length
     ) {
-      missing = true;
-      body += '\n[附件引用：分享未提供可保存素材]';
+      for (const raw of record(m.metadata).attachments as unknown[]) {
+        const a = record(raw);
+        const media = attachmentFromReference({
+          name: string(a.name ?? a.file_name),
+          type: string(a.mime_type),
+          url: string(a.download_url ?? a.url),
+          reference: string(a.id ?? a.file_id),
+        });
+        attachments.push(media);
+        missing ||= media.status !== 'stored';
+        body += `\n${attachmentMarker(media)}`;
+      }
     }
     const recipient = string(m.recipient);
     const mappedRole =
@@ -200,6 +218,7 @@ export function parseChatGPTShare(html: string): ParsedConversation {
       messages.push({
         role: mappedRole,
         content: body.trim(),
+        ...(attachments.length ? { attachments } : {}),
         ...(mappedRole.startsWith('tool')
           ? { name: recipient || string(author.name) }
           : {}),
@@ -217,7 +236,8 @@ export function parseChatGPTShare(html: string): ParsedConversation {
         ? [
             {
               code: 'MISSING_ASSETS',
-              message: '分享中的图片或附件未保存，原文已保留缺失标记。',
+              message:
+                '部分分享素材仅有引用或未公开；附件卡片会显示实际保存状态。',
             },
           ]
         : []),

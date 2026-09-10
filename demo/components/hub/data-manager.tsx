@@ -14,6 +14,7 @@ import {
   type HubBackup,
 } from '@/lib/backup';
 import { trashCounts } from '@/lib/recycle-bin';
+import { taskRequest } from '@/lib/tasks/client';
 
 function download(backup: HubBackup, prefix = 'ContextHub备份') {
   const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' });
@@ -127,7 +128,7 @@ export function DataManager({
                   ? '覆盖前会发起当前数据的备份下载；'
                   : '当前数据读取失败，无法生成覆盖前备份；'}
                 摘要自动运行和自动收件会暂停，回收站内容获得新的 30
-                天恢复期。恢复后可重新启用收件。
+                天恢复期。现有后台任务及未接收结果会取消，不包含在备份中。恢复后可重新启用收件。
               </p>
               <label className="checks">
                 <input
@@ -148,6 +149,10 @@ export function DataManager({
                         await createBackup(localRepository),
                         'ContextHub恢复前备份',
                       );
+                    // Cancel retained server snapshots before replacing their source
+                    // data, so old work cannot keep running against a restored library.
+                    await taskRequest('session', {});
+                    await taskRequest('cancel-all', {});
                     await restoreBackup(localRepository, backup);
                     window.location.reload();
                   })

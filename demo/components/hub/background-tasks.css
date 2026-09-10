@@ -1,0 +1,65 @@
+.background-task-list {
+  display: grid;
+  gap: 1rem;
+}
+.background-task-row {
+  border-bottom: 1px solid var(--border);
+  padding: 0.8rem 0;
+}
+.background-task-row > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+}
+.background-task-row p {
+  font-size: 0.875rem;
+  margin: 0.5rem 0;
+}
+.attachment-card {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 0.9rem;
+  margin: 0.75rem 0;
+  border: 1px dashed var(--border);
+  border-radius: 0.7rem;
+  min-width: 0;
+}
+.attachment-card > img {
+  max-width: 35%;
+  height: auto;
+}
+.attachment-card-details {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  flex: 1;
+}
+.attachment-card-details > strong {
+  overflow-wrap: anywhere;
+}
+.attachment-card-details > span,
+.attachment-card-details > small,
+.attachment-card-details p {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+.attachment-card-details pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+}
+.attachment-card-details a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+@media (max-width: 760px) {
+  .attachment-card {
+    flex-wrap: wrap;
+  }
+  .attachment-card > img {
+    max-width: 100%;
+  }
+}

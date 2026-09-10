@@ -1,5 +1,6 @@
 import { normalizeHubState, type HubState } from './hub-state.ts';
 import type { DataRepository, StorageEntry } from './repository.ts';
+import { dataUrlBytes, MAX_ATTACHMENT_TEXT } from './attachments.ts';
 
 export const BACKUP_LIMIT = 100 * 1024 * 1024;
 export type HubBackup = {
@@ -49,7 +50,26 @@ function attachments(value: unknown) {
           (key) => typeof a[key] === 'string',
         ),
     );
-    check(/^(data:|https?:\/\/)/i.test(String(a.url)));
+    fields(a, ['sourceUrl', 'reference', 'sha256', 'text', 'error'], 'string');
+    check(
+      a.status === undefined ||
+        (typeof a.status === 'string' &&
+          ['stored', 'remote', 'missing', 'failed'].includes(a.status)),
+    );
+    check(
+      a.size === undefined || (Number.isInteger(a.size) && Number(a.size) >= 0),
+    );
+    check(
+      a.text === undefined ||
+        (typeof a.text === 'string' &&
+          new TextEncoder().encode(a.text).length <= MAX_ATTACHMENT_TEXT),
+    );
+    check(
+      /^(data:|https?:\/\/)/i.test(String(a.url)) ||
+        (a.url === '' && ['missing', 'failed'].includes(String(a.status))),
+    );
+    if (String(a.url).startsWith('data:')) dataUrlBytes(String(a.url));
+    if (a.status === 'stored') check(String(a.url).startsWith('data:'));
   }
 }
 function draft(key: string, value: unknown) {

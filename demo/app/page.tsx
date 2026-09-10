@@ -20,9 +20,15 @@ import {
   BookOpen,
   ChevronRight,
   Database,
+  ListTodo,
 } from 'lucide-react';
 import { JournalHome } from '@/components/hub/home';
 import { DataManager } from '@/components/hub/data-manager';
+import { BackgroundTaskManager } from '@/components/hub/background-tasks';
+import {
+  BackgroundTasksContext,
+  useBackgroundTasks,
+} from '@/lib/tasks/use-background-tasks';
 import { Transcript } from '@/components/hub/transcript';
 import { SummaryPage } from '@/components/hub/summary';
 import { NotesPage } from '@/components/hub/notes';
@@ -106,6 +112,11 @@ export default function Hub() {
   const deliveryInbox = useDeliveryInbox(
     persistence.ready && modal !== 'data',
     receiveDeliveries,
+  );
+  const background = useBackgroundTasks(
+    data,
+    persistence.ready && modal !== 'data',
+    commit,
   );
   useDemoMemoryTools(w, data.workspaces.length > 0);
   const main = useRef<HTMLElement>(null);
@@ -311,281 +322,294 @@ export default function Hub() {
       </div>
     );
   return (
-    <div className="journal-app">
-      {home && (
-        <JournalHome
-          openingId={openingId}
-          workspaces={data.workspaces}
-          onOpen={openWorkspace}
-          onNew={() => setModal('new-workspace')}
-          onSearch={() => navigate('search')}
-          onAccount={() => setModal('account')}
-          onData={() => setModal('data')}
-          onImport={() => setModal('import')}
-        />
-      )}
-      {home && persistence.error && (
-        <div role="alert" className="callout warning">
-          {persistence.error}
-          <Button
-            onClick={() => {
-              void persistence.retry();
-            }}
-          >
-            重试保存
-          </Button>
-        </div>
-      )}
-      {(!home || openingId) && (
-        <div
-          className={`open-journal${home ? ' workspace-preparing' : ''}`}
-          inert={home}
-          aria-hidden={home}
-        >
-          <header className="journal-reader-header">
-            <button
-              className="back-to-shelf"
-              aria-label="返回我的手账"
-              onClick={() => transition(() => setHome(true))}
+    <BackgroundTasksContext.Provider value={background}>
+      <div className="journal-app">
+        {home && (
+          <JournalHome
+            openingId={openingId}
+            workspaces={data.workspaces}
+            onOpen={openWorkspace}
+            onNew={() => setModal('new-workspace')}
+            onSearch={() => navigate('search')}
+            onAccount={() => setModal('account')}
+            onData={() => setModal('data')}
+            onTasks={() => setModal('tasks')}
+            onImport={() => setModal('import')}
+          />
+        )}
+        {home && persistence.error && (
+          <div role="alert" className="callout warning">
+            {persistence.error}
+            <Button
+              onClick={() => {
+                void persistence.retry();
+              }}
             >
-              <ArrowLeft size={16} />
-              <span>我的手账</span>
-            </button>
-            <div className="reader-breadcrumb">
-              <span title={w.name}>{w.name}</span>
-              <ChevronRight size={13} />
-              <span>
-                {navigation.find((n) => n.id === page)?.label ??
-                  (page === 'inbox' ? '收件箱' : '搜索记忆')}
-              </span>
-            </div>
-            <div className="reader-actions">
+              重试保存
+            </Button>
+          </div>
+        )}
+        {(!home || openingId) && (
+          <div
+            className={`open-journal${home ? ' workspace-preparing' : ''}`}
+            inert={home}
+            aria-hidden={home}
+          >
+            <header className="journal-reader-header">
               <button
-                className="icon-button"
-                aria-label="本地数据与备份"
-                onClick={() => setModal('data')}
+                className="back-to-shelf"
+                aria-label="返回我的手账"
+                onClick={() => transition(() => setHome(true))}
               >
-                <Database size={17} />
+                <ArrowLeft size={16} />
+                <span>我的手账</span>
               </button>
-              <span className="save-state">
-                <span
-                  className={`status-dot ${persistence.error ? 'error' : ''}`}
-                />
-                {persistence.error
-                  ? '保存失败'
-                  : persistence.saved
-                    ? '已收好'
-                    : '保存中…'}
-              </span>
-              <button
-                className="icon-button"
-                aria-label="搜索记忆"
-                onClick={() => navigate('search')}
-              >
-                <Search size={17} />
-              </button>
-              <Button onClick={() => setModal('import')}>
-                <Plus size={14} />
-                收录对话
-              </Button>
-            </div>
-          </header>
-          <div className="journal-reader">
-            <aside className="journal-margin">
-              <span>{w.platform.toUpperCase()}</span>
-              <i />
-              <span>CONTEXT HUB</span>
-            </aside>
-            <div className="journal-sheet">
-              <nav className="journal-tabs" aria-label="手账章节">
-                {navigation.map((n) => (
-                  <button
-                    key={n.id}
-                    disabled={!data.workspaces.length}
-                    className={page === n.id ? 'selected' : ''}
-                    aria-current={page === n.id ? 'page' : undefined}
-                    onClick={() => navigate(n.id)}
-                  >
-                    <n.icon size={15} />
-                    <span>{n.label}</span>
-                  </button>
-                ))}
-              </nav>
-              {persistence.error && (
-                <div role="alert" className="callout warning">
-                  {persistence.error}
-                  <Button
-                    onClick={() => {
-                      void persistence.retry();
-                    }}
-                  >
-                    重试保存
-                  </Button>
-                </div>
-              )}
-              <main className="page-content" key={w.id} ref={main}>
-                {visitedPages
-                  .filter(
-                    (panel) =>
-                      data.workspaces.length > 0 ||
-                      ['inbox', 'search'].includes(panel),
-                  )
-                  .map((panel) => (
-                    <div
-                      key={panel}
-                      className="chapter-panel"
-                      hidden={page !== panel}
+              <div className="reader-breadcrumb">
+                <span title={w.name}>{w.name}</span>
+                <ChevronRight size={13} />
+                <span>
+                  {navigation.find((n) => n.id === page)?.label ??
+                    (page === 'inbox' ? '收件箱' : '搜索记忆')}
+                </span>
+              </div>
+              <div className="reader-actions">
+                <button
+                  className="icon-button"
+                  aria-label="后台任务"
+                  onClick={() => setModal('tasks')}
+                >
+                  <ListTodo size={17} />
+                </button>
+                <button
+                  className="icon-button"
+                  aria-label="本地数据与备份"
+                  onClick={() => setModal('data')}
+                >
+                  <Database size={17} />
+                </button>
+                <span className="save-state">
+                  <span
+                    className={`status-dot ${persistence.error ? 'error' : ''}`}
+                  />
+                  {persistence.error
+                    ? '保存失败'
+                    : persistence.saved
+                      ? '已收好'
+                      : '保存中…'}
+                </span>
+                <button
+                  className="icon-button"
+                  aria-label="搜索记忆"
+                  onClick={() => navigate('search')}
+                >
+                  <Search size={17} />
+                </button>
+                <Button onClick={() => setModal('import')}>
+                  <Plus size={14} />
+                  收录对话
+                </Button>
+              </div>
+            </header>
+            <div className="journal-reader">
+              <aside className="journal-margin">
+                <span>{w.platform.toUpperCase()}</span>
+                <i />
+                <span>CONTEXT HUB</span>
+              </aside>
+              <div className="journal-sheet">
+                <nav className="journal-tabs" aria-label="手账章节">
+                  {navigation.map((n) => (
+                    <button
+                      key={n.id}
+                      disabled={!data.workspaces.length}
+                      className={page === n.id ? 'selected' : ''}
+                      aria-current={page === n.id ? 'page' : undefined}
+                      onClick={() => navigate(n.id)}
                     >
-                      {panel === 'archive' ? (
-                        <Transcript
-                          w={w}
-                          active={!home && page === 'archive'}
-                          onCommand={onWorkspaceCommand}
-                          onInsert={insert}
-                          onEdit={edit}
-                        />
-                      ) : panel === 'summary' ? (
-                        <SummaryPage
-                          w={w}
-                          active={
-                            !home &&
-                            page === 'summary' &&
-                            persistence.ready &&
-                            modal !== 'data'
-                          }
-                          onCommand={onWorkspaceCommand}
-                          onUpload={upload}
-                          onCommit={commitWorkspace}
-                          pendingCount={candidates.length}
-                          onReview={() => setModal('review-workbench')}
-                        />
-                      ) : panel === 'notes' ? (
-                        <NotesPage
-                          w={w}
-                          onCommand={onWorkspaceCommand}
-                          onCommit={commitWorkspace}
-                        />
-                      ) : panel === 'memory' ? (
-                        <MemoryPage w={w} onCommand={onWorkspaceCommand} />
-                      ) : panel === 'inbox' ? (
-                        <>
-                          {deliveryInbox.error && (
-                            <p role="alert" className="callout warning">
-                              {deliveryInbox.error}
-                            </p>
-                          )}
-                          <InboxPage
-                            uploads={deliveries}
+                      <n.icon size={15} />
+                      <span>{n.label}</span>
+                    </button>
+                  ))}
+                </nav>
+                {persistence.error && (
+                  <div role="alert" className="callout warning">
+                    {persistence.error}
+                    <Button
+                      onClick={() => {
+                        void persistence.retry();
+                      }}
+                    >
+                      重试保存
+                    </Button>
+                  </div>
+                )}
+                <main className="page-content" key={w.id} ref={main}>
+                  {visitedPages
+                    .filter(
+                      (panel) =>
+                        data.workspaces.length > 0 ||
+                        ['inbox', 'search'].includes(panel),
+                    )
+                    .map((panel) => (
+                      <div
+                        key={panel}
+                        className="chapter-panel"
+                        hidden={page !== panel}
+                      >
+                        {panel === 'archive' ? (
+                          <Transcript
+                            w={w}
+                            active={!home && page === 'archive'}
+                            onCommand={onWorkspaceCommand}
+                            onInsert={insert}
+                            onEdit={edit}
+                          />
+                        ) : panel === 'summary' ? (
+                          <SummaryPage
+                            w={w}
+                            active={
+                              !home &&
+                              page === 'summary' &&
+                              persistence.ready &&
+                              modal !== 'data'
+                            }
+                            onCommand={onWorkspaceCommand}
+                            onUpload={upload}
+                            onCommit={commitWorkspace}
+                            pendingCount={candidates.length}
+                            onReview={() => setModal('review-workbench')}
+                          />
+                        ) : panel === 'notes' ? (
+                          <NotesPage
+                            w={w}
+                            onCommand={onWorkspaceCommand}
+                            onCommit={commitWorkspace}
+                          />
+                        ) : panel === 'memory' ? (
+                          <MemoryPage w={w} onCommand={onWorkspaceCommand} />
+                        ) : panel === 'inbox' ? (
+                          <>
+                            {deliveryInbox.error && (
+                              <p role="alert" className="callout warning">
+                                {deliveryInbox.error}
+                              </p>
+                            )}
+                            <InboxPage
+                              uploads={deliveries}
+                              workspaces={data.workspaces}
+                              currentId={w.id}
+                              onUpdate={updateUpload}
+                              onRemove={removeUpload}
+                              onImport={importUpload}
+                              onSummary={applySummary}
+                            />
+                          </>
+                        ) : panel === 'connect' ? (
+                          <ConnectionsPage
+                            w={w}
+                            active={!home && page === 'connect'}
+                            onCommand={onWorkspaceCommand}
+                          />
+                        ) : (
+                          <SearchPage
                             workspaces={data.workspaces}
                             currentId={w.id}
-                            onUpdate={updateUpload}
-                            onRemove={removeUpload}
-                            onImport={importUpload}
-                            onSummary={applySummary}
                           />
-                        </>
-                      ) : panel === 'connect' ? (
-                        <ConnectionsPage
-                          w={w}
-                          active={!home && page === 'connect'}
-                          onCommand={onWorkspaceCommand}
-                        />
-                      ) : (
-                        <SearchPage
-                          workspaces={data.workspaces}
-                          currentId={w.id}
-                        />
-                      )}
-                    </div>
-                  ))}
-              </main>
+                        )}
+                      </div>
+                    ))}
+                </main>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      {modal === 'turn' && (
-        <TurnEditor
-          key={`${w.id}-${editing?.id ?? afterId ?? 'start'}`}
-          w={w}
-          turn={editing}
-          afterId={afterId}
-          onSave={saveTurn}
-          onClose={() => setModal('')}
-        />
-      )}{' '}
-      {modal === 'new-workspace' && (
-        <NewWorkspace
-          onClose={() => setModal('')}
-          onCreate={async (name, platform, companion) => {
-            const origin = currentView.current;
-            const x = blankWorkspace(name, platform);
-            const saved = await commit(
-              { type: 'workspace/create', workspace: x },
-              companion,
-            );
-            if (saved && currentView.current === origin) {
-              setModal('');
-              openWorkspace(x.id);
+        )}
+        {modal === 'turn' && (
+          <TurnEditor
+            key={`${w.id}-${editing?.id ?? afterId ?? 'start'}`}
+            w={w}
+            turn={editing}
+            afterId={afterId}
+            onSave={saveTurn}
+            onClose={() => setModal('')}
+          />
+        )}{' '}
+        {modal === 'new-workspace' && (
+          <NewWorkspace
+            onClose={() => setModal('')}
+            onCreate={async (name, platform, companion) => {
+              const origin = currentView.current;
+              const x = blankWorkspace(name, platform);
+              const saved = await commit(
+                { type: 'workspace/create', workspace: x },
+                companion,
+              );
+              if (saved && currentView.current === origin) {
+                setModal('');
+                openWorkspace(x.id);
+              }
+              return saved;
+            }}
+          />
+        )}{' '}
+        {modal === 'import' && (
+          <ImportDialog
+            onUpload={importConversation}
+            onDeliveryEnabled={deliveryInbox.activate}
+            onClose={() => setModal('')}
+            pendingCount={directImports.length}
+            onReview={() => setModal('review-manual')}
+          />
+        )}{' '}
+        {(modal === 'review-manual' || modal === 'review-workbench') && (
+          <Modal
+            title={modal === 'review-manual' ? '确认对话导入' : '确认候选摘要'}
+            description={
+              modal === 'review-manual'
+                ? '预览后选择手账归档；未确认的内容可从收录对话入口继续处理。'
+                : '确认后设为活跃摘要；未确认的候选会保留在当前手账的摘要工作台。'
             }
-            return saved;
-          }}
-        />
-      )}{' '}
-      {modal === 'import' && (
-        <ImportDialog
-          onUpload={importConversation}
-          onDeliveryEnabled={deliveryInbox.activate}
-          onClose={() => setModal('')}
-          pendingCount={directImports.length}
-          onReview={() => setModal('review-manual')}
-        />
-      )}{' '}
-      {(modal === 'review-manual' || modal === 'review-workbench') && (
-        <Modal
-          title={modal === 'review-manual' ? '确认对话导入' : '确认候选摘要'}
-          description={
-            modal === 'review-manual'
-              ? '预览后选择手账归档；未确认的内容可从收录对话入口继续处理。'
-              : '确认后设为活跃摘要；未确认的候选会保留在当前手账的摘要工作台。'
-          }
-          onClose={() => setModal('')}
-        >
-          <div className="upload-review-dialog">
-            <UploadReview
-              key={`${modal}-${w.id}`}
-              uploads={modal === 'review-manual' ? directImports : candidates}
-              workspaces={data.workspaces}
-              currentId={w.id}
-              onUpdate={updateUpload}
-              onRemove={removeUpload}
-              onImport={importUpload}
-              onSummary={applySummary}
-            />
-          </div>
-        </Modal>
-      )}
-      {modal === 'account' && (
-        <Modal title="这本手账，只在此处" onClose={() => setModal('')}>
-          <p className="callout">
-            手账与草稿保存在当前浏览器。客户端投递先保存在本机服务的收件队列，浏览器接收成功后清除服务端正文。账号与云端同步尚未接入。
-          </p>
-        </Modal>
-      )}
-      {modal === 'data' && (
-        <DataManager
-          state={data}
-          saved={persistence.saved && !persistence.busy}
-          onClose={() => setModal('')}
-          onCleanup={cleanup}
-        />
-      )}
-      <InboxPet count={deliveries.length} onClick={() => navigate('inbox')} />
-      {notice && (
-        <output className="journal-toast">
-          <Check size={16} />
-          {notice}
-        </output>
-      )}
-    </div>
+            onClose={() => setModal('')}
+          >
+            <div className="upload-review-dialog">
+              <UploadReview
+                key={`${modal}-${w.id}`}
+                uploads={modal === 'review-manual' ? directImports : candidates}
+                workspaces={data.workspaces}
+                currentId={w.id}
+                onUpdate={updateUpload}
+                onRemove={removeUpload}
+                onImport={importUpload}
+                onSummary={applySummary}
+              />
+            </div>
+          </Modal>
+        )}
+        {modal === 'account' && (
+          <Modal title="这本手账，只在此处" onClose={() => setModal('')}>
+            <p className="callout">
+              手账与草稿保存在当前浏览器。客户端投递先保存在本机服务的收件队列，浏览器接收成功后清除服务端正文。账号与云端同步尚未接入。
+            </p>
+          </Modal>
+        )}
+        {modal === 'tasks' && (
+          <BackgroundTaskManager onClose={() => setModal('')} />
+        )}
+        {modal === 'data' && (
+          <DataManager
+            state={data}
+            saved={persistence.saved && !persistence.busy}
+            onClose={() => setModal('')}
+            onCleanup={cleanup}
+          />
+        )}
+        <InboxPet count={deliveries.length} onClick={() => navigate('inbox')} />
+        {notice && (
+          <output className="journal-toast">
+            <Check size={16} />
+            {notice}
+          </output>
+        )}
+      </div>
+    </BackgroundTasksContext.Provider>
   );
 }

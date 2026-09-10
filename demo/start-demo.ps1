@@ -11,7 +11,7 @@ if (-not (Test-Path -LiteralPath $taskNodePath)) {
     throw '需要安装 Node.js 22.13 或更高版本后运行。'
 }
 if ($Dev) {
-    & $taskNodePath 'node_modules/vinext/dist/cli.js' dev --hostname 127.0.0.1 --port 3000
+    & $taskNodePath './scripts/start-local.mjs' --dev
     exit $LASTEXITCODE
 }
 & $taskNodePath 'node_modules/vinext/dist/cli.js' build

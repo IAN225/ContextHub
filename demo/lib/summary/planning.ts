@@ -5,6 +5,7 @@ import {
   type Workspace,
 } from '../domain.ts';
 import { composeSummaryInput } from './prompts.ts';
+import { attachmentContext } from '../attachments.ts';
 import {
   estimateInput,
   fitsBudget,
@@ -27,12 +28,15 @@ export type SummaryPlan = {
 // running must not advance a stale watermark. Unrelated notebook names are free.
 export function summaryRevision(w: Workspace) {
   return JSON.stringify({
-    turns: w.turns,
+    turns: w.turns.map((t) => ({
+      ...t,
+      attachments: t.attachments?.map(attachmentContext),
+    })),
     active: w.summaries.find((s) => s.id === w.activeId),
     activeId: w.activeId,
     watermark: w.watermark,
     retain: w.retain,
-    config: w.config,
+    config: { ...w.config, auto: undefined, review: undefined },
     notes: w.notes
       .filter((n) => n.status === 'normal')
       .map((n) => ({ id: n.id, title: n.title, star: n.star })),

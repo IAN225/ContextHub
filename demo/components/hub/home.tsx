@@ -6,6 +6,7 @@ import {
   Orbit,
   ArrowRight,
   Database,
+  ListTodo,
 } from 'lucide-react';
 import { coverage, type Workspace } from '@/lib/domain';
 
@@ -18,6 +19,7 @@ export function JournalHome({
   onAccount,
   onData,
   onImport,
+  onTasks,
 }: {
   openingId: string | null;
   workspaces: Workspace[];
@@ -27,6 +29,7 @@ export function JournalHome({
   onAccount: () => void;
   onData: () => void;
   onImport: () => void;
+  onTasks: () => void;
 }) {
   return (
     <div className="journal-home" inert={!!openingId} aria-busy={!!openingId}>
@@ -36,6 +39,14 @@ export function JournalHome({
           <span>Context Hub</span>
         </button>
         <div>
+          <button
+            className="journal-header-action"
+            onClick={onTasks}
+            aria-label="后台任务"
+          >
+            <ListTodo size={17} />
+            <span>后台任务</span>
+          </button>
           <button
             className="journal-header-action"
             onClick={onData}

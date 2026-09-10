@@ -1,15 +1,26 @@
+import { attachmentContext } from './attachments.ts';
 export type Status = 'normal' | 'deprecated' | 'trash';
 export type Message = {
   role: string;
   content: string;
   name?: string;
   callId?: string;
+  attachmentIds?: string[];
+  // Parsers carry media with its message; groupTurns moves bytes to the turn.
+  attachments?: Attachment[];
 };
 export type Attachment = {
   id: string;
   name: string;
   type: string;
   url: string;
+  status?: 'stored' | 'remote' | 'missing' | 'failed';
+  sourceUrl?: string;
+  reference?: string;
+  size?: number;
+  sha256?: string;
+  text?: string;
+  error?: string;
 };
 export type ImportProvenance = {
   parser: string;
@@ -169,13 +180,29 @@ export function groupTurns(messages: Message[], source = '文本粘贴'): Turn[]
         source,
         time: null,
       });
-    if (turns.length)
+    if (turns.length) {
+      const media = m.attachments ?? [];
+      if (media.length) {
+        const turn = turns[turns.length - 1];
+        turn.attachments = [...(turn.attachments ?? []), ...media];
+      }
       turns[turns.length - 1].messages.push({
         role: m.role,
         content: m.content,
         ...(m.name ? { name: m.name } : {}),
         ...(m.callId ? { callId: m.callId } : {}),
+        ...(media.length || m.attachmentIds?.length
+          ? {
+              attachmentIds: [
+                ...new Set([
+                  ...(m.attachmentIds ?? []),
+                  ...media.map((a) => a.id),
+                ]),
+              ],
+            }
+          : {}),
       });
+    }
   }
   return turns;
 }
@@ -248,7 +275,7 @@ export function memoryText(w: Workspace, blocks = w.blocks) {
             retain: Math.max(0, Math.floor(b.windowLength ?? 0)),
           }).recent
         : c.recent;
-      return `[${b.custom ? '自选滑动窗口' : '近期原文'}]\n${turns.map((t) => t.messages.map((m) => `${m.role}: ${m.content}`).join('\n')).join('\n\n')}`;
+      return `[${b.custom ? '自选滑动窗口' : '近期原文'}]\n${turns.map((t) => [t.messages.map((m) => `${m.role}: ${m.content}`).join('\n'), ...(t.attachments?.length ? [`[附件资料]\n${JSON.stringify(t.attachments.map(attachmentContext))}`] : [])].join('\n')).join('\n\n')}`;
     })
     .join('\n\n');
 }

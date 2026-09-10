@@ -9,7 +9,12 @@ import {
   type Turn,
   type Upload,
   type Workspace,
+  type Attachment,
 } from './domain.ts';
+import {
+  attachmentRevision,
+  preserveFetchedAttachments,
+} from './attachments.ts';
 import {
   applyGeneratedCheckpoint,
   type GeneratedCheckpoint,
@@ -21,6 +26,7 @@ export type HubState = {
   uploads: Upload[];
   deliveryReceipts?: string[];
   trashRestoredAt?: string;
+  taskReceipts?: Record<string, number>;
 };
 export function createEmptyHubState(): HubState {
   return {
@@ -54,6 +60,21 @@ export type WorkspaceCommand =
   | { type: 'token/revoke'; tokenId: string }
   | { type: 'token/rotate'; tokenId: string; token: Token };
 export type HubCommand =
+  | { type: 'task/workbench'; taskId: string; step: number; upload: Upload }
+  | {
+      type: 'task/summary';
+      taskId: string;
+      step: number;
+      workspaceId: string;
+      generated: GeneratedCheckpoint;
+    }
+  | {
+      type: 'task/attachment';
+      taskId: string;
+      step: number;
+      expected: string;
+      attachment: Attachment;
+    }
   | { type: 'workspace'; workspaceId: string; command: WorkspaceCommand }
   | { type: 'workspace/create'; workspace: Workspace }
   | { type: 'upload/add'; upload: Upload }
@@ -91,7 +112,16 @@ export function applyWorkspaceCommand(
           ...w,
           turns: w.turns.map((t) =>
             t.id === current.id
-              ? { ...t, title, source, messages, attachments }
+              ? {
+                  ...t,
+                  title,
+                  source,
+                  messages,
+                  attachments: preserveFetchedAttachments(
+                    attachments,
+                    t.attachments,
+                  ),
+                }
               : t,
           ),
         };
@@ -222,6 +252,59 @@ export function applyHubCommand(
   command: HubCommand,
 ): HubState {
   switch (command.type) {
+    case 'task/workbench':
+    case 'task/summary':
+    case 'task/attachment': {
+      const received = state.taskReceipts?.[command.taskId] ?? 0;
+      if (received >= command.step) return state;
+      if (command.step !== received + 1)
+        throw new Error('后台结果需要按顺序接收。');
+      let next = state;
+      if (command.type === 'task/workbench') {
+        next = applyHubCommand(state, {
+          type: 'upload/add',
+          upload: command.upload,
+        });
+      } else if (command.type === 'task/summary') {
+        next = applyHubCommand(state, {
+          type: 'workspace',
+          workspaceId: command.workspaceId,
+          command: { type: 'summary/generated', generated: command.generated },
+        });
+      } else {
+        const patch = (turns: Turn[]) =>
+          turns.map((t) =>
+            t.status === 'trash' ||
+            !t.attachments?.some(
+              (a) =>
+                a.id === command.attachment.id &&
+                attachmentRevision(a) === command.expected,
+            )
+              ? t
+              : {
+                  ...t,
+                  attachments: t.attachments.map((a) =>
+                    a.id === command.attachment.id &&
+                    attachmentRevision(a) === command.expected
+                      ? command.attachment
+                      : a,
+                  ),
+                },
+          );
+        next = {
+          ...state,
+          workspaces: state.workspaces.map((w) => ({
+            ...w,
+            turns: patch(w.turns),
+          })),
+          uploads: state.uploads.map((u) => ({ ...u, turns: patch(u.turns) })),
+        };
+      }
+      return {
+        ...next,
+        taskReceipts: { ...state.taskReceipts, [command.taskId]: command.step },
+      };
+    }
     case 'workspace': {
       const current = state.workspaces.find(
         (w) => w.id === command.workspaceId,
@@ -268,7 +351,18 @@ export function applyHubCommand(
       return {
         ...state,
         uploads: state.uploads.map((u) =>
-          u.id === command.upload.id ? command.upload : u,
+          u.id === command.upload.id
+            ? {
+                ...command.upload,
+                turns: command.upload.turns.map((t) => ({
+                  ...t,
+                  attachments: preserveFetchedAttachments(
+                    t.attachments,
+                    u.turns.find((old) => old.id === t.id)?.attachments,
+                  ),
+                })),
+              }
+            : u,
         ),
       };
     case 'upload/remove':
@@ -371,6 +465,16 @@ export function normalizeHubState(raw: unknown): HubState {
   requireShape(record(raw));
   requireShape(raw.schemaVersion === undefined || raw.schemaVersion === 1);
   requireShape(Array.isArray(raw.workspaces) && Array.isArray(raw.uploads));
+  requireShape(
+    raw.taskReceipts === undefined ||
+      (record(raw.taskReceipts) &&
+        Object.entries(raw.taskReceipts).every(
+          ([id, step]) =>
+            /^[a-z0-9_-]{16,100}$/i.test(id) &&
+            Number.isInteger(step) &&
+            Number(step) >= 0,
+        )),
+  );
   let changed = raw.schemaVersion !== 1;
   requireShape(
     raw.deliveryReceipts === undefined ||

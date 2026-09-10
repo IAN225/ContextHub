@@ -154,9 +154,10 @@ export function SummaryPage({
           <label className="checks">
             <Switch
               checked={w.config.review}
-              onCheckedChange={(review) =>
-                onCommand({ type: 'summary/config', patch: { review } })
-              }
+              onCheckedChange={(review) => {
+                if (review) task.stop();
+                onCommand({ type: 'summary/config', patch: { review } });
+              }}
             />
             每批生成后暂停检查
           </label>
@@ -170,7 +171,7 @@ export function SummaryPage({
             />
             后续自动压缩
           </label>
-          <span>仅当前摘要页内运行；离开后暂停</span>
+          <span>本机服务运行期间，关闭网页也会继续；新结果会在打开时接收</span>
         </div>
         {(!w.config.configured || !w.config.modelEnabled) && (
           <p className="callout">
@@ -205,7 +206,7 @@ export function SummaryPage({
             <Button
               disabled={task.saving}
               onClick={() => {
-                void task.retrySave();
+                task.retrySave();
               }}
             >
               重试保存检查点

@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button, formatDate } from './shared';
 import type { Turn } from '@/lib/domain';
+import { AttachmentCard } from './attachment-card';
 export function UploadTurnPreview({
   turns,
   checked,
@@ -46,6 +47,9 @@ export function UploadTurnPreview({
                 <small>{m.role}</small>
                 <p>{m.content}</p>
               </div>
+            ))}
+            {t.attachments?.map((a) => (
+              <AttachmentCard attachment={a} key={a.id} />
             ))}
           </div>
         ))}

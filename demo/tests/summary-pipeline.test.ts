@@ -105,8 +105,8 @@ void test('local Responses thinking setting overrides stale browser settings and
       undefined,
       async (url, init) => {
         assert.equal(url, 'https://provider.example/v1/responses');
-      assert.ok(typeof init?.body === 'string');
-      const body = JSON.parse(init.body);
+        assert.ok(typeof init?.body === 'string');
+        const body = JSON.parse(init.body);
         assert.deepEqual(body.reasoning, { effort: forced ? 'none' : 'high' });
         assert.equal(body.max_output_tokens, 512);
         assert.equal(body.thinking, undefined);
@@ -177,7 +177,7 @@ void test('summary input obeys block order and contains complete assistant/tool 
   assert.match(plan.input.user, /tool-result/);
   assert.match(plan.input.user, /call-1/);
   assert.doesNotMatch(plan.input.user, /DO-NOT-SEND|PRIVATE-BYTES/);
-  assert.match(plan.input.user, /未向摘要模型提供素材内容/);
+  assert.match(plan.input.user, /未提供附件正文/);
 });
 void test('budget reduces whole-turn batches and rejects an oversized first turn without moving the watermark', () => {
   const w = workspace();

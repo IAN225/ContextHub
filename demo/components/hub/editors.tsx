@@ -17,6 +17,11 @@ import { Button, Modal, Markdown, Picker } from './shared';
 import { usePersistent } from '@/lib/store';
 import type { StorageEntry } from '@/lib/repository';
 import {
+  fingerprintAttachment,
+  attachmentStatus,
+  attachmentLabels,
+} from '@/lib/attachments';
+import {
   uid,
   type Attachment,
   type Message,
@@ -177,8 +182,7 @@ export function TurnEditor({
     try {
       const result: Attachment[] = [];
       for (const f of items) {
-        if (f.size > 5 * 1024 * 1024)
-          throw new Error('本地 demo 单个附件上限为 5 MB。');
+        if (f.size > 5 * 1024 * 1024) throw new Error('单个附件上限为 5 MB。');
         const url = await new Promise<string>((resolve, reject) => {
           const r = new FileReader();
           r.onload = () =>
@@ -188,7 +192,14 @@ export function TurnEditor({
           r.onerror = () => reject(new Error('附件读取失败'));
           r.readAsDataURL(f);
         });
-        result.push({ id: uid(), name: f.name, type: f.type, url });
+        result.push(
+          await fingerprintAttachment({
+            id: uid(),
+            name: f.name,
+            type: f.type,
+            url,
+          }),
+        );
       }
       setDraft((d) => ({ ...d, attachments: [...d.attachments, ...result] }));
     } catch (e) {
@@ -281,7 +292,7 @@ export function TurnEditor({
           <div className="attachment-strip">
             {draft.attachments.map((a) => (
               <div key={a.id}>
-                {a.type.startsWith('image/') ? (
+                {a.type.startsWith('image/') && a.url.startsWith('data:') ? (
                   <Image
                     unoptimized
                     src={a.url}
@@ -292,7 +303,9 @@ export function TurnEditor({
                 ) : (
                   <Paperclip size={18} />
                 )}
-                <span>{a.name}</span>
+                <span>
+                  {a.name} · {attachmentLabels[attachmentStatus(a)]}
+                </span>
                 <button
                   aria-label={`移除附件 ${a.name}`}
                   onClick={() =>

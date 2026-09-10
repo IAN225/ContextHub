@@ -1,5 +1,4 @@
 'use client';
-import Image from 'next/image';
 import {
   ArrowUpRight,
   Plus,
@@ -8,11 +7,11 @@ import {
   Archive,
   Trash2,
   RotateCcw,
-  Paperclip,
 } from 'lucide-react';
 import { Button, Segments, Markdown, formatDate } from './shared';
 import type { Turn, Status } from '@/lib/domain';
 import type { TurnCoverageMark } from './transcript-timeline';
+import { AttachmentCard } from './attachment-card';
 export function TurnDetail({
   current,
   actual,
@@ -129,23 +128,7 @@ export function TurnDetail({
             </div>
           ))}
           {current.attachments?.map((a) => (
-            <div className="attachment-preview" key={a.id}>
-              {a.type.startsWith('image/') ? (
-                <Image
-                  unoptimized
-                  src={a.url}
-                  alt={a.name}
-                  width={180}
-                  height={180}
-                  style={{ objectFit: 'contain' }}
-                />
-              ) : (
-                <Paperclip size={20} />
-              )}
-              <a download={a.name} href={a.url}>
-                {a.name}
-              </a>
-            </div>
+            <AttachmentCard attachment={a} key={a.id} />
           ))}
         </div>
       ) : tab === 'payload' ? (

@@ -6,7 +6,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "dev": "vinext dev",
+    "dev": "node ./scripts/start-local.mjs --dev",
     "build": "vinext build",
     "start": "node ./scripts/start-local.mjs",
     "db:init": "node --import ./scripts/local-runtime.mjs ./node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --local --config dist/server/wrangler.json --persist-to .wrangler/state",

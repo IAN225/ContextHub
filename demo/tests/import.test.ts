@@ -76,7 +76,8 @@ void test('Responses 输入中的函数调用、结果和图片缺失信息会�
     'responses',
   );
   assert.equal(r.length, 1);
-  assert.ok(r[0].messages[0].content.includes('未下载'));
+  assert.ok(r[0].messages[0].content.includes('附件引用'));
+  assert.equal(r[0].attachments?.[0].status, 'remote');
   assert.equal(r[0].messages[2].role, 'tool_result');
   assert.ok(!JSON.stringify(r).includes('hidden'));
 });
