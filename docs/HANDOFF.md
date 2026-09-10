@@ -10,7 +10,7 @@
 
 ## 已完成
 
-- ChatGPT OAuth：RFC 9728 / RFC 8414 发现、DCR 三种客户端认证方式、授权码 + S256 PKCE、resource audience 校验、回调 iss、本机 owner 会话批准、1 小时访问令牌与 30 天授权、刷新轮换及重放吊销。公网只允许 MCP/OAuth/发现路由；`pnpm chatgpt` 启动 Cloudflare 临时隧道与本机服务，地址每次变化，普通 `pnpm start` 不启用公网入口。当前只允许 ChatGPT 官方回调，未实现 Claude OAuth/CIMD/OIDC。新增迁移 0004、OAuth 单元与隔离 Worker HTTP 验证；ChatGPT 对话效果由用户测试。
+- ChatGPT OAuth：RFC 9728 / RFC 8414 发现、DCR 三种客户端认证方式、授权码 + S256 PKCE、resource audience 校验、回调 iss、本机 owner 会话批准、1 小时访问令牌与 30 天授权、刷新轮换及重放吊销。公网只允许 MCP/OAuth/发现路由；`pnpm chatgpt` 启动 Cloudflare 临时隧道与本机服务，地址每次变化，普通 `pnpm start` 不启用公网入口。允许 ChatGPT 官方回调与桌面客户端字面量 loopback 临时端口 `/callback`，未实现 Claude OAuth/CIMD/OIDC。新增迁移 0004、OAuth 单元与隔离 Worker HTTP 验证；ChatGPT 对话效果由用户测试。
 
 - MCP 阶段：真实 HTTP/stdio 接入、令牌创建/到期/吊销/轮换、手账隔离；全部 7 项工具持久化到本机 D1 副本。写入回执幂等、Note 精确匹配与版本校验、网页原子接收和冲突副本、旧页面回执保护；分享链接继续待确认归档。备份恢复清除旧 MCP 授权/副本，防止旧内容回写。108 项测试、类型检查、应用 lint、构建、隔离 MCP HTTP/stdio 与重启验证通过；未运行浏览器 QA。详见 [MCP 使用说明](mcp.md)。
 
@@ -78,6 +78,8 @@
 - `docs/superpowers/`：早期设计与实现计划；具体交互状态以当前源码及本说明为准。
 
 ## 最近验证结果
+
+桌面 OAuth 修复：114 项测试、TypeScript、应用范围 lint、Vinext 构建与隔离 OAuth HTTP 验证通过。新增 IPv4/IPv6 本机回调的完整授权兑换与错误端口、伪装地址拒绝测试。真实桌面 CLI 已完成发现、动态注册并打开授权页；仍待用户在手账批准连接并完成真实对话测试。桌面编辑页无 DCR 选项，保存后需重新启动连接并点击身份验证；网页插件入口与桌面配置分别管理，详见 MCP 说明。
 
 导入阶段：53 项单元/领域/SQL 测试、类型检查、应用范围 lint 通过；新增纯解析、旧草稿迁移、重复收件与归档来源、SQLite 持久化/隔离/配额测试。完整 HTTP 回归覆盖三协议 JSON/SSE、模型列表、CORS、轮换吊销、去重与确认隔离。已在原 3000 地址切换为完整构建服务；提前拒绝请求时会处理有界请求体，修正本地代理的下一请求 503/等待问题，包含超大请求的集成场景连续三次通过。本轮未追加界面截图或实体手机验收，已有视觉回归结论属于此前前端整理阶段。
 

@@ -22,8 +22,18 @@ const str = (v: unknown, max = 2048) => {
     return fail('请求参数缺失或过长。');
   return v;
 };
-export function chatgptRedirect(value: unknown) {
+export function allowedOAuthRedirect(value: unknown) {
   if (typeof value !== 'string') return false;
+  // Native MCP clients listen on an ephemeral loopback port. Match literals
+  // exactly: never allow LAN hosts, look-alike names, alternate IP encodings,
+  // credentials, queries or arbitrary callback paths.
+  const native = value.match(
+    /^http:\/\/(?:127\.0\.0\.1|\[::1\]):([1-9][0-9]{0,4})\/callback$/,
+  );
+  if (native) {
+    const port = Number(native[1]);
+    return port >= 1024 && port <= 65535;
+  }
   return (
     value === 'https://chatgpt.com/connector_platform_oauth_redirect' ||
     /^https:\/\/chatgpt\.com\/connector\/oauth\/[a-zA-Z0-9_-]{1,200}$/.test(
@@ -178,9 +188,12 @@ export async function oauthHandler(
         !Array.isArray(b.redirect_uris) ||
         !b.redirect_uris.length ||
         b.redirect_uris.length > 5 ||
-        !b.redirect_uris.every(chatgptRedirect)
+        !b.redirect_uris.every(allowedOAuthRedirect)
       )
-        fail('此联调入口只接受 ChatGPT 官方回调地址。', 'invalid_redirect_uri');
+        fail(
+          '只接受 ChatGPT 官方回调或桌面客户端的本机回调。',
+          'invalid_redirect_uri',
+        );
       const method = b.token_endpoint_auth_method ?? 'client_secret_basic';
       if (
         typeof method !== 'string' ||
@@ -231,7 +244,7 @@ export async function oauthHandler(
       if (
         !client ||
         !JSON.parse(client.redirects).includes(b.redirect_uri) ||
-        !chatgptRedirect(b.redirect_uri)
+        !allowedOAuthRedirect(b.redirect_uri)
       )
         fail('客户端或回调地址无效。');
       if (

@@ -7,7 +7,7 @@
 1. 本机已安装 Cloudflare 官方 `cloudflared`。新设备需自行安装并加入 PATH，或放到 `demo/.wrangler/bin/cloudflared.exe`。运行前先停止占用 3000 的旧服务。
 2. 在 `demo` 目录执行 `pnpm build`、`pnpm db:init`、`pnpm chatgpt`。后者启动本机手账、受限网关和 Cloudflare 临时 HTTPS 隧道。普通 `pnpm start` 只启动本机服务，不启用 OAuth 公网入口。
 3. 打开 `http://127.0.0.1:3000/`，进入要测试的手账 → **连接设置 → 准备 ChatGPT 连接**，复制页面给出的 HTTPS MCP 地址。首次准备只同步这本手账的已保存内容；旧副本先接收远端变更，再按现有同步规则更新。
-4. 在 ChatGPT 中启用开发者模式，添加自定义 MCP 连接，粘贴地址，选择 **OAuth**。使用动态客户端注册（DCR），客户端 ID / 密钥留空；服务器同时支持 `none`、`client_secret_post` 和 `client_secret_basic`。具体菜单以当前账号界面为准，开发者模式可用性取决于账号/工作区策略。
+4. **桌面端**：在设置的 MCP 服务器中添加 Streamable HTTP 地址，Bearer 令牌环境变量、标头和环境变量标头均留空。保存后回到服务器列表，重新启动连接，再点击 **身份验证**。DCR 是客户端自动执行的协议步骤，不是该编辑页上的选择项。也可在 PowerShell 执行 `codex mcp login contexthub --oauth-client-registration dcr`（服务器名按实际配置）。**网页端**使用插件入口，不读取桌面 MCP 配置；自定义插件入口能否显示取决于开发者模式与工作区策略，不要按桌面设置菜单寻找。见[官方桌面 MCP 说明](https://learn.chatgpt.com/zh-Hans/docs/extend/mcp)。
 5. ChatGPT 打开 Context Hub 授权页后，复制请求码，回到本机目标手账的连接设置，粘贴到 **确认 ChatGPT 授权 → 核对请求 → 批准此连接**。然后回到授权页点击 **完成授权，返回 ChatGPT**。这一步以本机管理会话确认手账所有权，暂不需要注册账号。
 6. 在新的 ChatGPT 对话中启用该连接，先测试“读取这本手账的记忆包”，再测试“创建标题为 MCP 测试、正文为连接成功、不标星的 Note”，最后要求读取和精准修改该 Note。写操作是否需要再次确认由 ChatGPT 决定。
 
@@ -37,7 +37,7 @@
 4. 客户端可以发现工具并调用 `memory_bootstrap`。记忆包仅在新窗口或严重遗忘时使用，日常按需搜索和读取 Note。
 5. 丢失令牌时点击“重新生成”，旧令牌立即失效；“吊销”和到期也会阻止后续调用。浏览器中旧的 `demo_ch_` 演示字符串不会成为真实凭据。
 
-不同客户端的配置外壳可能不同；页面复制的是地址与请求头。`127.0.0.1` 只指向客户端所在设备，云端 ChatGPT 请使用上方 OAuth 流程和 HTTPS 地址。当前 OAuth 回调只允许 ChatGPT 官方地址，Claude 官方 OAuth 尚未接入。
+不同客户端的配置外壳可能不同；页面复制的是地址与请求头。`127.0.0.1` 只指向客户端所在设备，云端 ChatGPT 请使用上方 OAuth 流程和 HTTPS 地址。OAuth 回调允许 ChatGPT 官方地址，以及桌面客户端在 `127.0.0.1` / `[::1]` 临时端口上的 `/callback`。本机回调仍要求与注册 URI 完全匹配，并校验 PKCE；不接受局域网地址、域名伪装或其他路径。Claude 官方 OAuth 尚未接入。
 
 ## stdio 客户端
 

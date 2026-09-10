@@ -6,11 +6,56 @@ import { blankWorkspace } from '../lib/domain.ts';
 import { digest } from '../lib/imports/server/auth.ts';
 import { mcpRepository } from '../lib/mcp/server/repository.ts';
 import { oauthRepository } from '../lib/mcp/server/oauth-repository.ts';
-import { oauthHandler, oauthMetadata, pkce } from '../lib/mcp/server/oauth.ts';
+import {
+  oauthHandler,
+  oauthMetadata,
+  pkce,
+  allowedOAuthRedirect,
+} from '../lib/mcp/server/oauth.ts';
 import { manageMcp, mcpHandler } from '../lib/mcp/server/handlers.ts';
 import { gatewayRequest } from '../lib/mcp/server/public-config.ts';
 
 const publicOrigin = 'https://oauth-fixture.example';
+void test('desktop OAuth accepts exact ephemeral loopback callbacks and rejects redirects away from the listener', async () => {
+  for (const redirect of [
+    'http://127.0.0.1:54321/callback',
+    'http://[::1]:54321/callback',
+  ]) {
+    assert.equal(allowedOAuthRedirect(redirect), true);
+    const f = fixture(redirect);
+    try {
+      await f.manage('prepare', { workspace: f.w });
+      const client = await (await f.register()).json().then(wire);
+      const { code } = await f.authorize(client.client_id);
+      const wrong = redirect.replace('54321', '54322');
+      assert.equal(
+        (await f.exchange(client.client_id, code, { redirect_uri: wrong }))
+          .status,
+        400,
+      );
+      const token = await (
+        await f.exchange(client.client_id, code)
+      )
+        .json()
+        .then(wire);
+      assert.equal((await f.rpc(token.access_token)).status, 200);
+    } finally {
+      f.db.close();
+    }
+  }
+  for (const redirect of [
+    'http://127.1:54321/callback',
+    'http://2130706433:54321/callback',
+    'http://127.0.0.1.evil.example:54321/callback',
+    'http://192.168.1.2:54321/callback',
+    'http://127.0.0.1:80/callback',
+    'http://127.0.0.1:65536/callback',
+    'http://127.0.0.1:54321/other',
+    'http://127.0.0.1:54321/callback?next=https://evil.example',
+    'http://user@127.0.0.1:54321/callback',
+  ])
+    assert.equal(allowedOAuthRedirect(redirect), false, redirect);
+});
 const callback = 'https://chatgpt.com/connector_platform_oauth_redirect';
 const verifier = 's'.repeat(64);
 type Wire = {
@@ -25,7 +70,7 @@ type Wire = {
 function wire(value: unknown) {
   return value as Wire;
 }
-function fixture() {
+function fixture(callbackUri = callback) {
   const db = new DatabaseSync(':memory:');
   db.exec('PRAGMA foreign_keys=ON');
   for (const name of ['0003_mcp.sql', '0004_oauth.sql'])
@@ -98,7 +143,7 @@ function fixture() {
       oauth,
     );
   }
-  async function register(method = 'none', redirect = callback) {
+  async function register(method = 'none', redirect = callbackUri) {
     return oauthHandler(
       new Request(publicOrigin + '/oauth/register', {
         method: 'POST',
@@ -115,7 +160,7 @@ function fixture() {
   async function start(client: string, overrides: Record<string, string> = {}) {
     const params = new URLSearchParams({
       client_id: client,
-      redirect_uri: callback,
+      redirect_uri: callbackUri,
       response_type: 'code',
       code_challenge_method: 'S256',
       code_challenge: await pkce(verifier),
@@ -168,7 +213,7 @@ function fixture() {
     );
     assert.equal(done.status, 303, await done.text());
     const location = new URL(done.headers.get('location')!);
-    assert.equal(location.origin, 'https://chatgpt.com');
+    assert.equal(location.origin, new URL(callbackUri).origin);
     assert.equal(location.searchParams.get('iss'), publicOrigin);
     assert.equal(location.searchParams.get('state'), 'client-state');
     return { code: location.searchParams.get('code')!, browser: b };
@@ -183,7 +228,7 @@ function fixture() {
       grant_type: 'authorization_code',
       code,
       code_verifier: verifier,
-      redirect_uri: callback,
+      redirect_uri: callbackUri,
       resource: publicOrigin + '/mcp/' + w.id,
       ...more,
     });

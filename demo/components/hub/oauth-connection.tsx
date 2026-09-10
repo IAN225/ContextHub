@@ -90,8 +90,12 @@ export function OAuthConnection({
                 label="复制 ChatGPT 连接地址"
               />
               <p className="inline-note">
-                在 ChatGPT 开发者模式中添加该 MCP 地址，选择 OAuth，客户端 ID
-                和密钥留空，使用动态注册。授权页面打开后，将请求码粘贴到这里。
+                桌面端添加 Streamable HTTP 服务器，只填写地址，Bearer
+                令牌环境变量和标头留空。保存后回到服务器列表，重新启动连接，再点击「身份验证」。动态注册由客户端自动完成。
+              </p>
+              <p className="inline-note">
+                授权页面打开后，将请求码粘贴到这里。网页端使用插件入口，可能需要开发者模式与工作区权限；不会读取桌面端的
+                MCP 配置。
               </p>
               <label className="form-field">
                 确认 ChatGPT 授权
