@@ -20,6 +20,7 @@ function tool(
     name,
     title,
     description,
+    securitySchemes: [{ type: 'oauth2', scopes: ['context:tools'] }],
     inputSchema: {
       type: 'object',
       properties,

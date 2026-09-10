@@ -60,7 +60,7 @@ export function mcpRepository(db: D1Database) {
           owner,
         ).all<{ workspace_id: string; updated_at: number }>(),
         sql(
-          'SELECT * FROM mcp_tokens WHERE owner_id=? ORDER BY created_at DESC',
+          'SELECT t.*,g.expires_at AS grant_expires_at FROM mcp_tokens t LEFT JOIN mcp_oauth_grants g ON g.token_id=t.id WHERE t.owner_id=? ORDER BY t.created_at DESC',
           owner,
         ).all<McpToken>(),
       ]);

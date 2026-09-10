@@ -30,6 +30,8 @@ export type McpToken = {
   created_at: number;
   expires_at: number;
   revoked_at: number | null;
+  resource?: string | null;
+  grant_expires_at?: number | null;
 };
 export type PublicMcpToken = Omit<McpToken, 'secret_hash' | 'owner_id'>;
 export function publicToken(token: McpToken): PublicMcpToken {

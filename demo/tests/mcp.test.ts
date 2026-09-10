@@ -12,10 +12,9 @@ import { mcpWorkspace } from '../lib/mcp/snapshot.ts';
 import { mcpTools } from '../lib/mcp/catalog.ts';
 import type { PublicMcpToken } from '../lib/mcp/contracts.ts';
 
-const schema = readFileSync(
-  new URL('../drizzle/0003_mcp.sql', import.meta.url),
-  'utf8',
-);
+const schema =
+  readFileSync(new URL('../drizzle/0003_mcp.sql', import.meta.url), 'utf8') +
+  readFileSync(new URL('../drizzle/0004_oauth.sql', import.meta.url), 'utf8');
 function binding(db: DatabaseSync) {
   return {
     prepare(query: string) {

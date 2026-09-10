@@ -1,6 +1,23 @@
-# MCP 工具与本机连接
+# MCP 工具、ChatGPT OAuth 与本机连接
 
-2026-09-10。连接页的 7 项工具已接入真实本机服务，支持 Streamable HTTP，以及供本机客户端启动的 stdio 适配器。工具不会调用摘要模型。OAuth、云端访问和跨设备账号同步仍留待账号阶段。
+2026-09-10。7 项工具已接入真实服务，支持 Streamable HTTP、本机 stdio，以及 ChatGPT 官方客户端的 OAuth 授权。工具不会调用摘要模型。完整用户登录、跨设备账号同步与正式公网部署仍留到后续；摘要质量由用户验收。
+
+## 在 ChatGPT 官方客户端测试
+
+1. 本机已安装 Cloudflare 官方 `cloudflared`。新设备需自行安装并加入 PATH，或放到 `demo/.wrangler/bin/cloudflared.exe`。运行前先停止占用 3000 的旧服务。
+2. 在 `demo` 目录执行 `pnpm build`、`pnpm db:init`、`pnpm chatgpt`。后者启动本机手账、受限网关和 Cloudflare 临时 HTTPS 隧道。普通 `pnpm start` 只启动本机服务，不启用 OAuth 公网入口。
+3. 打开 `http://127.0.0.1:3000/`，进入要测试的手账 → **连接设置 → 准备 ChatGPT 连接**，复制页面给出的 HTTPS MCP 地址。首次准备只同步这本手账的已保存内容；旧副本先接收远端变更，再按现有同步规则更新。
+4. 在 ChatGPT 中启用开发者模式，添加自定义 MCP 连接，粘贴地址，选择 **OAuth**。使用动态客户端注册（DCR），客户端 ID / 密钥留空；服务器同时支持 `none`、`client_secret_post` 和 `client_secret_basic`。具体菜单以当前账号界面为准，开发者模式可用性取决于账号/工作区策略。
+5. ChatGPT 打开 Context Hub 授权页后，复制请求码，回到本机目标手账的连接设置，粘贴到 **确认 ChatGPT 授权 → 核对请求 → 批准此连接**。然后回到授权页点击 **完成授权，返回 ChatGPT**。这一步以本机管理会话确认手账所有权，暂不需要注册账号。
+6. 在新的 ChatGPT 对话中启用该连接，先测试“读取这本手账的记忆包”，再测试“创建标题为 MCP 测试、正文为连接成功、不标星的 Note”，最后要求读取和精准修改该 Note。写操作是否需要再次确认由 ChatGPT 决定。
+
+授权有效期 30 天，访问令牌最多 1 小时并自动续期。连接列表显示授权到期时间；可随时吊销，访问和续期同时失效。OAuth 连接重新授权在 ChatGPT 发起，不能用手动令牌的“重新生成”代替。
+
+**测试期间保持启动进程运行。** 关闭网页后仍可读写 Note，但停止服务或电脑休眠会中断访问。Cloudflare 临时地址每次启动都会变化，变化后在 ChatGPT 更新地址并重新授权；旧 OAuth 令牌不会被新地址接受。这是测试入口，不是稳定生产域名。临时隧道不支持 SSE；当前 MCP 使用规范允许的无会话 JSON 响应，无需 SSE 推送。
+
+公网只开放 `/mcp/:workspaceId`、OAuth 和授权发现路由，MCP 仍要求有效令牌。本机手账页面、管理接口、模型配置、任务接口和附件文件均不通过网关开放。未经本机批准的授权请求不会签发访问令牌；授权只覆盖所选手账。Cloudflare 转发请求，ChatGPT 仅在工具调用时获得授权范围内的返回数据。
+
+参考：[OpenAI MCP 接入与测试](https://developers.openai.com/plugins/deploy/connect-chatgpt)、[OpenAI OAuth 要求](https://developers.openai.com/plugins/build/auth)、[Cloudflare Quick Tunnels](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/trycloudflare/)。
 
 ## 开始连接
 
@@ -20,7 +37,7 @@
 4. 客户端可以发现工具并调用 `memory_bootstrap`。记忆包仅在新窗口或严重遗忘时使用，日常按需搜索和读取 Note。
 5. 丢失令牌时点击“重新生成”，旧令牌立即失效；“吊销”和到期也会阻止后续调用。浏览器中旧的 `demo_ch_` 演示字符串不会成为真实凭据。
 
-不同客户端的配置外壳可能不同；页面复制的是地址与请求头。`127.0.0.1` 只指向客户端所在设备，因此云端 ChatGPT/Claude 不能连接这个本机地址。本轮没有公网部署或官方 OAuth 授权，不要把示例本机地址当成公网端点。
+不同客户端的配置外壳可能不同；页面复制的是地址与请求头。`127.0.0.1` 只指向客户端所在设备，云端 ChatGPT 请使用上方 OAuth 流程和 HTTPS 地址。当前 OAuth 回调只允许 ChatGPT 官方地址，Claude 官方 OAuth 尚未接入。
 
 ## stdio 客户端
 
@@ -80,6 +97,10 @@ Context Hub 服务仍需单独运行。适配器不会启动或停止手账服�
 
 本机 Host 和 Origin 均校验，所有 MCP 连接都要求手账作用域的 Bearer 令牌。管理接口使用独立 HttpOnly、SameSite=Strict cookie 和同源校验；投递 Key、摘要模型 Key、MCP Key 互不通用。写入提交时再次校验令牌未吊销且未到期。
 
+OAuth 增加 RFC 9728 资源发现、RFC 8414 授权服务发现、动态客户端注册、授权码 + S256 PKCE、资源 audience 绑定、RFC 9207 `iss` 回传与刷新令牌轮换。授权请求有效 10 分钟，授权码有效 60 秒且只能兑换一次。刷新令牌重放会吊销整条连接；刷新不改变写入幂等回执归属。只保存凭据散列。恢复备份时同步清除所属 OAuth 授权及已批准请求。
+
+仅显式启动的受限网关可通过随机内部密钥提交外部请求；不信任任意 Host / Forwarded 值来选择 issuer。公开路由有请求体、并发和频率限制，授权请求与客户端注册有数量上限。尚未实现 CIMD、OIDC 用户身份或生产级分布式限流。
+
 参考：[MCP Streamable HTTP 规范](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)、[MCP 工具规范](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)。
 
 - `demo/lib/mcp/catalog.ts`：7 项工具的发现契约与说明。
@@ -88,5 +109,10 @@ Context Hub 服务仍需单独运行。适配器不会启动或停止手账服�
 - `demo/lib/mcp/snapshot.ts`、`receive.ts`：授权数据投影、Note 冲突处理。
 - `demo/lib/mcp/use-mcp.ts`：全局发布与接收；`hub-state.ts` 保存原子回执。
 - `demo/components/hub/connections.tsx`：连接管理；复用原有页面和样式。
+- `demo/lib/mcp/server/oauth.ts`、`oauth-repository.ts`：OAuth 协议与持久化，迁移 `0004_oauth.sql`。
+- `demo/components/hub/oauth-connection.tsx`：准备与本机授权确认。
+- `demo/scripts/start-chatgpt.mjs`、`mcp-gateway.mjs`：临时 HTTPS 联调启动与严格路由网关。
 
 验证：108 项 Node 测试、TypeScript、应用/脚本/测试 lint、生产构建通过。`tests/mcp-http.mjs` 使用独立 D1 与合成手账，验证真实 HTTP/stdio、权限隔离、离线 Note 写入、服务重启、回执接收和吊销。分享导入通过注入官方格式的合成响应验证，未声称外部来源网络始终可用；未使用真实用户令牌或付费模型。未运行本轮浏览器交互 QA。
+
+OAuth 新增 `tests/mcp-oauth.test.ts` 与 `tests/mcp-oauth-http.mjs`：验证真实 Worker + 受限网关、发现、DCR、人工批准、PKCE、重放与跨手账拒绝、刷新、吊销及重启恢复。ChatGPT 内的实际对话测试由用户执行，不以协议回归替代客户端验收。

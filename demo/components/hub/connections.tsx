@@ -6,7 +6,6 @@ import {
   Plus,
   RotateCcw,
   Unplug,
-  MessageCircle,
   BookOpen,
 } from 'lucide-react';
 import {
@@ -24,7 +23,10 @@ import type { SendWorkspaceCommand } from '@/lib/hub-state';
 import type { McpConnection } from '@/lib/mcp/use-mcp';
 import type { PublicMcpToken } from '@/lib/mcp/contracts';
 import { mcpTools } from '@/lib/mcp/catalog';
+import { OAuthConnection } from './oauth-connection';
 const subscribeOrigin = () => () => {};
+const connectionExpiry = (token: PublicMcpToken) =>
+  token.grant_expires_at ?? token.expires_at;
 
 export function ConnectionsPage({
   w,
@@ -114,27 +116,7 @@ export function ConnectionsPage({
       </div>
       <div className="split-view connections-layout">
         <section className="surface">
-          <div className="surface-head">
-            <h2>官方客户端 · OAuth</h2>
-            <span className="muted-label">待接入</span>
-          </div>
-          {['ChatGPT', 'Claude'].map((platform) => (
-            <div className="connection-row" key={platform}>
-              <span
-                className={`row-icon ${platform === 'Claude' ? 'orange' : ''}`}
-              >
-                {platform === 'Claude' ? '✳' : <MessageCircle size={20} />}
-              </span>
-              <div>
-                <h3>{platform}</h3>
-                <p>官方授权将在账号接入阶段提供</p>
-              </div>
-            </div>
-          ))}
-          <p className="inline-note">
-            当前使用下方访问令牌连接支持自定义请求头的本机客户端。云端客户端无法访问你的
-            127.0.0.1 地址。
-          </p>
+          <OAuthConnection key={w.id} w={w} mcp={mcp} />
         </section>
         <section className="surface">
           <div className="surface-head">
@@ -178,7 +160,10 @@ export function ConnectionsPage({
         <div className="surface-head">
           <h2>这本手账的连接</h2>
           <small>
-            {tokens.filter((t) => !t.revoked_at && t.expires_at > clock).length}{' '}
+            {
+              tokens.filter((t) => !t.revoked_at && connectionExpiry(t) > clock)
+                .length
+            }{' '}
             条有效连接
           </small>
         </div>
@@ -194,27 +179,32 @@ export function ConnectionsPage({
                   <span className="pill">
                     {t.revoked_at
                       ? '已吊销'
-                      : t.expires_at <= clock
+                      : connectionExpiry(t) <= clock
                         ? '已过期'
-                        : 'Token'}
+                        : t.resource
+                          ? 'OAuth'
+                          : 'Token'}
                   </span>
                 </h3>
                 <p>
                   创建 {formatDate(new Date(t.created_at).toISOString())} · 到期{' '}
-                  {formatDate(new Date(t.expires_at).toISOString())}
+                  {formatDate(new Date(connectionExpiry(t)).toISOString())}
+                  {t.resource && ' · 访问令牌自动续期'}
                 </p>
               </div>
               {!t.revoked_at && (
                 <div className="action-row">
-                  <Button
-                    disabled={busy}
-                    onClick={() => {
-                      void create(t);
-                    }}
-                  >
-                    <RotateCcw size={13} />
-                    重新生成
-                  </Button>
+                  {!t.resource && (
+                    <Button
+                      disabled={busy}
+                      onClick={() => {
+                        void create(t);
+                      }}
+                    >
+                      <RotateCcw size={13} />
+                      重新生成
+                    </Button>
+                  )}
                   <Button
                     disabled={busy}
                     onClick={() => {

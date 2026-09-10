@@ -38,6 +38,14 @@ const args = [
 // Wrangler/Node both interpret env-file arguments; an absolute path avoids
 // their different relative-directory rules on Windows.
 if (existsSync(connection)) args.push('--env-file', connection);
+const mcpConnection = fileURLToPath(
+  new URL('../.env.mcp.local', import.meta.url),
+);
+if (
+  process.env.CONTEXT_HUB_ENABLE_MCP_PUBLIC === '1' &&
+  existsSync(mcpConnection)
+)
+  args.push('--env-file', mcpConnection);
 args.push('--env-file', runnerEnv);
 const dev = process.argv.includes('--dev');
 const command = dev

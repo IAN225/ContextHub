@@ -20,6 +20,8 @@ import {
 import { mcpWorkspace } from '../snapshot.ts';
 import type { McpRepository } from './repository.ts';
 import { callMcpTool } from './tools.ts';
+import type { OAuthRepository } from './oauth-repository.ts';
+import { OAUTH_SCOPE } from './oauth.ts';
 
 const COOKIE = 'context_hub_mcp';
 const headers = {
@@ -86,12 +88,14 @@ export async function manageMcp(
   request: Request,
   action: string,
   repo: McpRepository,
+  oauth?: { repo: OAuthRepository; origin: string | null },
 ) {
   try {
     localOrigin(request);
     requireManagementRequest(request);
     let ownerId = await owner(request, repo);
     if (action === 'reset' && request.method === 'POST') {
+      if (ownerId && oauth) await oauth.repo.reset(ownerId);
       if (ownerId) await repo.reset(ownerId);
       return Response.json({ reset: true }, { headers });
     }
@@ -102,14 +106,55 @@ export async function manageMcp(
       return Response.json(
         {
           connected: !!ownerId,
+          publicOrigin: oauth?.origin ?? null,
           workspaces: state.workspaces,
           tokens: state.tokens.map(publicToken),
         },
         { headers },
       );
     }
-    if (action === 'token' && request.method === 'POST') {
+    if (action === 'oauth' && request.method === 'POST') {
+      if (!oauth?.origin || !ownerId)
+        throw new McpError('UNAUTHORIZED', '请先准备 ChatGPT 连接。', 401);
+      const body = object(await json(request, 4096));
+      const r = await oauth.repo.request(String(body.requestId));
+      const wid = String(body.workspaceId);
+      if (
+        !r ||
+        r.workspace_id !== wid ||
+        r.resource !== `${oauth.origin}/mcp/${wid}` ||
+        !(await repo.read(ownerId, wid))
+      )
+        throw new McpError('NOT_FOUND', '请求已到期或不属于这本手账。', 404);
+      if (body.action === 'approve' || body.action === 'deny')
+        await oauth.repo.approve(r.id, ownerId, wid, body.action === 'deny');
+      else if (body.action !== 'inspect')
+        throw new McpError('INVALID_ARGUMENTS', '未知授权操作。');
+      return Response.json(
+        {
+          workspaceId: wid,
+          redirectUri: r.redirect_uri,
+          resource: r.resource,
+          scope: OAUTH_SCOPE,
+          expiresAt: r.expires_at,
+          approved: body.action === 'approve',
+        },
+        { headers },
+      );
+    }
+    if (['token', 'prepare'].includes(action) && request.method === 'POST') {
       const body = object(await json(request, MAX_MCP_BYTES));
+      if (action === 'prepare') {
+        if (!oauth?.origin)
+          throw new McpError(
+            'UNAVAILABLE',
+            '请先启动 ChatGPT HTTPS 联调入口。',
+            503,
+          );
+        body.action = 'create';
+        body.name = 'ChatGPT';
+        body.ttl = 2592000;
+      }
       if (body.action === 'revoke') {
         if (!ownerId)
           throw new McpError('UNAUTHORIZED', '请先从连接页创建连接。', 401);
@@ -161,6 +206,16 @@ export async function manageMcp(
           syncedAt: new Date().toISOString(),
         });
       }
+      if (action === 'prepare')
+        return Response.json(
+          { endpoint: `${oauth!.origin}/mcp/${encodeURIComponent(w.id)}` },
+          {
+            headers: {
+              ...headers,
+              ...(cookie ? { 'Set-Cookie': cookie } : {}),
+            },
+          },
+        );
       const secret = randomSecret('ch_mcp_');
       const token: McpToken = {
         id: uid(),
@@ -272,22 +327,37 @@ export async function mcpHandler(
   workspaceId: string,
   repo: McpRepository,
   fetcher?: typeof fetch,
+  publicOrigin?: string,
 ) {
   let id: unknown;
   try {
-    localOrigin(request);
+    if (publicOrigin) {
+      if (
+        new URL(request.url).origin !== publicOrigin ||
+        (request.headers.get('origin') &&
+          request.headers.get('origin') !== publicOrigin)
+      )
+        throw new McpError('FORBIDDEN', '请求来源无效。', 403);
+    } else localOrigin(request);
     const secret = request.headers
       .get('authorization')
       ?.match(/^Bearer (ch_mcp_[a-f0-9]{64})$/i)?.[1];
     const token = secret ? await repo.token(await digest(secret)) : null;
-    if (!token || token.workspace_id !== workspaceId)
+    if (
+      !token ||
+      token.workspace_id !== workspaceId ||
+      (token.resource &&
+        token.resource !== `${new URL(request.url).origin}/mcp/${workspaceId}`)
+    )
       return Response.json(
         { error: '访问令牌无效、已到期、已吊销或不属于这本手账。' },
         {
           status: 401,
           headers: {
             ...headers,
-            'WWW-Authenticate': 'Bearer realm="ContextHub"',
+            'WWW-Authenticate': publicOrigin
+              ? `Bearer resource_metadata="${publicOrigin}/.well-known/oauth-protected-resource/mcp/${workspaceId}", scope="${OAUTH_SCOPE}"`
+              : 'Bearer realm="ContextHub"',
           },
         },
       );

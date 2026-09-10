@@ -13,6 +13,7 @@ import { mcpWorkspace } from './snapshot';
 import { mcpRequest } from './client';
 
 type Status = {
+  publicOrigin?: string | null;
   connected: boolean;
   workspaces: { workspace_id: string; updated_at: number }[];
   tokens: PublicMcpToken[];
