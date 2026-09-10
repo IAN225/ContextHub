@@ -47,7 +47,7 @@ export function readSummaryConnection(env: SummaryEnvironment) {
   if (!baseUrl || !model || !apiKey)
     throw new SummaryError(
       'SUMMARY_NOT_READY',
-      '请填写本地摘要接口配置文件并重启服务，再连接模型。',
+      '请在摘要设置中填写接口地址、模型与 API Key，再保存连接。',
       503,
     );
   if (model.length > 200 || /[\r\n]/.test(model) || /[\r\n]/.test(apiKey))

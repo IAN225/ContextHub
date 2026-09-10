@@ -28,12 +28,23 @@ export type ThinkingEvidence = {
   hasOutput: boolean;
 };
 export type SummaryConnection = {
+  keyConfigured?: boolean;
+  editable?: boolean;
+  revision?: string;
+  source?: 'local' | 'environment';
   ready: boolean;
   baseUrl: string;
   model: string;
   protocol: SummaryProtocol;
   thinking?: string;
   message: string;
+};
+export type SummaryConnectionInput = {
+  baseUrl: string;
+  model: string;
+  protocol: string;
+  apiKey: string;
+  revision: string;
 };
 export type SummaryProbe = {
   field: string;

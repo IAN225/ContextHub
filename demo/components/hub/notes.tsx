@@ -1,7 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  Plus,
   Star,
   History,
   Trash2,
@@ -11,7 +10,6 @@ import {
   Check,
   Clock,
 } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
 import { usePersistent } from '@/lib/store';
 import {
   Button,
@@ -35,12 +33,14 @@ function NoteEditor({
   onSave,
   onStatus,
   onStar,
+  focusTitle = false,
 }: {
   note: Note;
   w: Workspace;
   onSave: (content: NoteContent, draft: StorageEntry) => Promise<boolean>;
   onStatus: (s: Status) => void;
   onStar: () => void;
+  focusTitle?: boolean;
 }) {
   const [d, setD, p] = usePersistent(`note-draft-${w.id}-${note.id}`, {
     title: note.title,
@@ -48,6 +48,10 @@ function NoteEditor({
   });
   const [history, setHistory] = useState(false),
     [message, setMessage] = useState('');
+  const titleInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (focusTitle && p.ready) titleInput.current?.focus();
+  }, [focusTitle, p.ready]);
   useEffect(() => {
     if (!message) return;
     const timer = setTimeout(() => setMessage(''), 2000);
@@ -114,8 +118,10 @@ function NoteEditor({
         </div>
       </div>
       <input
+        ref={titleInput}
         className="note-title-input"
         aria-label="Note 标题"
+        placeholder="无标题 Note"
         value={d.title}
         onChange={(e) => setD({ ...d, title: e.target.value })}
       />
@@ -198,88 +204,6 @@ function NoteEditor({
     </article>
   );
 }
-function NewNote({
-  w,
-  onCreate,
-  onClose,
-}: {
-  w: Workspace;
-  onCreate: (n: Note, draft: StorageEntry) => Promise<boolean>;
-  onClose: () => void;
-}) {
-  const [d, setD, p] = usePersistent(`new-note-${w.id}`, {
-    title: '',
-    body: '',
-    star: false,
-  });
-  return (
-    <Modal
-      title="新建 Note"
-      description="不用把一切都藏在历史里。把希望再次被找到的内容，单独留下来。"
-      onClose={() => {
-        if (!p.busy) onClose();
-      }}
-    >
-      <label className="field">
-        标题
-        <input
-          value={d.title}
-          onChange={(e) => setD({ ...d, title: e.target.value })}
-          placeholder="给这段文字一个名字"
-        />
-      </label>
-      <TextEditor
-        value={d.body}
-        onChange={(body) => setD({ ...d, body })}
-        label="正文"
-        minHeight={240}
-      />
-      <label className="checks">
-        <Switch
-          checked={d.star}
-          onCheckedChange={(star) => setD({ ...d, star })}
-        />
-        <span>标星 · 希望模型长期优先关注</span>
-      </label>
-      <div className="form-actions">
-        <span className="save-caption">
-          <SaveStatus state={p}>
-            {p.saved ? '✓ 草稿已保存' : '正在保存…'}
-          </SaveStatus>
-        </span>
-        <Button disabled={p.busy} onClick={onClose}>
-          保留草稿
-        </Button>
-        <Button
-          primary
-          disabled={!p.ready || p.busy || !d.body.trim()}
-          onClick={async () => {
-            await p.commitWith({ title: '', body: '', star: false }, (entry) =>
-              onCreate(
-                {
-                  id: `note-${uid().slice(0, 8)}`,
-                  title: d.title.trim() || '无标题 Note',
-                  body: d.body,
-                  star: d.star,
-                  status: 'normal',
-                  createdAt: now(),
-                  updatedAt: now(),
-                  editor: '我',
-                  source: '手动创建',
-                  versions: [],
-                },
-                entry,
-              ),
-            );
-          }}
-        >
-          <Plus size={15} />
-          创建 Note
-        </Button>
-      </div>
-    </Modal>
-  );
-}
 export function NotesPage({
   w,
   onCommand,
@@ -292,7 +216,52 @@ export function NotesPage({
   const [id, setId] = useState(w.notes[0]?.id),
     [filter, setFilter] = useState('all'),
     [query, setQuery] = useState(''),
-    [create, setCreate] = useState(false);
+    [freshId, setFreshId] = useState<string>(),
+    [creating, setCreating] = useState(false),
+    [error, setError] = useState('');
+  // Recover any draft from the old new-note dialog into the shared editor.
+  const [oldDraft, , draft] = usePersistent(`new-note-${w.id}`, {
+    title: '',
+    body: '',
+    star: false,
+  });
+  const creation = useRef(false);
+  async function createNote() {
+    if (creation.current || !draft.ready || draft.busy) return;
+    creation.current = true;
+    setCreating(true);
+    setError('');
+    const at = now();
+    const note: Note = {
+      id: `note-${uid().slice(0, 8)}`,
+      title: oldDraft.title,
+      body: oldDraft.body,
+      star: oldDraft.star,
+      status: 'normal',
+      createdAt: at,
+      updatedAt: at,
+      editor: '我',
+      source: '手动创建',
+      versions: [],
+    };
+    try {
+      const saved = await draft.commitWith(
+        { title: '', body: '', star: false },
+        (entry) => onCommit({ type: 'note/create', note }, entry),
+      );
+      if (!saved) {
+        setError('新笔记未能保存，请重试。');
+        return;
+      }
+      setFilter('all');
+      setQuery('');
+      setId(note.id);
+      setFreshId(note.id);
+    } finally {
+      creation.current = false;
+      setCreating(false);
+    }
+  }
   const scopedNotes = w.notes.filter((n) =>
     filter === 'star'
       ? n.status === 'normal' && n.star
@@ -334,9 +303,22 @@ export function NotesPage({
         <NoteActions
           query={query}
           onQueryChange={search}
-          onCreate={() => setCreate(true)}
+          onCreate={() => {
+            void createNote();
+          }}
+          creating={creating || !draft.ready || draft.busy}
         />
       </div>
+      {draft.error && (
+        <p className="error-text">
+          <SaveStatus state={draft}>{null}</SaveStatus>
+        </p>
+      )}
+      {error && (
+        <p className="error-text" role="alert">
+          {error}
+        </p>
+      )}
       <div className="notes-layout">
         <aside className="note-list">
           {list.map((n) => (
@@ -346,7 +328,7 @@ export function NotesPage({
               onClick={() => setId(n.id)}
             >
               <div>
-                <h3>{n.title}</h3>
+                <h3>{n.title || '无标题 Note'}</h3>
                 {n.star && <Star size={13} fill="currentColor" />}
               </div>
               <p>{n.body.slice(0, 80)}</p>
@@ -370,6 +352,7 @@ export function NotesPage({
           <NoteEditor
             key={selected.id}
             note={selected}
+            focusTitle={selected.id === freshId}
             w={w}
             onSave={(content, entry) =>
               onCommit(
@@ -417,24 +400,6 @@ export function NotesPage({
           />
         )}
       </div>
-      {create && (
-        <NewNote
-          w={w}
-          onClose={() => setCreate(false)}
-          onCreate={async (n, entry) => {
-            const saved = await onCommit(
-              { type: 'note/create', note: n },
-              entry,
-            );
-            if (saved) {
-              setId(n.id);
-              setFilter('all');
-              setCreate(false);
-            }
-            return saved;
-          }}
-        />
-      )}
     </>
   );
 }

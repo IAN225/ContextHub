@@ -3,11 +3,12 @@ import {
   SummaryError,
   type SummaryInput,
   type SummaryResult,
+  type SummaryConnectionInput,
 } from './contracts.ts';
 
 export async function summaryRequest<T>(
   action: string,
-  input?: SummaryInput,
+  input?: SummaryInput | SummaryConnectionInput,
   signal?: AbortSignal,
   requestId = uid(),
 ): Promise<T> {

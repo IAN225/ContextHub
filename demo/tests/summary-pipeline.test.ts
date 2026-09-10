@@ -434,7 +434,7 @@ void test('server credentials are absent from public status and cannot be redire
   );
   await assert.rejects(
     () => generateSummary(input(), {}, undefined, fetcher),
-    /本地摘要接口/,
+    { code: 'SUMMARY_NOT_READY' },
   );
   assert.equal(calls, 0);
   const summary = await generateSummary(

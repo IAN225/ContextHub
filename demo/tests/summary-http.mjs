@@ -4,6 +4,8 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { unstable_dev } from 'wrangler';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 
 // Entirely synthetic upstream and credentials; never load the user's connection file.
 const requests = [];
@@ -35,22 +37,44 @@ try {
     envFile,
     `CONTEXT_HUB_SUMMARY_BASE_URL=${baseUrl}\nCONTEXT_HUB_SUMMARY_MODEL=test-model\nCONTEXT_HUB_SUMMARY_API_KEY=synthetic-local-test-key\nCONTEXT_HUB_SUMMARY_PROTOCOL=openai\n`,
   );
-  worker = await unstable_dev('dist/server/index.js', {
-    config: 'dist/server/wrangler.json',
-    envFiles: [envFile],
-    port: 0,
-    inspectorPort: 0,
-    ip: '127.0.0.1',
-    local: true,
-    persist: false,
-    logLevel: 'none',
-    experimental: {
-      disableExperimentalWarning: true,
-      disableDevRegistry: true,
-      watch: false,
-    },
-  });
-  const origin = `http://${worker.address}:${worker.port}`;
+  const persistTo = join(temporary, 'state');
+  await promisify(execFile)(
+    process.execPath,
+    [
+      '--import',
+      './scripts/local-runtime.mjs',
+      './node_modules/wrangler/bin/wrangler.js',
+      'd1',
+      'migrations',
+      'apply',
+      'DB',
+      '--local',
+      '--config',
+      'dist/server/wrangler.json',
+      '--persist-to',
+      persistTo,
+    ],
+    { windowsHide: true },
+  );
+  const start = () =>
+    unstable_dev('dist/server/index.js', {
+      config: 'dist/server/wrangler.json',
+      envFiles: [envFile],
+      port: 0,
+      inspectorPort: 0,
+      ip: '127.0.0.1',
+      local: true,
+      persist: true,
+      persistTo,
+      logLevel: 'none',
+      experimental: {
+        disableExperimentalWarning: true,
+        disableDevRegistry: true,
+        watch: false,
+      },
+    });
+  worker = await start();
+  let origin = `http://${worker.address}:${worker.port}`;
   const request = (action, body, extra = {}) =>
     fetch(`${origin}/api/summary/${action}`, {
       method: body === undefined ? 'GET' : 'POST',
@@ -116,8 +140,62 @@ try {
   assert.equal((await mismatch.json()).error.code, 'CONNECTION_MISMATCH');
   assert.equal(requests.length, 1);
   assert.equal((await request('connection')).status, 200);
+  const saved = await request('connection', {
+    baseUrl,
+    model: 'page-model',
+    protocol: 'openai',
+    apiKey: '',
+    revision: metadata.revision,
+  });
+  assert.equal(saved.status, 200);
+  const savedMetadata = await saved.json();
+  assert.equal(savedMetadata.keyConfigured, true);
+  assert.ok(
+    !JSON.stringify(savedMetadata).includes('synthetic-local-test-key'),
+  );
+  const changedDestination = await request('connection', {
+    baseUrl: 'https://other.example',
+    model: 'page-model',
+    protocol: 'openai',
+    apiKey: '',
+    revision: savedMetadata.revision,
+  });
+  assert.equal(changedDestination.status, 400);
+  await changedDestination.text();
+  const replacement = await request('connection', {
+    baseUrl,
+    model: 'page-model',
+    protocol: 'openai',
+    apiKey: 'synthetic-page-test-key',
+    revision: savedMetadata.revision,
+  });
+  assert.equal(replacement.status, 200);
+  await replacement.text();
+  const immediate = await request('generate', input, {
+    'idempotency-key': 'http-page-config-immediate',
+  });
+  assert.equal(immediate.status, 200);
+  await immediate.text();
+  assert.equal(requests.at(-1).auth, 'Bearer synthetic-page-test-key');
+  assert.equal(requests.at(-1).body.model, 'page-model');
+  await worker.stop();
+  worker = await start();
+  origin = `http://${worker.address}:${worker.port}`;
+  const afterRestart = await request('connection');
+  assert.equal(afterRestart.status, 200);
+  const persisted = await afterRestart.json();
+  assert.equal(persisted.source, 'local');
+  assert.equal(persisted.model, 'page-model');
+  assert.ok(!JSON.stringify(persisted).includes('synthetic-page-test-key'));
+  const generated = await request('generate', input, {
+    'idempotency-key': 'http-page-config-restarted',
+  });
+  assert.equal(generated.status, 200);
+  await generated.text();
+  assert.equal(requests.at(-1).auth, 'Bearer synthetic-page-test-key');
+  assert.equal(requests.length, 3);
   console.log(
-    'PASS summary HTTP: private runtime binding, request serialization, real local upstream, retry deduplication, rejection recovery and endpoint binding',
+    'PASS summary HTTP: private runtime binding, request serialization, retry deduplication, endpoint binding, page configuration without restart, persistent key replacement and no key in public responses',
   );
 } finally {
   await worker?.stop();

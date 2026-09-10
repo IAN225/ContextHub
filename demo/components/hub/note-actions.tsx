@@ -14,10 +14,12 @@ export function NoteActions({
   query,
   onQueryChange,
   onCreate,
+  creating = false,
 }: {
   query: string;
   onQueryChange: (value: string) => void;
   onCreate: () => void;
+  creating?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -82,15 +84,17 @@ export function NoteActions({
       }}
     >
       <div className="note-actions-capsule">
-        <button
-          className="note-compose"
-          aria-label="新建 Note"
-          title="新建 Note"
-          disabled={open}
-          onClick={onCreate}
-        >
-          <Pencil size={17} />
-        </button>
+        <div className="note-compose-mask">
+          <button
+            className="note-compose"
+            aria-label="新建 Note"
+            title="新建 Note"
+            disabled={open || creating}
+            onClick={onCreate}
+          >
+            <Pencil size={17} />
+          </button>
+        </div>
         <button
           ref={search}
           className="note-search-toggle"

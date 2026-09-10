@@ -8,6 +8,10 @@ export function useSummaryConnection() {
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
   const refresh = useCallback(() => setRevision((n) => n + 1), []);
+  const accept = useCallback((value: SummaryConnection) => {
+    setConnection(value);
+    setError('');
+  }, []);
   useEffect(() => {
     const controller = new AbortController();
     void summaryRequest<SummaryConnection>(
@@ -27,5 +31,5 @@ export function useSummaryConnection() {
       });
     return () => controller.abort();
   }, [revision]);
-  return { connection, error, refresh };
+  return { connection, error, refresh, accept };
 }
