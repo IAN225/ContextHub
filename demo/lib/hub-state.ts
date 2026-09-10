@@ -9,11 +9,18 @@ import {
   type Turn,
   type Upload,
   type Workspace,
+  type Attachment,
 } from './domain.ts';
+import {
+  attachmentRevision,
+  preserveFetchedAttachments,
+} from './attachments.ts';
 import {
   applyGeneratedCheckpoint,
   type GeneratedCheckpoint,
 } from './summary/planning.ts';
+import type { McpEvent } from './mcp/contracts.ts';
+import { receiveMcpNote } from './mcp/receive.ts';
 
 export type HubState = {
   schemaVersion: 1;
@@ -21,6 +28,8 @@ export type HubState = {
   uploads: Upload[];
   deliveryReceipts?: string[];
   trashRestoredAt?: string;
+  taskReceipts?: Record<string, number>;
+  mcpReceipts?: string[];
 };
 export function createEmptyHubState(): HubState {
   return {
@@ -46,7 +55,12 @@ export type WorkspaceCommand =
   | { type: 'note/star'; noteId: string; at: string }
   | { type: 'note/status'; noteId: string; status: Status; at: string }
   | { type: 'summary/config'; patch: Partial<Config> }
-  | { type: 'summary/retain'; retain: number }
+  | {
+      type: 'summary/retain';
+      retain?: number;
+      mode?: 'turns' | 'tokens';
+      tokens?: number;
+    }
   | { type: 'summary/generated'; generated: GeneratedCheckpoint }
   | { type: 'summary/restore'; summaryId: string; mode: 'keep' | 'rewind' }
   | { type: 'memory/set'; blocks: Block[] }
@@ -54,6 +68,22 @@ export type WorkspaceCommand =
   | { type: 'token/revoke'; tokenId: string }
   | { type: 'token/rotate'; tokenId: string; token: Token };
 export type HubCommand =
+  | { type: 'mcp/receive'; workspaceId: string; events: McpEvent[] }
+  | { type: 'task/workbench'; taskId: string; step: number; upload: Upload }
+  | {
+      type: 'task/summary';
+      taskId: string;
+      step: number;
+      workspaceId: string;
+      generated: GeneratedCheckpoint;
+    }
+  | {
+      type: 'task/attachment';
+      taskId: string;
+      step: number;
+      expected: string;
+      attachment: Attachment;
+    }
   | { type: 'workspace'; workspaceId: string; command: WorkspaceCommand }
   | { type: 'workspace/create'; workspace: Workspace }
   | { type: 'upload/add'; upload: Upload }
@@ -91,7 +121,16 @@ export function applyWorkspaceCommand(
           ...w,
           turns: w.turns.map((t) =>
             t.id === current.id
-              ? { ...t, title, source, messages, attachments }
+              ? {
+                  ...t,
+                  title,
+                  source,
+                  messages,
+                  attachments: preserveFetchedAttachments(
+                    attachments,
+                    t.attachments,
+                  ),
+                }
               : t,
           ),
         };
@@ -184,7 +223,23 @@ export function applyWorkspaceCommand(
     case 'summary/retain':
       return {
         ...w,
-        retain: Math.max(1, Math.min(500, Math.floor(command.retain) || 1)),
+        ...(command.retain !== undefined
+          ? {
+              retain: Math.max(
+                1,
+                Math.min(500, Math.floor(command.retain) || 1),
+              ),
+            }
+          : {}),
+        ...(command.mode ? { retainMode: command.mode } : {}),
+        ...(command.tokens !== undefined
+          ? {
+              retainTokens: Math.max(
+                1,
+                Math.min(2000000, Math.floor(command.tokens) || 1),
+              ),
+            }
+          : {}),
       };
     case 'summary/generated':
       return applyGeneratedCheckpoint(w, command.generated);
@@ -222,6 +277,91 @@ export function applyHubCommand(
   command: HubCommand,
 ): HubState {
   switch (command.type) {
+    case 'mcp/receive': {
+      let workspace = state.workspaces.find(
+        (w) => w.id === command.workspaceId,
+      );
+      if (!workspace)
+        throw new Error('手账已不存在，MCP 变更保留在本机服务中。');
+      const receipts = new Set(state.mcpReceipts ?? []);
+      let next = state;
+      for (const event of command.events) {
+        if (receipts.has(event.id)) continue;
+        if (event.kind === 'note') workspace = receiveMcpNote(workspace, event);
+        else
+          next = applyHubCommand(next, {
+            type: 'upload/receive',
+            uploads: [event.upload],
+          });
+        receipts.add(event.id);
+      }
+      if (
+        workspace ===
+          state.workspaces.find((w) => w.id === command.workspaceId) &&
+        receipts.size === (state.mcpReceipts?.length ?? 0)
+      )
+        return next;
+      return {
+        ...next,
+        workspaces: next.workspaces.map((w) =>
+          w.id === command.workspaceId ? workspace! : w,
+        ),
+        mcpReceipts: [...receipts],
+      };
+    }
+    case 'task/workbench':
+    case 'task/summary':
+    case 'task/attachment': {
+      const received = state.taskReceipts?.[command.taskId] ?? 0;
+      if (received >= command.step) return state;
+      if (command.step !== received + 1)
+        throw new Error('后台结果需要按顺序接收。');
+      let next = state;
+      if (command.type === 'task/workbench') {
+        next = applyHubCommand(state, {
+          type: 'upload/add',
+          upload: command.upload,
+        });
+      } else if (command.type === 'task/summary') {
+        next = applyHubCommand(state, {
+          type: 'workspace',
+          workspaceId: command.workspaceId,
+          command: { type: 'summary/generated', generated: command.generated },
+        });
+      } else {
+        const patch = (turns: Turn[]) =>
+          turns.map((t) =>
+            t.status === 'trash' ||
+            !t.attachments?.some(
+              (a) =>
+                a.id === command.attachment.id &&
+                attachmentRevision(a) === command.expected,
+            )
+              ? t
+              : {
+                  ...t,
+                  attachments: t.attachments.map((a) =>
+                    a.id === command.attachment.id &&
+                    attachmentRevision(a) === command.expected
+                      ? command.attachment
+                      : a,
+                  ),
+                },
+          );
+        next = {
+          ...state,
+          workspaces: state.workspaces.map((w) => ({
+            ...w,
+            turns: patch(w.turns),
+          })),
+          uploads: state.uploads.map((u) => ({ ...u, turns: patch(u.turns) })),
+        };
+      }
+      return {
+        ...next,
+        taskReceipts: { ...state.taskReceipts, [command.taskId]: command.step },
+      };
+    }
     case 'workspace': {
       const current = state.workspaces.find(
         (w) => w.id === command.workspaceId,
@@ -268,7 +408,18 @@ export function applyHubCommand(
       return {
         ...state,
         uploads: state.uploads.map((u) =>
-          u.id === command.upload.id ? command.upload : u,
+          u.id === command.upload.id
+            ? {
+                ...command.upload,
+                turns: command.upload.turns.map((t) => ({
+                  ...t,
+                  attachments: preserveFetchedAttachments(
+                    t.attachments,
+                    u.turns.find((old) => old.id === t.id)?.attachments,
+                  ),
+                })),
+              }
+            : u,
         ),
       };
     case 'upload/remove':
@@ -371,6 +522,21 @@ export function normalizeHubState(raw: unknown): HubState {
   requireShape(record(raw));
   requireShape(raw.schemaVersion === undefined || raw.schemaVersion === 1);
   requireShape(Array.isArray(raw.workspaces) && Array.isArray(raw.uploads));
+  requireShape(
+    raw.mcpReceipts === undefined ||
+      (Array.isArray(raw.mcpReceipts) &&
+        raw.mcpReceipts.every((id) => typeof id === 'string')),
+  );
+  requireShape(
+    raw.taskReceipts === undefined ||
+      (record(raw.taskReceipts) &&
+        Object.entries(raw.taskReceipts).every(
+          ([id, step]) =>
+            /^[a-z0-9_-]{16,100}$/i.test(id) &&
+            Number.isInteger(step) &&
+            Number(step) >= 0,
+        )),
+  );
   let changed = raw.schemaVersion !== 1;
   requireShape(
     raw.deliveryReceipts === undefined ||
@@ -386,6 +552,17 @@ export function normalizeHubState(raw: unknown): HubState {
         Number.isFinite(item.retain),
     );
     requireShape(item.activeId === null || typeof item.activeId === 'string');
+    requireShape(
+      item.retainMode === undefined ||
+        item.retainMode === 'turns' ||
+        item.retainMode === 'tokens',
+    );
+    requireShape(
+      item.retainTokens === undefined ||
+        (Number.isInteger(item.retainTokens) &&
+          Number(item.retainTokens) >= 1 &&
+          Number(item.retainTokens) <= 2000000),
+    );
     requireShape(item.watermark === null || typeof item.watermark === 'string');
     requireShape(validTurns(item.turns));
     requireShape(
@@ -427,7 +604,14 @@ export function normalizeHubState(raw: unknown): HubState {
           typeof item.config.modelEnabled === 'boolean') &&
         typeof item.config.auto === 'boolean' &&
         typeof item.config.review === 'boolean' &&
-        Number.isFinite(item.config.batch),
+        Number.isFinite(item.config.batch) &&
+        (item.config.batchMode === undefined ||
+          item.config.batchMode === 'turns' ||
+          item.config.batchMode === 'tokens') &&
+        (item.config.batchTokens === undefined ||
+          (Number.isInteger(item.config.batchTokens) &&
+            Number(item.config.batchTokens) >= 1 &&
+            Number(item.config.batchTokens) <= 2000000)),
     );
     requireShape(
       item.firstComplete === undefined ||

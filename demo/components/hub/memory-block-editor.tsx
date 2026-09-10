@@ -60,7 +60,13 @@ export function MemoryBlockEditor({
                 min={0}
                 max={w.turns.length}
                 aria-label="自选窗口轮数"
-                value={block.custom ? (block.windowLength ?? 0) : w.retain}
+                value={
+                  block.custom
+                    ? (block.windowLength ?? 0)
+                    : w.retainMode === 'tokens'
+                      ? coverage(w).recent.length
+                      : w.retain
+                }
                 onChange={(e) =>
                   update({
                     custom: true,
@@ -76,6 +82,9 @@ export function MemoryBlockEditor({
               />
             </label>
             <p className="field-help">
+              {!block.custom &&
+                w.retainMode === 'tokens' &&
+                '当前跟随摘要的 token 窗口；修改上方轮数后改为这份记忆包的自选窗口。'}
               沿用当前处理水位后的起点，只调整这份记忆包携带的完整轮数。
             </p>
             <pre className="memory-editor-preview">

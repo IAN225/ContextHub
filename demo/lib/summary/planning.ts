@@ -5,6 +5,7 @@ import {
   type Workspace,
 } from '../domain.ts';
 import { composeSummaryInput } from './prompts.ts';
+import { attachmentContext } from '../attachments.ts';
 import {
   estimateInput,
   fitsBudget,
@@ -27,40 +28,74 @@ export type SummaryPlan = {
 // running must not advance a stale watermark. Unrelated notebook names are free.
 export function summaryRevision(w: Workspace) {
   return JSON.stringify({
-    turns: w.turns,
+    turns: w.turns.map((t) => ({
+      ...t,
+      messages: t.messages.map(
+        ({ role, content, name, callId, attachmentIds }) => ({
+          role,
+          content,
+          name,
+          callId,
+          attachmentIds,
+        }),
+      ),
+      attachments: t.attachments?.map(attachmentContext),
+    })),
     active: w.summaries.find((s) => s.id === w.activeId),
     activeId: w.activeId,
     watermark: w.watermark,
     retain: w.retain,
-    config: w.config,
+    retainMode: w.retainMode ?? 'turns',
+    retainTokens:
+      w.retainMode === 'tokens' ? (w.retainTokens ?? 8000) : undefined,
+    config: { ...w.config, auto: undefined, review: undefined },
     notes: w.notes
       .filter((n) => n.status === 'normal')
       .map((n) => ({ id: n.id, title: n.title, star: n.star })),
   });
+}
+export function selectCompressionBatch(w: Workspace, c = coverage(w)) {
+  const count = w.config.batch;
+  const tokenMode = w.config.batchMode === 'tokens';
+  const tokenLimit = w.config.batchTokens ?? 16000;
+  if (!tokenMode && (!Number.isInteger(count) || count < 1 || count > 100))
+    throw new SummaryError(
+      'INVALID_BATCH',
+      '每批轮次数需要是 1–100 之间的整数。',
+    );
+  if (
+    tokenMode &&
+    (!Number.isInteger(tokenLimit) || tokenLimit < 1 || tokenLimit > 2000000)
+  )
+    throw new SummaryError(
+      'INVALID_BATCH',
+      '每批 token 上限需要是 1–2000000 之间的整数。',
+    );
+  let batch: Turn[] = [];
+  let input: SummaryInput | undefined;
+  for (const turn of tokenMode ? c.pending : c.pending.slice(0, count)) {
+    const candidate = composeSummaryInput(w, [...batch, turn], c.active);
+    if (!fitsBudget(candidate)) break;
+    if (
+      tokenMode &&
+      estimateInput(candidate.system, candidate.user) > tokenLimit
+    )
+      break;
+    batch = [...batch, turn];
+    input = candidate;
+  }
+  return { batch, input };
 }
 export function planCompression(w: Workspace): SummaryPlan | null {
   if (!w.config.configured || !w.config.modelEnabled)
     throw new SummaryError('MODEL_NOT_CONFIGURED', '请先保存摘要模型配置。');
   const c = coverage(w);
   if (!c.pending.length) return null;
-  const count = w.config.batch;
-  if (!Number.isInteger(count) || count < 1 || count > 100)
-    throw new SummaryError(
-      'INVALID_BATCH',
-      '每批轮次数需要是 1–100 之间的整数。',
-    );
-  let batch: Turn[] = [];
-  let input: SummaryInput | undefined;
-  for (const turn of c.pending.slice(0, count)) {
-    const candidate = composeSummaryInput(w, [...batch, turn], c.active);
-    if (!fitsBudget(candidate)) break;
-    batch = [...batch, turn];
-    input = candidate;
-  }
+  const { batch, input } = selectCompressionBatch(w, c);
   if (!input || !batch.length)
     throw new SummaryError(
       'TURN_OVER_BUDGET',
-      '提示词、上一份摘要和下一完整轮次超出预算。请缩短提示词、提高上下文预算或降低输出预留；系统不会截断轮次。',
+      '提示词、上一份摘要和下一完整轮次超出每批发送上限或模型预算。请提高上限、缩短提示词或降低输出预留；系统不会截断轮次。',
     );
   return {
     expected: summaryRevision(w),

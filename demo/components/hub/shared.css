@@ -1,3 +1,19 @@
+.copy-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.75;
+}
+.copy-icon-button:hover {
+  opacity: 1;
+}
 /* shared: see docs/frontend-styles.md for ownership and load order. */
 
 .button {

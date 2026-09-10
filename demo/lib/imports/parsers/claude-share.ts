@@ -5,6 +5,11 @@ import {
   type ParsedConversation,
 } from '../contracts.ts';
 import type { Message } from '../../domain.ts';
+import {
+  attachmentFromReference,
+  attachmentMarker,
+  parseMediaBlock,
+} from '../../attachments.ts';
 
 function publicBranch(p: Record<string, unknown>): unknown[] {
   const nodes = p.chat_messages as unknown[];
@@ -59,22 +64,45 @@ export function parseClaudeShare(data: unknown): ParsedConversation {
         .filter((b) => b.type === 'text')
         .map((b) => string(b.text))
         .join('\n');
-      const assets = ['attachments', 'files', 'files_v2'].some(
-        (k) => Array.isArray(m[k]) && (m[k] as unknown[]).length > 0,
-      );
-      if (assets || m.is_content_hidden === true) missing = true;
+      const attachments = blocks.map(parseMediaBlock).filter((a) => !!a);
+      for (const key of ['attachments', 'files', 'files_v2']) {
+        for (const raw of Array.isArray(m[key]) ? (m[key] as unknown[]) : []) {
+          const a = record(raw);
+          attachments.push(
+            attachmentFromReference({
+              name: string(a.file_name ?? a.name),
+              type: string(a.file_type ?? a.mime_type),
+              url: string(a.download_url ?? a.url),
+              reference: string(a.id ?? a.uuid),
+            }),
+          );
+        }
+      }
+      if (
+        attachments.some((a) => a.status !== 'stored') ||
+        m.is_content_hidden === true
+      )
+        missing = true;
       messages.push({
         role,
         content:
           text +
-          (assets || m.is_content_hidden === true
-            ? '\n[附件引用：分享未提供可保存素材]'
-            : ''),
+          attachments.map((a) => `\n${attachmentMarker(a)}`).join('') +
+          (m.is_content_hidden === true ? '\n[部分内容未在分享中公开]' : ''),
+        ...(attachments.length ? { attachments } : {}),
       });
     } else
       for (const block of blocks) {
         const b = record(block);
-        if (b.type === 'text' && typeof b.text === 'string')
+        const media = parseMediaBlock(b);
+        if (media) {
+          messages.push({
+            role,
+            content: attachmentMarker(media),
+            attachments: [media],
+          });
+          missing ||= media.status !== 'stored';
+        } else if (b.type === 'text' && typeof b.text === 'string')
           messages.push({ role, content: b.text });
         else if (b.type === 'tool_use')
           messages.push({
@@ -96,11 +124,22 @@ export function parseClaudeShare(data: unknown): ParsedConversation {
                     .map((c) => string(c.text))
                     .join('\n')
                 : '';
-          if (!text) missing = true;
+          const attachments = Array.isArray(b.content)
+            ? b.content.map(parseMediaBlock).filter((a) => !!a)
+            : [];
+          if (
+            (!text && !attachments.length) ||
+            attachments.some((a) => a.status !== 'stored')
+          )
+            missing = true;
           messages.push({
             role: 'tool_result',
             callId: string(b.tool_use_id),
-            content: text || '[工具结果未在分享中公开]',
+            content:
+              text +
+                attachments.map((a) => `\n${attachmentMarker(a)}`).join('') ||
+              '[工具结果未在分享中公开]',
+            ...(attachments.length ? { attachments } : {}),
           });
         } else if (
           !['thinking', 'redacted_thinking', 'reasoning', 'signature'].includes(

@@ -1,15 +1,12 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import {
   KeyRound,
   Plug,
   Plus,
-  ShieldCheck,
   RotateCcw,
   Unplug,
-  MessageCircle,
   BookOpen,
-  ArrowRight,
 } from 'lucide-react';
 import {
   Button,
@@ -21,78 +18,90 @@ import {
   SaveStatus,
 } from './shared';
 import { usePersistent } from '@/lib/store';
-import { uid, now, type Workspace, type Token } from '@/lib/domain';
+import type { Workspace } from '@/lib/domain';
 import type { SendWorkspaceCommand } from '@/lib/hub-state';
-const tools = [
-  [
-    'memory_bootstrap',
-    '记忆注入',
-    '新窗口或严重上下文遗忘时读取编排后的记忆包',
-  ],
-  ['notes_list', '查看 Note 列表', '返回 id、标题；标星条目附 50 字预览'],
-  ['note_read', '按 id 读 Note', '返回指定正常状态 Note 的全文'],
-  ['note_create', '创建 Note', '必须明确指定 star 为 true 或 false'],
-  ['note_replace', '精准修改 Note', '匹配原文替换，保留少量历史版本'],
-  ['memory_search', '搜索记忆', '按完整轮次检索原文、摘要和 Note'],
-  [
-    'conversation_import',
-    '导入分享链接',
-    '解析后在分享导入流程中预览，由用户确认归档',
-  ],
-];
+import type { McpConnection } from '@/lib/mcp/use-mcp';
+import type { PublicMcpToken } from '@/lib/mcp/contracts';
+import { mcpTools } from '@/lib/mcp/catalog';
+import { OAuthConnection } from './oauth-connection';
+const subscribeOrigin = () => () => {};
+const connectionExpiry = (token: PublicMcpToken) =>
+  token.grant_expires_at ?? token.expires_at;
+
 export function ConnectionsPage({
   w,
   onCommand,
   active,
+  mcp,
 }: {
   w: Workspace;
   onCommand: SendWorkspaceCommand;
   active: boolean;
+  mcp: McpConnection;
 }) {
   const [clock, setClock] = useState(() => Date.now());
+  const origin = useSyncExternalStore(
+    subscribeOrigin,
+    () => window.location.origin,
+    () => '',
+  );
   useEffect(() => {
     if (!active) return;
-    const initial = setTimeout(() => setClock(Date.now()), 0);
     const timer = setInterval(() => setClock(Date.now()), 1000);
-    return () => {
-      clearTimeout(initial);
-      clearInterval(timer);
-    };
+    return () => clearInterval(timer);
   }, [active]);
-  const [modal, setModal] = useState(''),
-    [oauth, setOauth] = useState('ChatGPT'),
-    [reveal, setReveal] = useState<Token | null>(null);
+  const [modal, setModal] = useState(false);
+  const [reveal, setReveal] = useState<{
+    token: PublicMcpToken;
+    secret: string;
+  } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const [d, setD, p] = usePersistent(`connection-draft-${w.id}`, {
     name: '我的 Chatbox',
     ttl: '7',
     workspaceName: w.name,
   });
-  function create(kind: 'token' | 'oauth') {
-    const t: Token = {
-      id: uid(),
-      name: kind === 'oauth' ? oauth : d.name.trim(),
-      value: `demo_ch_${uid().replaceAll('-', '')}`,
-      createdAt: now(),
-      expiresAt: new Date(Date.now() + Number(d.ttl) * 86400000).toISOString(),
-      revoked: false,
-      kind,
-    };
-    onCommand({ type: 'token/create', token: t });
-    setModal('');
-    if (kind === 'token') setReveal(t);
+  const tokens = mcp.status.tokens.filter((t) => t.workspace_id === w.id);
+  const endpoint = origin ? `${origin}/mcp/${encodeURIComponent(w.id)}` : '';
+  async function create(replace?: PublicMcpToken) {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const result = await mcp.createToken(
+        w,
+        replace?.name ?? d.name.trim(),
+        Math.round(Number(d.ttl) * 86400),
+        replace?.id,
+      );
+      setModal(false);
+      setReveal(result);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : '创建连接失败。');
+    } finally {
+      setBusy(false);
+      mcp.refresh();
+    }
   }
-  function revoke(t: Token) {
-    onCommand({ type: 'token/revoke', tokenId: t.id });
+  async function revoke(t: PublicMcpToken) {
+    setBusy(true);
+    setError('');
+    try {
+      await mcp.revoke(w.id, t.id);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : '吊销失败。');
+    } finally {
+      setBusy(false);
+    }
   }
   return (
     <>
       <div className="section-heading compact">
-        <div>
-          <PageTitle>连接设置</PageTitle>
-        </div>
+        <PageTitle>连接设置</PageTitle>
         <span className="pill">
           <Plug size={12} />
-          本地演示
+          本机 MCP
         </span>
       </div>
       <div className="connection-intro">
@@ -107,35 +116,7 @@ export function ConnectionsPage({
       </div>
       <div className="split-view connections-layout">
         <section className="surface">
-          <div className="surface-head">
-            <h2>官方客户端 · OAuth</h2>
-            <span className="muted-label">授权连接</span>
-          </div>
-          {['ChatGPT', 'Claude'].map((platform) => (
-            <div className="connection-row" key={platform}>
-              <span
-                className={`row-icon ${platform === 'Claude' ? 'orange' : ''}`}
-              >
-                {platform === 'Claude' ? '✳' : <MessageCircle size={20} />}
-              </span>
-              <div>
-                <h3>{platform}</h3>
-                <p>确认手账范围与工具权限</p>
-              </div>
-              <Button
-                onClick={() => {
-                  setOauth(platform);
-                  setModal('oauth');
-                }}
-              >
-                体验授权流程 <ArrowRight size={13} />
-              </Button>
-            </div>
-          ))}
-          <p className="inline-note">
-            此处仅模拟 OAuth
-            授权界面，不会打开官方客户端或建立真实连接。正式接入还需服务器注册与客户端能力校验。
-          </p>
+          <OAuthConnection key={w.id} w={w} mcp={mcp} />
         </section>
         <section className="surface">
           <div className="surface-head">
@@ -143,115 +124,116 @@ export function ConnectionsPage({
             <KeyRound size={17} className="muted" />
           </div>
           <p className="page-description">
-            给支持自定义 MCP 或 API
-            的客户端一把临时钥匙。可以随时吊销，重新生成后旧钥匙失效。
+            使用 Streamable HTTP 连接地址，并在 Authorization 请求头填写 Bearer
+            和访问令牌。
           </p>
-          <code className="inline-code">
-            https://context-hub.invalid/mcp/{w.id}
-          </code>
+          <code className="inline-code">{endpoint || '正在读取连接地址…'}</code>
+          <div className="action-row">
+            <Button
+              primary
+              disabled={busy || !p.ready || !origin}
+              onClick={() => setModal(true)}
+            >
+              <Plus size={15} />
+              创建访问令牌
+            </Button>
+            {endpoint && <CopyButton text={endpoint} label="复制地址" />}
+          </div>
           <p className="inline-note">
-            示例地址不可连接。令牌仅用于展示创建、过期和吊销状态。
+            首次创建时将这本手账的记忆内容保存到本机服务。网页打开时同步已保存版本；关闭后仍可读取上次同步内容及读写
+            Note。草稿和附件文件不向 MCP 提供。
           </p>
-          <Button primary onClick={() => setModal('token')}>
-            <Plus size={15} />
-            创建演示令牌
-          </Button>
+          {mcp.synced[w.id] && (
+            <p className="inline-note">
+              最近同步 {formatDate(mcp.synced[w.id])}
+            </p>
+          )}
         </section>
       </div>
+      {(error || mcp.error) && (
+        <p className="callout warning" role="alert">
+          {error || mcp.error}
+          <Button onClick={mcp.refresh}>重试连接</Button>
+        </p>
+      )}
       <section className="connection-history">
         <div className="surface-head">
           <h2>这本手账的连接</h2>
           <small>
             {
-              w.tokens.filter(
-                (t) => !t.revoked && Date.parse(t.expiresAt) > clock,
-              ).length
+              tokens.filter((t) => !t.revoked_at && connectionExpiry(t) > clock)
+                .length
             }{' '}
-            条有效演示连接
+            条有效连接
           </small>
         </div>
-        {w.tokens.length ? (
-          w.tokens.map((t) => {
-            const expired = Date.parse(t.expiresAt) < clock;
-            return (
-              <div className="connection-row" key={t.id}>
-                <span className="row-icon">
-                  {t.kind === 'oauth' ? (
-                    <ShieldCheck size={18} />
-                  ) : (
-                    <KeyRound size={18} />
-                  )}
-                </span>
-                <div>
-                  <h3>
-                    {t.name}{' '}
-                    <span className="pill">
-                      {t.revoked
-                        ? '已吊销'
-                        : expired
-                          ? '已过期'
-                          : t.kind === 'oauth'
-                            ? 'OAuth · 演示'
-                            : 'Token · 演示'}
-                    </span>
-                  </h3>
-                  <p>
-                    创建 {formatDate(t.createdAt)} · 到期{' '}
-                    {formatDate(t.expiresAt)}
-                  </p>
-                </div>
-                {!t.revoked && (
-                  <div className="action-row">
-                    {t.kind === 'token' && (
-                      <Button
-                        onClick={() => {
-                          const next = {
-                            ...t,
-                            id: uid(),
-                            value: `demo_ch_${uid().replaceAll('-', '')}`,
-                            createdAt: now(),
-                            expiresAt: new Date(
-                              Date.now() + Number(d.ttl) * 86400000,
-                            ).toISOString(),
-                            revoked: false,
-                          };
-                          onCommand({
-                            type: 'token/rotate',
-                            tokenId: t.id,
-                            token: next,
-                          });
-                          setReveal(next);
-                        }}
-                      >
-                        <RotateCcw size={13} />
-                        重新生成
-                      </Button>
-                    )}
-                    <Button onClick={() => revoke(t)}>
-                      <Unplug size={13} />
-                      吊销
-                    </Button>
-                  </div>
-                )}
+        {tokens.length ? (
+          tokens.map((t) => (
+            <div className="connection-row" key={t.id}>
+              <span className="row-icon">
+                <KeyRound size={18} />
+              </span>
+              <div>
+                <h3>
+                  {t.name}{' '}
+                  <span className="pill">
+                    {t.revoked_at
+                      ? '已吊销'
+                      : connectionExpiry(t) <= clock
+                        ? '已过期'
+                        : t.resource
+                          ? 'OAuth'
+                          : 'Token'}
+                  </span>
+                </h3>
+                <p>
+                  创建 {formatDate(new Date(t.created_at).toISOString())} · 到期{' '}
+                  {formatDate(new Date(connectionExpiry(t)).toISOString())}
+                  {t.resource && ' · 访问令牌自动续期'}
+                </p>
               </div>
-            );
-          })
+              {!t.revoked_at && (
+                <div className="action-row">
+                  {!t.resource && (
+                    <Button
+                      disabled={busy}
+                      onClick={() => {
+                        void create(t);
+                      }}
+                    >
+                      <RotateCcw size={13} />
+                      重新生成
+                    </Button>
+                  )}
+                  <Button
+                    disabled={busy}
+                    onClick={() => {
+                      void revoke(t);
+                    }}
+                  >
+                    <Unplug size={13} />
+                    吊销
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))
         ) : (
           <div className="connection-empty">
-            还没有连接。你可以先体验一次授权，或创建一枚演示令牌。
+            还没有连接。创建访问令牌后即可连接这本手账。
           </div>
         )}
       </section>
       <section className="tool-catalog">
         <div className="surface-head">
           <h2>模型可以使用的工具</h2>
-          <small>接口契约预览 · 尚未发布 MCP 服务</small>
+          <small>仅限当前授权手账</small>
         </div>
-        {tools.map(([name, title, desc]) => (
-          <div key={name}>
-            <code>{name}</code>
-            <strong>{title}</strong>
-            <p>{desc}</p>
+        {mcpTools.map((tool) => (
+          <div key={tool.name}>
+            <code>{tool.name}</code>
+            <strong>{tool.title}</strong>
+            <p>{tool.description}</p>
           </div>
         ))}
       </section>
@@ -275,15 +257,18 @@ export function ConnectionsPage({
           保存名称
         </Button>
       </section>
-      {modal === 'token' && (
+      {modal && (
         <Modal
           title="给这本手账一把临时钥匙"
-          description={`范围：${w.name}。只生成演示令牌，不可用于真实连接。`}
-          onClose={() => setModal('')}
+          description={`范围：${w.name}。令牌只在生成后显示一次，可随时吊销。`}
+          onClose={() => {
+            if (!busy) setModal(false);
+          }}
         >
           <label className="field">
             连接名称
             <input
+              maxLength={100}
               value={d.name}
               onChange={(e) => setD({ ...d, name: e.target.value })}
               placeholder="例如：笔记本上的 Chatbox"
@@ -304,9 +289,14 @@ export function ConnectionsPage({
             />
           </label>
           <p className="callout">
-            授权读取本手账记忆，以及创建和精准修改
-            Note。分享链接导入需用户确认，不直接覆盖原文。
+            授权读取本手账记忆、创建和精准修改
+            Note，以及提交分享链接到待确认收件箱。本机服务需要保持运行。
           </p>
+          {error && (
+            <p className="error-text" role="alert">
+              {error}
+            </p>
+          )}
           <div className="form-actions">
             <span className="save-caption">
               <SaveStatus state={p}>
@@ -315,59 +305,37 @@ export function ConnectionsPage({
             </span>
             <Button
               primary
-              disabled={!d.name.trim()}
-              onClick={() => create('token')}
+              disabled={busy || !d.name.trim() || !p.ready}
+              onClick={() => {
+                void create();
+              }}
             >
               <KeyRound size={15} />
-              生成演示令牌
-            </Button>
-          </div>
-        </Modal>
-      )}
-      {modal === 'oauth' && (
-        <Modal
-          title={`${oauth} 想要翻阅这本手账`}
-          description="OAuth 授权流程演示。本操作不会向官方平台发送请求。"
-          onClose={() => setModal('')}
-        >
-          <div className="oauth-bridge">
-            <span className="row-icon">
-              <MessageCircle size={23} />
-            </span>
-            <span>{oauth}</span>
-            <ArrowRight size={17} />
-            <span className="row-icon">
-              <BookOpen size={23} />
-            </span>
-            <span>{w.name}</span>
-          </div>
-          <ul className="info-list">
-            <li>读取这本手账的记忆包、正常状态的原文与 Note</li>
-            <li>创建 Note，并明确设置是否标星</li>
-            <li>精准修改 Note，保留历史版本</li>
-            <li>提交分享链接导入，等待你预览并归档</li>
-          </ul>
-          <p className="callout">
-            你可以在连接列表随时吊销。其他手账不在本次授权范围内。
-          </p>
-          <div className="form-actions">
-            <Button onClick={() => setModal('')}>取消</Button>
-            <Button primary onClick={() => create('oauth')}>
-              <ShieldCheck size={15} />
-              允许 · 仅模拟
+              {busy ? '正在创建…' : '生成访问令牌'}
             </Button>
           </div>
         </Modal>
       )}
       {reveal && (
         <Modal
-          title="演示钥匙已生成"
-          description="此字符串不是有效凭据。本地 demo 中可以查看并复制。"
+          title="访问令牌已生成"
+          description="请现在复制并保存在客户端。关闭后无法再次查看，丢失时可以重新生成，旧令牌将失效。"
           onClose={() => setReveal(null)}
         >
-          <code className="inline-code">{reveal.value}</code>
+          <code className="inline-code">{reveal.secret}</code>
           <div className="form-actions">
-            <CopyButton text={reveal.value} />
+            <CopyButton text={reveal.secret} label="复制令牌" />
+            <CopyButton
+              text={JSON.stringify(
+                {
+                  url: endpoint,
+                  headers: { Authorization: `Bearer ${reveal.secret}` },
+                },
+                null,
+                2,
+              )}
+              label="复制连接配置"
+            />
             <Button onClick={() => setReveal(null)}>收好</Button>
           </div>
         </Modal>

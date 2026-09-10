@@ -13,6 +13,10 @@ import {
 } from './config.ts';
 import { generateSummary, readSummaryBody } from './service.ts';
 import { thinkingProbe } from '../thinking-probe.ts';
+import {
+  publicSummarySettings,
+  type SummarySettingsRepository,
+} from './settings.ts';
 
 const headers = { 'Cache-Control': 'no-store' };
 function localRequest(request: Request) {
@@ -79,11 +83,39 @@ export function createSummaryHandler() {
     action: string,
     env: SummaryEnvironment,
     fetcher?: typeof fetch,
+    settings?: SummarySettingsRepository,
   ): Promise<Response> {
     try {
       localRequest(request);
+      if (action === 'connection' && request.method === 'POST') {
+        if (!settings)
+          throw new SummaryError(
+            'SETTINGS_UNAVAILABLE',
+            '此服务暂不支持保存模型连接。',
+            503,
+          );
+        if (!request.headers.get('content-type')?.includes('application/json'))
+          throw new SummaryError('JSON_REQUIRED', '请使用 JSON 请求。', 415);
+        const raw = await readSummaryBody(
+          request,
+          16384,
+          AbortSignal.timeout(10000),
+        );
+        let value: unknown;
+        try {
+          value = JSON.parse(raw);
+        } catch {
+          throw new SummaryError('INVALID_JSON', '连接配置格式无效。');
+        }
+        return Response.json(await settings.save(value, env), { headers });
+      }
+      const stored = settings ? await settings.read(env) : null;
+      if (stored) env = stored.env;
       if (action === 'connection' && request.method === 'GET')
-        return Response.json(summaryConnectionStatus(env), { headers });
+        return Response.json(
+          stored ? publicSummarySettings(stored) : summaryConnectionStatus(env),
+          { headers },
+        );
       if (!['generate', 'probe'].includes(action) || request.method !== 'POST')
         throw new SummaryError('NOT_FOUND', '未知摘要操作。', 404);
       if (!request.headers.get('content-type')?.includes('application/json'))
@@ -110,7 +142,9 @@ export function createSummaryHandler() {
         new Uint8Array(
           await crypto.subtle.digest(
             'SHA-256',
-            new TextEncoder().encode(`${action}\n${body}`),
+            new TextEncoder().encode(
+              `${stored?.revision ?? ''}\n${action}\n${body}`,
+            ),
           ),
         ),
         (x) => x.toString(16).padStart(2, '0'),

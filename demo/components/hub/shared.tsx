@@ -130,10 +130,22 @@ export function Segments({
     </Tabs>
   );
 }
-export function CopyButton({ text }: { text: string }) {
+export function CopyButton({
+  text,
+  label = '复制',
+  iconOnly = false,
+}: {
+  text: string;
+  label?: string;
+  iconOnly?: boolean;
+}) {
   const [state, set] = useState('');
   return (
-    <Button
+    <button
+      type="button"
+      className={iconOnly ? 'copy-icon-button' : 'button'}
+      aria-label={state || label}
+      title={state || label}
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(text);
@@ -145,8 +157,9 @@ export function CopyButton({ text }: { text: string }) {
       }}
     >
       {state === '已复制' ? <Check size={14} /> : <Copy size={14} />}{' '}
-      {state || '复制'}
-    </Button>
+      {!iconOnly && (state || label)}
+      {iconOnly && <output className="sr-only">{state}</output>}
+    </button>
   );
 }
 export function Markdown({ text }: { text: string }) {

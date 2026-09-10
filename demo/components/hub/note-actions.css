@@ -34,24 +34,26 @@
   border-radius: 50%;
   color: #536348;
 }
-.note-compose {
-  left: 1px;
-  transition:
-    opacity 140ms,
-    transform var(--note-action-motion);
+.note-compose-mask {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 40px 0 0);
+  transition: clip-path var(--note-action-motion);
 }
-.note-compose::after {
+.note-compose {
+  right: 43px;
+}
+.note-search-toggle::before {
   content: '';
   position: absolute;
-  right: -3px;
+  left: -4px;
   top: 11px;
   width: 1px;
   height: 14px;
   background: #a4b193;
 }
-.note-actions[data-search-open='true'] .note-compose {
-  opacity: 0;
-  transform: translateX(-12px);
+.note-actions[data-search-open='true'] .note-compose-mask {
+  clip-path: inset(0 100% 0 0);
   pointer-events: none;
 }
 .note-search-toggle {
@@ -115,7 +117,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .note-actions-capsule,
-  .note-compose,
+  .note-compose-mask,
   .note-search-toggle,
   .note-search-field {
     transition: none;

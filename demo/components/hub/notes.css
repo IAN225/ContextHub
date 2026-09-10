@@ -78,9 +78,30 @@
   justify-content: space-between;
   gap: 12px;
 }
-.note-id {
+.note-created {
   font-family: Georgia, serif;
   color: #a4b38e;
+}
+.note-empty-paper {
+  min-height: 340px;
+  display: grid;
+  place-items: center;
+}
+.note-paper .editor-toolbar {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.note-paper .editor-toolbar .editor-label {
+  min-width: 0;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.note-paper .editor-label > span {
+  overflow-wrap: anywhere;
+}
+.note-paper .editor-label .copy-icon-button {
+  padding: 0;
+  background: transparent;
 }
 .note-paper-top .icon-button {
   color: #94a479;

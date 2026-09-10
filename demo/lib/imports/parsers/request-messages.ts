@@ -1,8 +1,9 @@
-import { groupTurns, type Message } from '../../domain.ts';
+import { groupTurns, type Message, type Attachment } from '../../domain.ts';
+import { attachmentMarker, parseMediaBlock } from '../../attachments.ts';
 type Row = Record<string, unknown>;
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
 const row = (v: unknown): Row => (v && typeof v === 'object' ? (v as Row) : {});
-function textContent(v: unknown): string {
+function textContent(v: unknown, attachments: Attachment[] = []): string {
   if (typeof v === 'string') return v;
   if (!Array.isArray(v)) return '';
   return v
@@ -10,10 +11,11 @@ function textContent(v: unknown): string {
       const b = row(p);
       if (['text', 'input_text', 'output_text'].includes(str(b.type)))
         return str(b.text ?? '');
-      if (['image', 'image_url', 'input_image'].includes(str(b.type)))
-        return '[图片引用：未下载素材，请另行补充]';
-      if (['document', 'input_file', 'file'].includes(str(b.type)))
-        return '[附件引用：未下载素材，请另行补充]';
+      const media = parseMediaBlock(b);
+      if (media) {
+        attachments.push(media);
+        return attachmentMarker(media);
+      }
       if (
         [
           'thinking',
@@ -58,35 +60,43 @@ export function parseRequestMessages(
       continue;
     }
     if (type === 'function_call_output') {
+      const attachments: Attachment[] = [];
       messages.push({
         role: 'tool_result',
         callId: str(m.call_id ?? ''),
         content:
           typeof m.output === 'string'
             ? m.output
-            : JSON.stringify(m.output ?? '[工具结果缺失]'),
+            : Array.isArray(m.output)
+              ? textContent(m.output, attachments)
+              : JSON.stringify(m.output ?? '[工具结果缺失]'),
+        ...(attachments.length ? { attachments } : {}),
       });
       continue;
     }
     if (!['user', 'assistant', 'tool'].includes(role)) continue;
     if (role === 'tool') {
+      const attachments: Attachment[] = [];
       messages.push({
         role: 'tool_result',
-        content: textContent(m.content),
+        content: textContent(m.content, attachments),
         callId: str(m.tool_call_id ?? ''),
+        ...(attachments.length ? { attachments } : {}),
       });
       continue;
     }
     const blocks = Array.isArray(m.content) ? m.content : [];
     // Anthropic tool-result envelopes have role=user but are continuations, not new turns.
     const toolResults = blocks.map(row).filter((b) => b.type === 'tool_result');
-    for (const b of toolResults)
+    for (const b of toolResults) {
+      const attachments: Attachment[] = [];
       messages.push({
         role: 'tool_result',
         callId: str(b.tool_use_id ?? ''),
-        content: textContent(b.content),
+        content: textContent(b.content, attachments),
+        ...(attachments.length ? { attachments } : {}),
       });
-    const content = textContent(m.content);
+    }
     if (role === 'assistant' && blocks.length) {
       for (const block of blocks) {
         const b = row(block);
@@ -98,12 +108,26 @@ export function parseRequestMessages(
             content: JSON.stringify(b.input ?? {}),
           });
         else {
-          const text = textContent([block]);
-          if (text) messages.push({ role, content: text });
+          const attachments: Attachment[] = [];
+          const text = textContent([block], attachments);
+          if (text)
+            messages.push({
+              role,
+              content: text,
+              ...(attachments.length ? { attachments } : {}),
+            });
         }
       }
-    } else if (content || (role === 'user' && !toolResults.length))
-      messages.push({ role, content });
+    } else {
+      const attachments: Attachment[] = [];
+      const content = textContent(m.content, attachments);
+      if (content || (role === 'user' && !toolResults.length))
+        messages.push({
+          role,
+          content,
+          ...(attachments.length ? { attachments } : {}),
+        });
+    }
     for (const b of (Array.isArray(m.tool_calls) ? m.tool_calls : []).map(
       row,
     )) {

@@ -1,22 +1,18 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { FlaskConical } from 'lucide-react';
-import { Button, Modal, Picker, SaveStatus } from './shared';
+import { Button, Picker, SaveStatus } from './shared';
 import { TextEditor } from './editors';
 import { usePersistent } from '@/lib/store';
-import { uid, now, type Workspace, type Upload } from '@/lib/domain';
-import { requestSummary } from '@/lib/summary/client';
+import { type Workspace } from '@/lib/domain';
+import { useTaskQueue } from '@/lib/tasks/use-background-tasks';
 import { planWorkbench } from '@/lib/summary/planning';
 export function SummaryWorkbench({
   w,
-  onCreate,
-  onClose,
   pendingCount,
   onReview,
 }: {
   w: Workspace;
-  onCreate: (u: Upload) => Promise<boolean>;
-  onClose: () => void;
   pendingCount: number;
   onReview: () => void;
 }) {
@@ -32,57 +28,55 @@ export function SummaryWorkbench({
       .filter((t) => t.status === 'normal');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [candidate, setCandidate] = useState<Upload | null>(null);
-  const request = useRef<AbortController | null>(null);
-  useEffect(() => () => request.current?.abort(), []);
+  const [queued, setQueued] = useState(false);
+  const queue = useTaskQueue();
+  const running = queue?.tasks.some(
+    (t) =>
+      t.kind === 'workbench' &&
+      t.workspace_id === w.id &&
+      ['queued', 'running', 'pausing'].includes(t.status),
+  );
   async function generate() {
     if (busy) return;
-    const controller = new AbortController();
-    request.current = controller;
     setBusy(true);
     setError('');
     try {
-      let upload = candidate;
-      if (!upload) {
-        const plan = planWorkbench(w, selected, s, d.instruction);
-        const result = await requestSummary(plan.input, controller.signal);
-        if (controller.signal.aborted) return;
-        upload = {
-          id: uid(),
-          title: '工作台候选摘要',
-          kind: 'summary',
-          channel: 'workbench',
-          source: `摘要工作台 · ${result.model}`,
-          turns: [],
-          workspaceId: w.id,
-          covered: plan.covered,
-          summaryText: result.text,
-          createdAt: now(),
-        };
-        setCandidate(upload);
-      }
-      if (await onCreate(upload)) onClose();
-      else setError('候选已生成，但保存失败。点击重试保存，不会再次调用模型。');
+      if (!queue?.ready) throw new Error('请先启动本地后台服务。');
+      planWorkbench(w, selected, s, d.instruction);
+      await queue.startWorkbench(
+        w,
+        selected.map((t) => t.id),
+        s?.id ?? '',
+        d.instruction,
+      );
+      setQueued(true);
     } catch (failure) {
-      if (!controller.signal.aborted)
-        setError(
-          failure instanceof Error ? failure.message : '候选摘要生成失败。',
-        );
+      setError(
+        failure instanceof Error ? failure.message : '候选任务未能入队。',
+      );
     } finally {
-      if (!controller.signal.aborted) setBusy(false);
+      setBusy(false);
     }
   }
   return (
-    <Modal
-      title="摘要工作台"
-      description="选择历史摘要和重点原文调用模型生成候选，预览确认后再设为活跃摘要。"
-      onClose={onClose}
-    >
+    <div className="summary-custom-editor">
+      <div className="summary-paper-head">
+        <div>
+          <div className="eyebrow">CUSTOM SUMMARY</div>
+          <h2>新建自定义摘要</h2>
+          <p>选择历史摘要和重点原文，生成候选后确认应用。</p>
+        </div>
+        <FlaskConical size={22} />
+      </div>
+      {(queued || running) && (
+        <p className="callout">
+          候选生成任务已加入后台，可以切换到其他页面。结果接收后会显示在待确认候选中。
+        </p>
+      )}
       {pendingCount > 0 && (
         <div className="workbench-pending">
           <Button
             onClick={() => {
-              onClose();
               onReview();
             }}
           >
@@ -93,7 +87,7 @@ export function SummaryWorkbench({
       <label className="field">
         起始摘要
         <Picker
-          label="工作台起始摘要"
+          label="自定义摘要起始摘要"
           value={d.summaryId}
           onChange={(summaryId) => setD({ ...d, summaryId })}
           options={[
@@ -146,6 +140,8 @@ export function SummaryWorkbench({
           primary
           disabled={
             busy ||
+            running ||
+            !queue?.ready ||
             !p.ready ||
             !Number.isInteger(d.from) ||
             !Number.isInteger(d.to) ||
@@ -161,9 +157,9 @@ export function SummaryWorkbench({
         >
           <FlaskConical size={15} />
           {busy
-            ? '正在生成并保存…'
-            : candidate
-              ? '重试保存候选'
+            ? '正在加入后台…'
+            : running
+              ? '后台正在生成…'
               : '生成候选并预览'}
         </Button>
       </div>
@@ -175,12 +171,6 @@ export function SummaryWorkbench({
           {error}
         </p>
       )}
-      {candidate && error && (
-        <label className="field">
-          尚未保存的候选
-          <textarea readOnly rows={6} value={candidate.summaryText} />
-        </label>
-      )}
-    </Modal>
+    </div>
   );
 }
