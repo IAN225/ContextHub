@@ -1,6 +1,6 @@
 'use client';
 import Image from 'next/image';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import {
   Bold,
   List,
@@ -35,12 +35,14 @@ export function TextEditor({
   label,
   minHeight = 160,
   onFiles,
+  labelAction,
 }: {
   value: string;
   onChange: (s: string) => void;
   label: string;
   minHeight?: number;
   onFiles?: (files: File[]) => void;
+  labelAction?: ReactNode;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null),
     [preview, setPreview] = useState(false);
@@ -65,7 +67,14 @@ export function TextEditor({
   return (
     <div className="rich-editor">
       <div className="editor-toolbar">
-        <span>{label}</span>
+        {labelAction ? (
+          <div className="editor-label">
+            <span>{label}</span>
+            {labelAction}
+          </div>
+        ) : (
+          <span>{label}</span>
+        )}
         <div>
           <button
             aria-label="加粗"

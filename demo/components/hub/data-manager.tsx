@@ -174,18 +174,6 @@ export function DataManager({
               清理会删除原文附件、Note
               历史和对应编辑草稿；已经写入摘要的文字不会随之重写。
             </p>
-            <Button
-              disabled={busy || !saved || !counts.expired}
-              onClick={() =>
-                void run(async () => {
-                  setMessage(
-                    `已清理 ${await onCleanup('expired')} 项到期内容。`,
-                  );
-                })
-              }
-            >
-              清理到期内容
-            </Button>
             {counts.total > 0 && (
               <>
                 <label className="checks">

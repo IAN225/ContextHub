@@ -1,4 +1,5 @@
 import type { Config } from '../domain.ts';
+import { estimateTextTokens } from '../token-budget.ts';
 
 export type SummaryProtocol = 'openai' | 'responses' | 'anthropic' | 'gemini';
 export type GenerationConfig = Pick<
@@ -95,11 +96,7 @@ export function inputBudget(config: GenerationConfig) {
 // UTF-8 bytes are a deliberately conservative token estimate for arbitrary
 // compatible providers. Do not reuse imported token counters for composed prompts.
 export function estimateInput(system: string, user: string) {
-  return (
-    new TextEncoder().encode(system).length +
-    new TextEncoder().encode(user).length +
-    128
-  );
+  return estimateTextTokens(system) + estimateTextTokens(user) + 128;
 }
 export function fitsBudget(input: SummaryInput) {
   const budget = inputBudget(input.config);

@@ -30,12 +30,24 @@ export function summaryRevision(w: Workspace) {
   return JSON.stringify({
     turns: w.turns.map((t) => ({
       ...t,
+      messages: t.messages.map(
+        ({ role, content, name, callId, attachmentIds }) => ({
+          role,
+          content,
+          name,
+          callId,
+          attachmentIds,
+        }),
+      ),
       attachments: t.attachments?.map(attachmentContext),
     })),
     active: w.summaries.find((s) => s.id === w.activeId),
     activeId: w.activeId,
     watermark: w.watermark,
     retain: w.retain,
+    retainMode: w.retainMode ?? 'turns',
+    retainTokens:
+      w.retainMode === 'tokens' ? (w.retainTokens ?? 8000) : undefined,
     config: { ...w.config, auto: undefined, review: undefined },
     notes: w.notes
       .filter((n) => n.status === 'normal')

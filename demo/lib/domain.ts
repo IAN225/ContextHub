@@ -1,4 +1,5 @@
 import { attachmentContext } from './attachments.ts';
+import { estimateTextTokens } from './token-budget.ts';
 export type Status = 'normal' | 'deprecated' | 'trash';
 export type Message = {
   role: string;
@@ -109,6 +110,8 @@ export type Workspace = {
   activeId: string | null;
   watermark: string | null;
   retain: number;
+  retainMode?: 'turns' | 'tokens';
+  retainTokens?: number;
   notes: Note[];
   blocks: Block[];
   tokens: Token[];
@@ -206,16 +209,63 @@ export function groupTurns(messages: Message[], source = '文本粘贴'): Turn[]
   }
   return turns;
 }
+export function estimateTurnTokens(turn: Turn) {
+  return (
+    turn.messages.reduce(
+      (total, message) =>
+        total +
+        16 +
+        estimateTextTokens(
+          JSON.stringify({
+            role: message.role,
+            content: message.content,
+            name: message.name,
+            callId: message.callId,
+          }),
+        ),
+      0,
+    ) +
+    (turn.attachments?.length
+      ? estimateTextTokens(
+          JSON.stringify(turn.attachments.map(attachmentContext)),
+        )
+      : 0)
+  );
+}
+export function selectRetentionWindow(
+  w: Workspace,
+  turns: Turn[],
+  fromEnd = false,
+) {
+  if (w.retainMode !== 'tokens')
+    return fromEnd
+      ? turns.slice(Math.max(0, turns.length - w.retain))
+      : turns.slice(0, w.retain);
+  const limit = w.retainTokens ?? 8000;
+  const result: Turn[] = [];
+  let used = 0;
+  for (let offset = 0; offset < turns.length; offset++) {
+    const turn = turns[fromEnd ? turns.length - offset - 1 : offset];
+    const tokens = estimateTurnTokens(turn);
+    // Stop at the first whole turn that does not fit. Never truncate it or jump
+    // over it to pick a smaller, more distant turn.
+    if (used + tokens > limit) break;
+    used += tokens;
+    result.push(turn);
+  }
+  return fromEnd ? result.reverse() : result;
+}
 export function coverage(w: Workspace) {
   const active = w.summaries.find((s) => s.id === w.activeId);
   const included = new Set(active?.covered ?? []);
   const at = w.turns.findIndex((t) => t.id === w.watermark);
   const normal = w.turns.filter((t) => t.status === 'normal');
-  const recent = w.turns
-    .filter((t, i) => t.status === 'normal' && i > at)
-    .slice(0, w.retain);
+  const recent = selectRetentionWindow(
+    w,
+    w.turns.filter((t, i) => t.status === 'normal' && i > at),
+  );
   const retainedAtEnd = new Set(
-    normal.slice(Math.max(0, normal.length - w.retain)).map((t) => t.id),
+    selectRetentionWindow(w, normal, true).map((t) => t.id),
   );
   const recentIds = new Set(recent.map((t) => t.id));
   const covered = w.turns.filter(
@@ -273,6 +323,7 @@ export function memoryText(w: Workspace, blocks = w.blocks) {
         ? coverage({
             ...w,
             retain: Math.max(0, Math.floor(b.windowLength ?? 0)),
+            retainMode: 'turns',
           }).recent
         : c.recent;
       return `[${b.custom ? '自选滑动窗口' : '近期原文'}]\n${turns.map((t) => [t.messages.map((m) => `${m.role}: ${m.content}`).join('\n'), ...(t.attachments?.length ? [`[附件资料]\n${JSON.stringify(t.attachments.map(attachmentContext))}`] : [])].join('\n')).join('\n\n')}`;
@@ -302,6 +353,8 @@ export function blankWorkspace(name: string, platform = '手动导入'): Workspa
     activeId: null,
     watermark: null,
     retain: 6,
+    retainMode: 'turns',
+    retainTokens: 8000,
     notes: [],
     blocks: [
       { id: uid(), type: 'summary' },

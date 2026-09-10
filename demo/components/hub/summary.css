@@ -25,6 +25,22 @@
   background: #fafcf4;
   border-color: #dfe7d2;
 }
+.retention-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.retention-control .hub-select {
+  width: auto;
+  min-width: 96px;
+}
+.summary-controls .token-retain-input {
+  width: 90px;
+}
+.retention-note {
+  margin: 10px 0 0;
+}
 .summary-switches {
   display: flex;
   align-items: center;

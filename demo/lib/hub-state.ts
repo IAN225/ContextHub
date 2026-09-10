@@ -52,7 +52,12 @@ export type WorkspaceCommand =
   | { type: 'note/star'; noteId: string; at: string }
   | { type: 'note/status'; noteId: string; status: Status; at: string }
   | { type: 'summary/config'; patch: Partial<Config> }
-  | { type: 'summary/retain'; retain: number }
+  | {
+      type: 'summary/retain';
+      retain?: number;
+      mode?: 'turns' | 'tokens';
+      tokens?: number;
+    }
   | { type: 'summary/generated'; generated: GeneratedCheckpoint }
   | { type: 'summary/restore'; summaryId: string; mode: 'keep' | 'rewind' }
   | { type: 'memory/set'; blocks: Block[] }
@@ -214,7 +219,23 @@ export function applyWorkspaceCommand(
     case 'summary/retain':
       return {
         ...w,
-        retain: Math.max(1, Math.min(500, Math.floor(command.retain) || 1)),
+        ...(command.retain !== undefined
+          ? {
+              retain: Math.max(
+                1,
+                Math.min(500, Math.floor(command.retain) || 1),
+              ),
+            }
+          : {}),
+        ...(command.mode ? { retainMode: command.mode } : {}),
+        ...(command.tokens !== undefined
+          ? {
+              retainTokens: Math.max(
+                1,
+                Math.min(2000000, Math.floor(command.tokens) || 1),
+              ),
+            }
+          : {}),
       };
     case 'summary/generated':
       return applyGeneratedCheckpoint(w, command.generated);
@@ -490,6 +511,17 @@ export function normalizeHubState(raw: unknown): HubState {
         Number.isFinite(item.retain),
     );
     requireShape(item.activeId === null || typeof item.activeId === 'string');
+    requireShape(
+      item.retainMode === undefined ||
+        item.retainMode === 'turns' ||
+        item.retainMode === 'tokens',
+    );
+    requireShape(
+      item.retainTokens === undefined ||
+        (Number.isInteger(item.retainTokens) &&
+          Number(item.retainTokens) >= 1 &&
+          Number(item.retainTokens) <= 2000000),
+    );
     requireShape(item.watermark === null || typeof item.watermark === 'string');
     requireShape(validTurns(item.turns));
     requireShape(

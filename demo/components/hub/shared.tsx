@@ -130,7 +130,13 @@ export function Segments({
     </Tabs>
   );
 }
-export function CopyButton({ text }: { text: string }) {
+export function CopyButton({
+  text,
+  label = '复制',
+}: {
+  text: string;
+  label?: string;
+}) {
   const [state, set] = useState('');
   return (
     <Button
@@ -145,7 +151,7 @@ export function CopyButton({ text }: { text: string }) {
       }}
     >
       {state === '已复制' ? <Check size={14} /> : <Copy size={14} />}{' '}
-      {state || '复制'}
+      {state || label}
     </Button>
   );
 }

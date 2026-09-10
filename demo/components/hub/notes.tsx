@@ -19,6 +19,7 @@ import {
   Empty,
   formatDate,
   SaveStatus,
+  CopyButton,
 } from './shared';
 import { TextEditor } from './editors';
 import { NoteActions } from './note-actions';
@@ -49,6 +50,7 @@ function NoteEditor({
   const [history, setHistory] = useState(false),
     [message, setMessage] = useState('');
   const titleInput = useRef<HTMLInputElement>(null);
+  const created = new Date(note.createdAt);
   useEffect(() => {
     if (focusTitle && p.ready) titleInput.current?.focus();
   }, [focusTitle, p.ready]);
@@ -73,7 +75,18 @@ function NoteEditor({
   return (
     <article className="note-paper">
       <div className="note-paper-top">
-        <span className="note-id">{note.id}</span>
+        <span className="note-created" title="创建日期">
+          CREATED ·{' '}
+          {Number.isFinite(created.getTime())
+            ? created
+                .toLocaleDateString('zh-CN', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                })
+                .replaceAll('/', '.')
+            : '日期未知'}
+        </span>
         <div className="action-row">
           <button
             className={`icon-button ${note.star ? 'starred' : ''}`}
@@ -133,7 +146,8 @@ function NoteEditor({
         {note.source}
       </div>
       <TextEditor
-        label="NOTE · 留给未来的文字"
+        label={`NOTE · ${note.id}`}
+        labelAction={<CopyButton text={note.id} label="复制 ID" />}
         value={d.body}
         onChange={(body) => setD({ ...d, body })}
         minHeight={340}
@@ -378,26 +392,28 @@ export function NotesPage({
             }
           />
         ) : (
-          <Empty
-            title={
-              query.trim()
-                ? '没有找到匹配的 Note'
-                : filter === 'star'
-                  ? '暂无标星 Note'
-                  : filter === 'deprecated'
-                    ? '暂无弃用 Note'
-                    : filter === 'trash'
-                      ? '回收站为空'
-                      : '还没有 Note'
-            }
-            detail={
-              query.trim()
-                ? '试试其他关键词，或清空搜索条件。'
-                : filter === 'all'
-                  ? '点击工具栏的笔形按钮，新建一条 Note。'
-                  : '切换筛选可查看其他 Note。'
-            }
-          />
+          <article className="note-paper note-empty-paper">
+            <Empty
+              title={
+                query.trim()
+                  ? '没有找到匹配的 Note'
+                  : filter === 'star'
+                    ? '暂无标星 Note'
+                    : filter === 'deprecated'
+                      ? '暂无弃用 Note'
+                      : filter === 'trash'
+                        ? '回收站为空'
+                        : '还没有 Note'
+              }
+              detail={
+                query.trim()
+                  ? '试试其他关键词，或清空搜索条件。'
+                  : filter === 'all'
+                    ? '点击工具栏的笔形按钮，新建一条 Note。'
+                    : '切换筛选可查看其他 Note。'
+              }
+            />
+          </article>
         )}
       </div>
     </>

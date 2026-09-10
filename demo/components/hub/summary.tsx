@@ -21,6 +21,7 @@ import {
   ChainMap,
   formatDate,
   Empty,
+  Picker,
 } from './shared';
 import type { SendWorkspaceCommand } from '@/lib/hub-state';
 import type { CommitWorkspaceCommand } from '@/lib/use-hub';
@@ -30,6 +31,7 @@ import { ModelSettings } from './summary-model-settings';
 import { SummaryWorkbench } from './summary-workbench';
 import {
   coverage,
+  estimateTurnTokens,
   type Workspace,
   type Summary,
   type Upload,
@@ -87,23 +89,54 @@ export function SummaryPage({
         </div>
         <ChainMap w={w} />
         <div className="summary-controls">
-          <label>
-            保留近期{' '}
-            <input
-              aria-label="保留近期轮次数"
-              type="number"
-              min={1}
-              max={500}
-              value={w.retain}
-              onChange={(e) =>
+          <div className="retention-control">
+            <Picker
+              label="原文窗口计量方式"
+              value={w.retainMode ?? 'turns'}
+              onChange={(mode) => {
+                task.stop();
                 onCommand({
                   type: 'summary/retain',
-                  retain: Math.max(1, Math.min(500, Number(e.target.value))),
-                })
-              }
-            />{' '}
-            轮原文
-          </label>
+                  mode: mode as 'turns' | 'tokens',
+                });
+              }}
+              options={[
+                { value: 'turns', label: '按轮数' },
+                { value: 'tokens', label: '按 token' },
+              ]}
+            />
+            <label>
+              保留近期{' '}
+              <input
+                aria-label={
+                  w.retainMode === 'tokens'
+                    ? '保留原文 token 上限'
+                    : '保留近期轮次数'
+                }
+                className={
+                  w.retainMode === 'tokens' ? 'token-retain-input' : ''
+                }
+                type="number"
+                min={1}
+                max={w.retainMode === 'tokens' ? 2000000 : 500}
+                value={
+                  w.retainMode === 'tokens'
+                    ? (w.retainTokens ?? 8000)
+                    : w.retain
+                }
+                onChange={(e) => {
+                  task.stop();
+                  onCommand({
+                    type: 'summary/retain',
+                    ...(w.retainMode === 'tokens'
+                      ? { tokens: Number(e.target.value) }
+                      : { retain: Number(e.target.value) }),
+                  });
+                }}
+              />{' '}
+              {w.retainMode === 'tokens' ? 'token' : '轮原文'}
+            </label>
+          </div>
           <label>
             每批最多{' '}
             <input
@@ -150,6 +183,16 @@ export function SummaryPage({
             </Button>
           </div>
         </div>
+        {w.retainMode === 'tokens' && (
+          <p className="inline-note retention-note">
+            按保守估算计数，当前原文窗口约{' '}
+            {c.recent
+              .reduce((sum, turn) => sum + estimateTurnTokens(turn), 0)
+              .toLocaleString()}{' '}
+            token · {c.recent.length} 轮。
+            从处理水位之后依次纳入完整轮次，放不下的一轮整体留在窗口外；不截断，也不跳过。
+          </p>
+        )}
         <div className="summary-switches">
           <label className="checks">
             <Switch
