@@ -10,6 +10,8 @@
     "build": "vinext build",
     "start": "node ./scripts/start-local.mjs",
     "chatgpt": "node ./scripts/start-chatgpt.mjs",
+    "claude": "node ./scripts/start-chatgpt.mjs",
+    "mcp:oauth": "node ./scripts/start-chatgpt.mjs",
     "db:init": "node --import ./scripts/local-runtime.mjs ./node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --local --config dist/server/wrangler.json --persist-to .wrangler/state",
     "lint": "oxlint",
     "format": "oxfmt",

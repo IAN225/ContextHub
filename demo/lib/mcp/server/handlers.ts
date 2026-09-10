@@ -22,6 +22,7 @@ import type { McpRepository } from './repository.ts';
 import { callMcpTool } from './tools.ts';
 import type { OAuthRepository } from './oauth-repository.ts';
 import { OAUTH_SCOPE } from './oauth.ts';
+import { oauthClientName } from '../oauth-clients.ts';
 
 const COOKIE = 'context_hub_mcp';
 const headers = {
@@ -115,7 +116,7 @@ export async function manageMcp(
     }
     if (action === 'oauth' && request.method === 'POST') {
       if (!oauth?.origin || !ownerId)
-        throw new McpError('UNAUTHORIZED', '请先准备 ChatGPT 连接。', 401);
+        throw new McpError('UNAUTHORIZED', '请先准备 OAuth 连接。', 401);
       const body = object(await json(request, 4096));
       const r = await oauth.repo.request(String(body.requestId));
       const wid = String(body.workspaceId);
@@ -134,6 +135,7 @@ export async function manageMcp(
         {
           workspaceId: wid,
           redirectUri: r.redirect_uri,
+          clientName: oauthClientName(r.redirect_uri),
           resource: r.resource,
           scope: OAUTH_SCOPE,
           expiresAt: r.expires_at,
@@ -148,11 +150,11 @@ export async function manageMcp(
         if (!oauth?.origin)
           throw new McpError(
             'UNAVAILABLE',
-            '请先启动 ChatGPT HTTPS 联调入口。',
+            '请先启动 MCP HTTPS 联调入口。',
             503,
           );
         body.action = 'create';
-        body.name = 'ChatGPT';
+        body.name = 'MCP OAuth';
         body.ttl = 2592000;
       }
       if (body.action === 'revoke') {

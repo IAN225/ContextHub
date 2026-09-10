@@ -17,7 +17,7 @@ async function free(port) {
 }
 await free(3000).catch(() => {
   throw new Error(
-    '3000 端口已占用。请先停止原本的 Context Hub 服务，再启动 ChatGPT 联调。',
+    '3000 端口已占用。请先停止原本的 Context Hub 服务，再启动 MCP OAuth 联调。',
   );
 });
 await free(3001);
@@ -95,7 +95,7 @@ function output(chunk) {
       stop();
     });
     console.log(
-      `ChatGPT HTTPS 联调入口：${origin}\n请打开 http://127.0.0.1:3000，在目标手账的连接设置中准备连接。\n关闭此进程会停止联调；重新启动后地址会改变，需要重新连接。`,
+      `MCP OAuth HTTPS 联调入口：${origin}\n请打开 http://127.0.0.1:3000，在目标手账的连接设置中选择客户端并准备连接。\n关闭此进程会停止联调；重新启动后地址会改变，需要重新连接。`,
     );
   });
 }

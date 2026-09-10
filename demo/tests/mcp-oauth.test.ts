@@ -14,8 +14,62 @@ import {
 } from '../lib/mcp/server/oauth.ts';
 import { manageMcp, mcpHandler } from '../lib/mcp/server/handlers.ts';
 import { gatewayRequest } from '../lib/mcp/server/public-config.ts';
+import {
+  oauthClientName,
+  resolveOAuthClient,
+  oauthClientProfiles,
+  type OAuthClientProfile,
+} from '../lib/mcp/oauth-clients.ts';
+const CLAUDE_OAUTH_CALLBACK = 'https://claude.ai/api/mcp/auth_callback';
 
 const publicOrigin = 'https://oauth-fixture.example';
+void test('another OAuth client can be added as configuration without widening existing callbacks', () => {
+  const extra: OAuthClientProfile = {
+    id: 'example-client',
+    name: 'Example Client',
+    redirects: [
+      { kind: 'exact', uri: 'https://client.example/oauth/callback' },
+    ],
+    instructions: ['Add the MCP URL in Example Client.'],
+  };
+  const profiles = [...oauthClientProfiles, extra];
+  assert.equal(
+    resolveOAuthClient('https://client.example/oauth/callback'),
+    null,
+  );
+  assert.equal(
+    resolveOAuthClient('https://client.example/oauth/callback', profiles)?.id,
+    'example-client',
+  );
+  assert.equal(
+    resolveOAuthClient(CLAUDE_OAUTH_CALLBACK, profiles)?.id,
+    'claude',
+  );
+  for (const value of [
+    'https://client.example/oauth/callback?next=evil',
+    'https://client.example.evil/oauth/callback',
+    'https://client.example/other',
+  ])
+    assert.equal(resolveOAuthClient(value, profiles), null);
+  assert.equal(
+    resolveOAuthClient('https://client.example/oauth/callback', [
+      ...profiles,
+      { ...extra, id: 'ambiguous' },
+    ]),
+    null,
+  );
+  for (const value of [
+    'https://chatgpt.com/connector/oauth/valid_id-1',
+    'https://chatgpt.com/connector_platform_oauth_redirect',
+  ])
+    assert.equal(resolveOAuthClient(value, profiles)?.id, 'chatgpt');
+  for (const value of [
+    'https://chatgpt.com/connector/oauth/valid?next=evil',
+    'https://chatgpt.com/connector/oauth/valid/other',
+    'https://chatgpt.com.evil/connector/oauth/valid',
+  ])
+    assert.equal(resolveOAuthClient(value, profiles), null);
+});
 void test('desktop OAuth accepts exact ephemeral loopback callbacks and rejects redirects away from the listener', async () => {
   for (const redirect of [
     'http://127.0.0.1:54321/callback',
@@ -151,6 +205,7 @@ function fixture(callbackUri = callback) {
         body: JSON.stringify({
           redirect_uris: [redirect],
           token_endpoint_auth_method: method,
+          client_name: 'ChatGPT', // Untrusted metadata must not rename Claude grants.
         }),
       }),
       'register',
@@ -214,6 +269,7 @@ function fixture(callbackUri = callback) {
     assert.equal(done.status, 303, await done.text());
     const location = new URL(done.headers.get('location')!);
     assert.equal(location.origin, new URL(callbackUri).origin);
+    assert.equal(location.pathname, new URL(callbackUri).pathname);
     assert.equal(location.searchParams.get('iss'), publicOrigin);
     assert.equal(location.searchParams.get('state'), 'client-state');
     return { code: location.searchParams.get('code')!, browser: b };
@@ -277,103 +333,195 @@ function fixture(callbackUri = callback) {
   };
 }
 
-void test('OAuth discovery, local consent, PKCE, tools, refresh rotation, audience and revocation work together', async () => {
-  const f = fixture();
+for (const [redirect, clientName] of [
+  [callback, 'ChatGPT'],
+  [CLAUDE_OAUTH_CALLBACK, 'Claude'],
+])
+  void test(`${clientName}: OAuth discovery, local consent, PKCE, tools, refresh rotation, audience and revocation work together`, async () => {
+    const f = fixture(redirect);
+    try {
+      assert.equal((await f.manage('prepare', { workspace: f.w })).status, 200);
+      const unauthorized = await f.rpc('');
+      assert.equal(unauthorized.status, 401);
+      assert.match(
+        unauthorized.headers.get('www-authenticate')!,
+        /resource_metadata="https:\/\/oauth-fixture.example\/\.well-known\/oauth-protected-resource\/mcp\/oauth-workspace"/,
+      );
+      const meta = await oauthMetadata(publicOrigin).json().then(wire);
+      assert.deepEqual(meta.code_challenge_methods_supported, ['S256']);
+      const client = await (await f.register()).json().then(wire);
+      const { code, browser } = await f.authorize(client.client_id);
+      assert.ok(browser.html.includes(`<h1>连接 ${clientName}</h1>`));
+      assert.ok(browser.html.includes(`完成授权，返回 ${clientName}`));
+      assert.ok(
+        browser.response.headers
+          .get('content-security-policy')!
+          .includes(`form-action 'self' ${redirect};`),
+      );
+      assert.equal(
+        (
+          await f.exchange(client.client_id, code, {
+            code_verifier: 'x'.repeat(64),
+          })
+        ).status,
+        400,
+      );
+      assert.equal(
+        (
+          await f.exchange(client.client_id, code, {
+            resource: publicOrigin + '/mcp/other',
+          })
+        ).status,
+        400,
+      );
+      const result = await f.exchange(client.client_id, code);
+      assert.equal(result.status, 200);
+      const token = await result.json().then(wire);
+      assert.equal((await f.exchange(client.client_id, code)).status, 400);
+      assert.equal(
+        (await (await f.rpc(token.access_token)).json().then(wire)).result.tools
+          .length,
+        7,
+      );
+      assert.equal(
+        (await f.rpc(token.access_token, 'tools/list', {}, 'other')).status,
+        401,
+      );
+      const create = await (
+        await f.rpc(token.access_token, 'tools/call', {
+          name: 'note_create',
+          arguments: {
+            title: 'OAuth note',
+            body: 'saved through OAuth',
+            star: false,
+            request_id: 'oauth-write',
+          },
+        })
+      )
+        .json()
+        .then(wire);
+      assert.equal(create.result.isError, false);
+      f.db
+        .prepare('UPDATE mcp_oauth_grants SET expires_at=?')
+        .run(Date.now() + 90000);
+      const renewal = await f.refresh(client.client_id, token.refresh_token);
+      assert.equal(renewal.status, 200);
+      const renewed = await renewal.json().then(wire);
+      assert.ok(
+        renewed.expires_in > 0 && renewed.expires_in <= 90,
+        'access lifetime cannot outlive consent',
+      );
+      assert.equal((await f.rpc(token.access_token)).status, 401);
+      const retry = await (
+        await f.rpc(renewed.access_token, 'tools/call', {
+          name: 'note_create',
+          arguments: {
+            title: 'OAuth note',
+            body: 'saved through OAuth',
+            star: false,
+            request_id: 'oauth-write',
+          },
+        })
+      )
+        .json()
+        .then(wire);
+      assert.deepEqual(
+        retry.result,
+        create.result,
+        'write idempotency survives refresh',
+      );
+      const row = await f.repo.token(await digest(renewed.access_token));
+      assert.ok(row);
+      assert.equal(row.name, `${clientName} · OAuth`);
+      await f.repo.revoke(row.owner_id, row.workspace_id, row.id);
+      assert.equal((await f.rpc(renewed.access_token)).status, 401);
+      assert.equal(
+        (await f.refresh(client.client_id, renewed.refresh_token)).status,
+        400,
+      );
+      assert.equal(
+        f.db.prepare('SELECT COUNT(*) AS n FROM mcp_receipts').get()!.n,
+        1,
+      );
+    } finally {
+      f.db.close();
+    }
+  });
+
+void test('Claude only accepts its exact official callback, including at registration', async () => {
+  const f = fixture(CLAUDE_OAUTH_CALLBACK);
   try {
-    assert.equal((await f.manage('prepare', { workspace: f.w })).status, 200);
-    const unauthorized = await f.rpc('');
-    assert.equal(unauthorized.status, 401);
-    assert.match(
-      unauthorized.headers.get('www-authenticate')!,
-      /resource_metadata="https:\/\/oauth-fixture.example\/\.well-known\/oauth-protected-resource\/mcp\/oauth-workspace"/,
-    );
-    const meta = await oauthMetadata(publicOrigin).json().then(wire);
-    assert.deepEqual(meta.code_challenge_methods_supported, ['S256']);
-    const client = await (await f.register()).json().then(wire);
-    const { code } = await f.authorize(client.client_id);
-    assert.equal(
-      (
-        await f.exchange(client.client_id, code, {
-          code_verifier: 'x'.repeat(64),
-        })
-      ).status,
-      400,
-    );
-    assert.equal(
-      (
-        await f.exchange(client.client_id, code, {
-          resource: publicOrigin + '/mcp/other',
-        })
-      ).status,
-      400,
-    );
-    const result = await f.exchange(client.client_id, code);
-    assert.equal(result.status, 200);
-    const token = await result.json().then(wire);
-    assert.equal((await f.exchange(client.client_id, code)).status, 400);
-    assert.equal(
-      (await (await f.rpc(token.access_token)).json().then(wire)).result.tools
-        .length,
-      7,
-    );
-    assert.equal(
-      (await f.rpc(token.access_token, 'tools/list', {}, 'other')).status,
-      401,
-    );
-    const create = await (
-      await f.rpc(token.access_token, 'tools/call', {
-        name: 'note_create',
-        arguments: {
-          title: 'OAuth note',
-          body: 'saved through OAuth',
-          star: false,
-          request_id: 'oauth-write',
-        },
-      })
+    assert.equal(oauthClientName(CLAUDE_OAUTH_CALLBACK), 'Claude');
+    for (const redirect of [
+      'https://claude.ai.evil.example/api/mcp/auth_callback',
+      'https://claude.ai@evil.example/api/mcp/auth_callback',
+      'https://user@claude.ai/api/mcp/auth_callback',
+      'http://claude.ai/api/mcp/auth_callback',
+      'https://claude.ai/api/mcp/auth_callback/other',
+      'https://claude.ai/api/mcp/auth_callback?next=https://evil.example',
+      'https://claude.ai/api/mcp/auth_callback#fragment',
+      'https://claude.ai/api/mcp/%61uth_callback',
+      'https://claude.ai:444/api/mcp/auth_callback',
+    ]) {
+      assert.equal(allowedOAuthRedirect(redirect), false, redirect);
+      assert.equal((await f.register('none', redirect)).status, 400, redirect);
+    }
+  } finally {
+    f.db.close();
+  }
+});
+
+void test('Claude and ChatGPT clients cannot exchange or refresh each other grants', async () => {
+  const f = fixture(CLAUDE_OAUTH_CALLBACK);
+  try {
+    await f.manage('prepare', { workspace: f.w });
+    const claude = await (await f.register()).json().then(wire);
+    const chatgpt = await (
+      await f.register('none', callback)
     )
       .json()
       .then(wire);
-    assert.equal(create.result.isError, false);
-    f.db
-      .prepare('UPDATE mcp_oauth_grants SET expires_at=?')
-      .run(Date.now() + 90000);
-    const renewal = await f.refresh(client.client_id, token.refresh_token);
-    assert.equal(renewal.status, 200);
-    const renewed = await renewal.json().then(wire);
-    assert.ok(
-      renewed.expires_in > 0 && renewed.expires_in <= 90,
-      'access lifetime cannot outlive consent',
+    assert.equal((await f.start(chatgpt.client_id)).response.status, 400);
+    const request = await f.start(claude.client_id);
+    const inspected = await f.manage('oauth', {
+      action: 'inspect',
+      requestId: request.id,
+      workspaceId: f.w.id,
+    });
+    assert.equal(
+      ((await inspected.json()) as { clientName: string }).clientName,
+      'Claude',
     );
-    assert.equal((await f.rpc(token.access_token)).status, 401);
-    const retry = await (
-      await f.rpc(renewed.access_token, 'tools/call', {
-        name: 'note_create',
-        arguments: {
-          title: 'OAuth note',
-          body: 'saved through OAuth',
-          star: false,
-          request_id: 'oauth-write',
-        },
-      })
+    // Rejection must return to Claude with the original state and without a code.
+    await f.manage('oauth', {
+      action: 'deny',
+      requestId: request.id,
+      workspaceId: f.w.id,
+    });
+    const denied = await f.post(
+      'complete',
+      { request_id: request.id, csrf: request.csrf, decision: 'continue' },
+      { Origin: publicOrigin, Cookie: request.cookie },
+    );
+    const deniedUrl = new URL(denied.headers.get('location')!);
+    assert.equal(deniedUrl.origin + deniedUrl.pathname, CLAUDE_OAUTH_CALLBACK);
+    assert.equal(deniedUrl.searchParams.get('error'), 'access_denied');
+    assert.equal(deniedUrl.searchParams.get('state'), 'client-state');
+    assert.equal(deniedUrl.searchParams.has('code'), false);
+    const { code } = await f.authorize(claude.client_id);
+    assert.equal((await f.exchange(chatgpt.client_id, code)).status, 400);
+    const token = await (
+      await f.exchange(claude.client_id, code)
     )
       .json()
       .then(wire);
-    assert.deepEqual(
-      retry.result,
-      create.result,
-      'write idempotency survives refresh',
-    );
-    const row = await f.repo.token(await digest(renewed.access_token));
-    assert.ok(row);
-    await f.repo.revoke(row.owner_id, row.workspace_id, row.id);
-    assert.equal((await f.rpc(renewed.access_token)).status, 401);
     assert.equal(
-      (await f.refresh(client.client_id, renewed.refresh_token)).status,
+      (await f.refresh(chatgpt.client_id, token.refresh_token)).status,
       400,
     );
     assert.equal(
-      f.db.prepare('SELECT COUNT(*) AS n FROM mcp_receipts').get()!.n,
-      1,
+      (await f.refresh(claude.client_id, token.refresh_token)).status,
+      200,
     );
   } finally {
     f.db.close();
