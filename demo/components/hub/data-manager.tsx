@@ -15,6 +15,7 @@ import {
 } from '@/lib/backup';
 import { trashCounts } from '@/lib/recycle-bin';
 import { taskRequest } from '@/lib/tasks/client';
+import { mcpRequest } from '@/lib/mcp/client';
 
 function download(backup: HubBackup, prefix = 'ContextHub备份') {
   const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' });
@@ -75,7 +76,8 @@ export function DataManager({
           <h3>备份与恢复</h3>
           <p className="inline-note">
             导出已保存的手账、Note、摘要、待归档内容、草稿和本地附件。不包含模型
-            Key、投递凭据及服务端尚未收取的队列。
+            Key、投递凭据、MCP 令牌及服务端尚未接收的变更。MCP
+            写入需要先在网页接收，才会进入此备份。
           </p>
           <Button
             disabled={busy || !state || !saved}
@@ -128,7 +130,9 @@ export function DataManager({
                   ? '覆盖前会发起当前数据的备份下载；'
                   : '当前数据读取失败，无法生成覆盖前备份；'}
                 摘要自动运行和自动收件会暂停，回收站内容获得新的 30
-                天恢复期。现有后台任务及未接收结果会取消，不包含在备份中。恢复后可重新启用收件。
+                天恢复期。现有后台任务及未接收结果会取消；MCP
+                连接、服务副本与未接收变更会清除，避免旧内容写回。恢复后可重新启用收件和
+                MCP。
               </p>
               <label className="checks">
                 <input
@@ -153,6 +157,7 @@ export function DataManager({
                     // data, so old work cannot keep running against a restored library.
                     await taskRequest('session', {});
                     await taskRequest('cancel-all', {});
+                    await mcpRequest('reset', {});
                     await restoreBackup(localRepository, backup);
                     window.location.reload();
                   })

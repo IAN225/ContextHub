@@ -43,10 +43,37 @@ function NoteEditor({
   onStar: () => void;
   focusTitle?: boolean;
 }) {
-  const [d, setD, p] = usePersistent(`note-draft-${w.id}-${note.id}`, {
+  const [d, setD, p] = usePersistent<{
+    title: string;
+    body: string;
+    baseTitle?: string;
+    baseBody?: string;
+  }>(`note-draft-${w.id}-${note.id}`, {
     title: note.title,
     body: note.body,
+    baseTitle: note.title,
+    baseBody: note.body,
   });
+  const newerVersion =
+    d.baseTitle !== undefined &&
+    (d.baseTitle !== note.title || d.baseBody !== note.body);
+  useEffect(() => {
+    if (!p.ready) return;
+    if (d.baseTitle === undefined) {
+      setD({ ...d, baseTitle: note.title, baseBody: note.body });
+    } else if (
+      newerVersion &&
+      ((d.title === d.baseTitle && d.body === d.baseBody) ||
+        (d.title === note.title && d.body === note.body))
+    ) {
+      setD({
+        title: note.title,
+        body: note.body,
+        baseTitle: note.title,
+        baseBody: note.body,
+      });
+    }
+  }, [p.ready, d, note.title, note.body, newerVersion, setD]);
   const [history, setHistory] = useState(false),
     [message, setMessage] = useState('');
   const titleInput = useRef<HTMLInputElement>(null);
@@ -60,15 +87,17 @@ function NoteEditor({
     return () => clearTimeout(timer);
   }, [message]);
   async function save() {
-    const saved = await p.commitWith(d, (entry) =>
-      onSave(
-        {
-          title: d.title.trim() || '无标题 Note',
-          body: d.body,
-          editor: '我',
-        },
-        entry,
-      ),
+    const content = { title: d.title.trim() || '无标题 Note', body: d.body };
+    const saved = await p.commitWith(
+      { ...content, baseTitle: content.title, baseBody: content.body },
+      (entry) =>
+        onSave(
+          {
+            ...content,
+            editor: '我',
+          },
+          entry,
+        ),
     );
     if (saved) setMessage('已保存新版本');
   }
@@ -152,6 +181,25 @@ function NoteEditor({
         onChange={(body) => setD({ ...d, body })}
         minHeight={340}
       />
+      {(newerVersion && d.title !== note.title) ||
+      (newerVersion && d.body !== note.body) ? (
+        <p className="callout warning">
+          Note
+          已有新版本，当前草稿仍保留。保存会另建版本，已有内容可在历史中查看。
+          <Button
+            onClick={() =>
+              setD({
+                title: note.title,
+                body: note.body,
+                baseTitle: note.title,
+                baseBody: note.body,
+              })
+            }
+          >
+            载入最新版本
+          </Button>
+        </p>
+      ) : null}
       <div className="note-paper-footer">
         <span>
           <SaveStatus state={p}>

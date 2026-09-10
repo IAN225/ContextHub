@@ -45,6 +45,7 @@ import { useHub } from '@/lib/use-hub';
 import type { WorkspaceCommand } from '@/lib/hub-state';
 import type { StorageEntry } from '@/lib/repository';
 import { useDemoMemoryTools } from '@/lib/webmcp';
+import { useMcp } from '@/lib/mcp/use-mcp';
 import { useDeliveryInbox } from '@/lib/imports/use-delivery-inbox';
 import {
   blankWorkspace,
@@ -116,6 +117,11 @@ export default function Hub() {
   const background = useBackgroundTasks(
     data,
     persistence.ready && modal !== 'data',
+    commit,
+  );
+  const mcp = useMcp(
+    data,
+    persistence.ready && persistence.saved && modal !== 'data',
     commit,
   );
   useDemoMemoryTools(w, data.workspaces.length > 0);
@@ -495,6 +501,7 @@ export default function Hub() {
                             w={w}
                             active={!home && page === 'connect'}
                             onCommand={onWorkspaceCommand}
+                            mcp={mcp}
                           />
                         ) : (
                           <SearchPage
@@ -589,10 +596,10 @@ export default function Hub() {
           />
         )}
         <InboxPet count={deliveries.length} onClick={() => navigate('inbox')} />
-        {notice && (
+        {(notice || mcp.received) && (
           <output className="journal-toast">
             <Check size={16} />
-            {notice}
+            {notice || mcp.received}
           </output>
         )}
       </div>

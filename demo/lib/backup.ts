@@ -286,6 +286,16 @@ export async function restoreBackup(
         : [];
     const restored = {
       ...state,
+      mcpReceipts: [
+        ...new Set([
+          ...(object(old) && Array.isArray(old.mcpReceipts)
+            ? old.mcpReceipts.filter(
+                (id): id is string => typeof id === 'string',
+              )
+            : []),
+          ...(state.mcpReceipts ?? []),
+        ]),
+      ],
       deliveryReceipts: [
         ...new Set([...oldReceipts, ...(state.deliveryReceipts ?? [])]),
       ],
