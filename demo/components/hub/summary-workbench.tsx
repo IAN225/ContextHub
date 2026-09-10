@@ -1,22 +1,18 @@
 'use client';
 import { useState } from 'react';
 import { FlaskConical } from 'lucide-react';
-import { Button, Modal, Picker, SaveStatus } from './shared';
+import { Button, Picker, SaveStatus } from './shared';
 import { TextEditor } from './editors';
 import { usePersistent } from '@/lib/store';
-import { type Workspace, type Upload } from '@/lib/domain';
+import { type Workspace } from '@/lib/domain';
 import { useTaskQueue } from '@/lib/tasks/use-background-tasks';
 import { planWorkbench } from '@/lib/summary/planning';
 export function SummaryWorkbench({
   w,
-  onCreate: _onCreate,
-  onClose,
   pendingCount,
   onReview,
 }: {
   w: Workspace;
-  onCreate: (u: Upload) => Promise<boolean>;
-  onClose: () => void;
   pendingCount: number;
   onReview: () => void;
 }) {
@@ -63,21 +59,24 @@ export function SummaryWorkbench({
     }
   }
   return (
-    <Modal
-      title="摘要工作台"
-      description="选择历史摘要和重点原文调用模型生成候选，预览确认后再设为活跃摘要。"
-      onClose={onClose}
-    >
+    <div className="summary-custom-editor">
+      <div className="summary-paper-head">
+        <div>
+          <div className="eyebrow">CUSTOM SUMMARY</div>
+          <h2>新建自定义摘要</h2>
+          <p>选择历史摘要和重点原文，生成候选后确认应用。</p>
+        </div>
+        <FlaskConical size={22} />
+      </div>
       {(queued || running) && (
         <p className="callout">
-          候选生成任务已加入后台，可以关闭此窗口。结果接收后会显示在待确认候选中。
+          候选生成任务已加入后台，可以切换到其他页面。结果接收后会显示在待确认候选中。
         </p>
       )}
       {pendingCount > 0 && (
         <div className="workbench-pending">
           <Button
             onClick={() => {
-              onClose();
               onReview();
             }}
           >
@@ -88,7 +87,7 @@ export function SummaryWorkbench({
       <label className="field">
         起始摘要
         <Picker
-          label="工作台起始摘要"
+          label="自定义摘要起始摘要"
           value={d.summaryId}
           onChange={(summaryId) => setD({ ...d, summaryId })}
           options={[
@@ -172,6 +171,6 @@ export function SummaryWorkbench({
           {error}
         </p>
       )}
-    </Modal>
+    </div>
   );
 }

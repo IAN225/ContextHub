@@ -89,6 +89,8 @@ export type Config = {
   modelEnabled?: boolean;
   auto: boolean;
   batch: number;
+  batchMode?: 'turns' | 'tokens';
+  batchTokens?: number;
   review: boolean;
   provider?: string;
   model?: string;

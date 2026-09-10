@@ -9,7 +9,7 @@ import {
   Check,
   Clock,
   ChevronRight,
-  SlidersHorizontal,
+  Plus,
   History,
   AlertTriangle,
 } from 'lucide-react';
@@ -29,19 +29,19 @@ import { useSummaryTask } from './use-summary-task';
 import { RestoreDialog } from './summary-restore-dialog';
 import { ModelSettings } from './summary-model-settings';
 import { SummaryWorkbench } from './summary-workbench';
+import { selectCompressionBatch } from '@/lib/summary/planning';
+import { estimateInput } from '@/lib/summary/contracts';
 import {
   coverage,
   estimateTurnTokens,
   type Workspace,
   type Summary,
-  type Upload,
 } from '@/lib/domain';
 export function SummaryPage({
   w,
   active,
   onCommand,
   onCommit,
-  onUpload,
   pendingCount,
   onReview,
 }: {
@@ -49,17 +49,32 @@ export function SummaryPage({
   active: boolean;
   onCommand: SendWorkspaceCommand;
   onCommit: CommitWorkspaceCommand;
-  onUpload: (u: Upload) => Promise<boolean>;
   pendingCount: number;
   onReview: () => void;
 }) {
   const [selected, setSelected] = useState(w.activeId),
     [modal, setModal] = useState(''),
+    [creating, setCreating] = useState(false),
     [restore, setRestore] = useState<Summary | null>(null);
   const task = useSummaryTask(w, active, onCommand, onCommit, setSelected);
   const { running, message } = task;
   const c = coverage(w),
     s = w.summaries.find((s) => s.id === selected) ?? c.active;
+  const retainTokenMode = w.retainMode === 'tokens';
+  const batchTokenMode = w.config.batchMode === 'tokens';
+  let batchPreview: ReturnType<typeof selectCompressionBatch> | undefined;
+  try {
+    batchPreview = selectCompressionBatch(w, c);
+  } catch {
+    // Invalid imported model settings remain editable in the settings dialog.
+  }
+  const recentTokens = c.recent.reduce(
+    (sum, turn) => sum + estimateTurnTokens(turn),
+    0,
+  );
+  const batchTokens = batchPreview?.input
+    ? estimateInput(batchPreview.input.system, batchPreview.input.user)
+    : 0;
   return (
     <>
       <div className="section-heading compact">
@@ -89,9 +104,29 @@ export function SummaryPage({
         </div>
         <ChainMap w={w} />
         <div className="summary-controls">
-          <div className="retention-control">
+          <fieldset className="summary-limit" aria-label="近期原文保留窗口">
+            <span>保留近期</span>
+            <input
+              aria-label={
+                retainTokenMode ? '保留原文 token 上限' : '保留近期轮次数'
+              }
+              className={retainTokenMode ? 'token-limit-input' : ''}
+              type="number"
+              min={1}
+              max={retainTokenMode ? 2000000 : 500}
+              value={retainTokenMode ? (w.retainTokens ?? 8000) : w.retain}
+              onChange={(e) => {
+                task.stop();
+                onCommand({
+                  type: 'summary/retain',
+                  ...(retainTokenMode
+                    ? { tokens: Number(e.target.value) }
+                    : { retain: Number(e.target.value) }),
+                });
+              }}
+            />
             <Picker
-              label="原文窗口计量方式"
+              label="原文窗口单位"
               value={w.retainMode ?? 'turns'}
               onChange={(mode) => {
                 task.stop();
@@ -101,71 +136,79 @@ export function SummaryPage({
                 });
               }}
               options={[
-                { value: 'turns', label: '按轮数' },
-                { value: 'tokens', label: '按 token' },
+                { value: 'tokens', label: 'token' },
+                { value: 'turns', label: '轮' },
               ]}
             />
-            <label>
-              保留近期{' '}
-              <input
-                aria-label={
-                  w.retainMode === 'tokens'
-                    ? '保留原文 token 上限'
-                    : '保留近期轮次数'
-                }
-                className={
-                  w.retainMode === 'tokens' ? 'token-retain-input' : ''
-                }
-                type="number"
-                min={1}
-                max={w.retainMode === 'tokens' ? 2000000 : 500}
-                value={
-                  w.retainMode === 'tokens'
-                    ? (w.retainTokens ?? 8000)
-                    : w.retain
-                }
-                onChange={(e) => {
-                  task.stop();
-                  onCommand({
-                    type: 'summary/retain',
-                    ...(w.retainMode === 'tokens'
-                      ? { tokens: Number(e.target.value) }
-                      : { retain: Number(e.target.value) }),
-                  });
-                }}
-              />{' '}
-              {w.retainMode === 'tokens' ? 'token' : '轮原文'}
-            </label>
-          </div>
-          <label>
-            每批最多{' '}
+            <span>原文</span>
+            <span
+              className="summary-limit-hint"
+              title="根据当前原文窗口保守估算；只纳入完整轮次。"
+            >
+              · 约
+              {retainTokenMode
+                ? c.recent.length
+                : recentTokens.toLocaleString()}
+              {retainTokenMode ? '轮' : ' token'}
+            </span>
+          </fieldset>
+          <fieldset className="summary-limit" aria-label="每批发送上限">
+            <span>每批发送上限</span>
             <input
-              aria-label="每批轮次数"
+              aria-label={batchTokenMode ? '每批 token 上限' : '每批轮次数'}
+              className={batchTokenMode ? 'token-limit-input' : ''}
               type="number"
               min={1}
-              max={100}
-              value={w.config.batch}
-              onChange={(e) =>
+              max={batchTokenMode ? 2000000 : 100}
+              value={
+                batchTokenMode
+                  ? (w.config.batchTokens ?? 16000)
+                  : w.config.batch
+              }
+              onChange={(e) => {
+                task.stop();
+                const value = Math.max(
+                  1,
+                  Math.min(
+                    batchTokenMode ? 2000000 : 100,
+                    Math.floor(Number(e.target.value)) || 1,
+                  ),
+                );
                 onCommand({
                   type: 'summary/config',
-                  patch: {
-                    batch: Math.max(1, Math.min(100, Number(e.target.value))),
-                  },
-                })
-              }
-            />{' '}
-            轮
-          </label>
-          <div className="action-row">
-            <Button
-              onClick={() => {
-                task.stop();
-                setModal('workbench');
+                  patch: batchTokenMode
+                    ? { batchTokens: value }
+                    : { batch: value },
+                });
               }}
+            />
+            <Picker
+              label="每批发送单位"
+              value={w.config.batchMode ?? 'turns'}
+              onChange={(mode) => {
+                task.stop();
+                onCommand({
+                  type: 'summary/config',
+                  patch: { batchMode: mode as 'turns' | 'tokens' },
+                });
+              }}
+              options={[
+                { value: 'tokens', label: 'token' },
+                { value: 'turns', label: '轮' },
+              ]}
+            />
+            <span
+              className="summary-limit-hint"
+              title="根据下一批完整请求保守估算，包含提示词、已有摘要和原文，并受模型上下文预算限制。"
             >
-              <SlidersHorizontal size={14} />
-              工作台
-            </Button>
+              · 约
+              {batchTokenMode
+                ? (batchPreview?.batch.length ?? 0)
+                : batchTokens.toLocaleString()}
+              {batchTokenMode ? '轮' : ' token'}
+            </span>
+          </fieldset>
+          <div className="summary-compress-action">
             <Button
               primary
               disabled={
@@ -183,16 +226,6 @@ export function SummaryPage({
             </Button>
           </div>
         </div>
-        {w.retainMode === 'tokens' && (
-          <p className="inline-note retention-note">
-            按保守估算计数，当前原文窗口约{' '}
-            {c.recent
-              .reduce((sum, turn) => sum + estimateTurnTokens(turn), 0)
-              .toLocaleString()}{' '}
-            token · {c.recent.length} 轮。
-            从处理水位之后依次纳入完整轮次，放不下的一轮整体留在窗口外；不截断，也不跳过。
-          </p>
-        )}
         <div className="summary-switches">
           <label className="checks">
             <Switch
@@ -269,37 +302,62 @@ export function SummaryPage({
             </h2>
             <small>{w.summaries.length} / 30</small>
           </div>
-          {[...w.summaries].reverse().map((item, i) => (
-            <button
-              className={s?.id === item.id ? 'selected' : ''}
-              key={item.id}
-              onClick={() => setSelected(item.id)}
-            >
-              <div className="checkpoint-marker">
-                <span />
-                {i !== w.summaries.length - 1 && <i />}
-              </div>
-              <div>
-                <div className="checkpoint-title">
-                  {item.title}
-                  {item.id === w.activeId && <span className="pill">活跃</span>}
+          <div className="checkpoint-scroll">
+            {[...w.summaries].reverse().map((item, i) => (
+              <button
+                className={!creating && s?.id === item.id ? 'selected' : ''}
+                key={item.id}
+                onClick={() => {
+                  setCreating(false);
+                  setSelected(item.id);
+                }}
+              >
+                <div className="checkpoint-marker">
+                  <span />
+                  {i !== w.summaries.length - 1 && <i />}
                 </div>
-                <p>覆盖 {item.covered.length} 轮原文</p>
-                <small>{formatDate(item.createdAt)}</small>
-              </div>
-              <ChevronRight size={13} />
-            </button>
-          ))}
-          {!w.summaries.length && (
-            <p className="inline-note">首次压缩后，检查点会出现在这里。</p>
-          )}
-          <p className="inline-note checkpoint-help">
-            每批保存一个检查点，最多保留 30
-            条。选择历史摘要后，可单独决定是否回退原文水位。
-          </p>
+                <div>
+                  <div className="checkpoint-title">
+                    {item.title}
+                    {item.id === w.activeId && (
+                      <span className="pill">活跃</span>
+                    )}
+                  </div>
+                  <p>覆盖 {item.covered.length} 轮原文</p>
+                  <small>{formatDate(item.createdAt)}</small>
+                </div>
+                <ChevronRight size={13} />
+              </button>
+            ))}
+            {!w.summaries.length && (
+              <p className="inline-note">首次压缩后，检查点会出现在这里。</p>
+            )}
+            <p className="inline-note checkpoint-help">
+              每批保存一个检查点，最多保留 30
+              条。选择历史摘要后，可单独决定是否回退原文水位。
+            </p>
+          </div>
+          <button
+            type="button"
+            className={`checkpoint-create ${creating ? 'selected' : ''}`}
+            aria-pressed={creating}
+            onClick={() => {
+              task.stop();
+              setCreating(true);
+            }}
+          >
+            <Plus size={17} />
+            <span>新建自定义摘要</span>
+          </button>
         </aside>
         <article className="summary-paper">
-          {s ? (
+          {creating ? (
+            <SummaryWorkbench
+              w={w}
+              pendingCount={pendingCount}
+              onReview={onReview}
+            />
+          ) : s ? (
             <>
               <div className="summary-paper-head">
                 <div>
@@ -340,15 +398,6 @@ export function SummaryPage({
       </p>
       {modal === 'settings' && (
         <ModelSettings w={w} onCommit={onCommit} onClose={() => setModal('')} />
-      )}{' '}
-      {modal === 'workbench' && (
-        <SummaryWorkbench
-          w={w}
-          onCreate={onUpload}
-          onClose={() => setModal('')}
-          pendingCount={pendingCount}
-          onReview={onReview}
-        />
       )}{' '}
       {restore && (
         <RestoreDialog

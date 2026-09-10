@@ -191,19 +191,6 @@ export default function Hub() {
   function notify(text: string) {
     setNotice(text);
   }
-  async function upload(u: Upload) {
-    const origin = currentView.current;
-    if (!(await commit({ type: 'upload/add', upload: u }))) return false;
-    if (currentView.current !== origin) return true;
-    if (inboxUploads([u]).length) {
-      navigate('inbox');
-      setModal('');
-      notify('对话已放入收件箱，可随时归档到手账。');
-    } else {
-      setModal(u.kind === 'summary' ? 'review-workbench' : 'review-manual');
-    }
-    return true;
-  }
   function updateUpload(next: Upload) {
     dispatch({ type: 'upload/update', upload: next });
   }
@@ -474,7 +461,6 @@ export default function Hub() {
                               modal !== 'data'
                             }
                             onCommand={onWorkspaceCommand}
-                            onUpload={upload}
                             onCommit={commitWorkspace}
                             pendingCount={candidates.length}
                             onReview={() => setModal('review-workbench')}

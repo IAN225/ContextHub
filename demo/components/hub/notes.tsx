@@ -147,7 +147,7 @@ function NoteEditor({
       </div>
       <TextEditor
         label={`NOTE · ${note.id}`}
-        labelAction={<CopyButton text={note.id} label="复制 ID" />}
+        labelAction={<CopyButton text={note.id} label="复制 ID" iconOnly />}
         value={d.body}
         onChange={(body) => setD({ ...d, body })}
         minHeight={340}

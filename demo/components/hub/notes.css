@@ -99,6 +99,10 @@
 .note-paper .editor-label > span {
   overflow-wrap: anywhere;
 }
+.note-paper .editor-label .copy-icon-button {
+  padding: 0;
+  background: transparent;
+}
 .note-paper-top .icon-button {
   color: #94a479;
 }

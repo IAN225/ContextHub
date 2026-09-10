@@ -563,7 +563,14 @@ export function normalizeHubState(raw: unknown): HubState {
           typeof item.config.modelEnabled === 'boolean') &&
         typeof item.config.auto === 'boolean' &&
         typeof item.config.review === 'boolean' &&
-        Number.isFinite(item.config.batch),
+        Number.isFinite(item.config.batch) &&
+        (item.config.batchMode === undefined ||
+          item.config.batchMode === 'turns' ||
+          item.config.batchMode === 'tokens') &&
+        (item.config.batchTokens === undefined ||
+          (Number.isInteger(item.config.batchTokens) &&
+            Number(item.config.batchTokens) >= 1 &&
+            Number(item.config.batchTokens) <= 2000000)),
     );
     requireShape(
       item.firstComplete === undefined ||

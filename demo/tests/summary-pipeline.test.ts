@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { blankWorkspace, coverage, type Workspace } from '../lib/domain.ts';
-import { applyWorkspaceCommand } from '../lib/hub-state.ts';
+import { applyWorkspaceCommand, normalizeHubState } from '../lib/hub-state.ts';
 import { createPersistentSession } from '../lib/persistent-session.ts';
 import { composeSummaryInput } from '../lib/summary/prompts.ts';
 import {
@@ -9,12 +9,13 @@ import {
   checkpointFromResult,
   planCompression,
   planWorkbench,
+  selectCompressionBatch,
 } from '../lib/summary/planning.ts';
 import { summaryProvider } from '../lib/summary/providers/index.ts';
 import { generateSummary } from '../lib/summary/server/service.ts';
 import { summaryConnectionStatus } from '../lib/summary/server/config.ts';
 import { createSummaryHandler } from '../lib/summary/server/handlers.ts';
-import type { SummaryInput } from '../lib/summary/contracts.ts';
+import { estimateInput, type SummaryInput } from '../lib/summary/contracts.ts';
 
 const env = {
   CONTEXT_HUB_SUMMARY_BASE_URL: 'https://provider.example/v1',
@@ -432,10 +433,9 @@ void test('server credentials are absent from public status and cannot be redire
       ),
     /本地凭据绑定/,
   );
-  await assert.rejects(
-    () => generateSummary(input(), {}, undefined, fetcher),
-    { code: 'SUMMARY_NOT_READY' },
-  );
+  await assert.rejects(() => generateSummary(input(), {}, undefined, fetcher), {
+    code: 'SUMMARY_NOT_READY',
+  });
   assert.equal(calls, 0);
   const summary = await generateSummary(
     input(),
@@ -580,4 +580,72 @@ void test('probe reports acceptance separately from unverified thinking capabili
     body.probes.map((probe) => probe.status),
     ['字段被接受', '无法确认是否生效'],
   );
+});
+
+void test('token batch limits include prompt and previous summary overhead and preserve complete tool turns', () => {
+  const w = workspace();
+  w.turns[0].messages.push({
+    role: 'tool_result',
+    content: 'Complete tool output',
+  });
+  w.summaries = [
+    {
+      id: 'previous',
+      title: 'Previous',
+      text: 'Historical context '.repeat(10),
+      covered: [],
+      createdAt: '2026-09-10',
+    },
+  ];
+  w.activeId = 'previous';
+  const composed = composeSummaryInput(w, w.turns.slice(0, 2), w.summaries[0]);
+  const exact = estimateInput(composed.system, composed.user);
+  w.config.batchMode = 'tokens';
+  w.config.batchTokens = exact;
+  w.config.batch = 1; // inactive turn preference must not cap token mode
+  const plan = planCompression(w)!;
+  assert.deepEqual(plan.turnIds, ['turn-0', 'turn-1']);
+  assert.equal(plan.estimatedInput, exact);
+  assert.ok(plan.input.user.includes('Complete tool output'));
+  w.config.batchTokens = exact - 1;
+  assert.deepEqual(planCompression(w)!.turnIds, ['turn-0']);
+  w.config.batchTokens = 1;
+  assert.equal(selectCompressionBatch(w).batch.length, 0);
+  assert.throws(() => planCompression(w), /每批发送上限/);
+  assert.equal(w.watermark, null);
+  w.config.batchMode = 'turns';
+  assert.deepEqual(planCompression(w)!.turnIds, ['turn-0']);
+});
+void test('token batches stop before a large middle turn and obey context budget and stale result protection', () => {
+  const w = workspace();
+  w.config.batchMode = 'tokens';
+  w.config.batchTokens = 10000;
+  w.turns[1].messages[0].content = 'large'.repeat(4000);
+  assert.deepEqual(planCompression(w)!.turnIds, ['turn-0']);
+  w.config.batchTokens = 2000000;
+  w.config.budget = 2048;
+  assert.deepEqual(planCompression(w)!.turnIds, ['turn-0']);
+  const generated = checkpointFromResult(
+    planCompression(w)!,
+    result,
+    'token-checkpoint',
+    '2026-09-10',
+  );
+  w.config.batchTokens = 10000;
+  assert.throws(() => applyGeneratedCheckpoint(w, generated), /已经变化/);
+});
+void test('batch unit preferences round-trip through persisted workspace validation and reject invalid limits', () => {
+  const w = workspace();
+  w.config.batchMode = 'tokens';
+  w.config.batchTokens = 12345;
+  const raw = { schemaVersion: 1, workspaces: [w], uploads: [] };
+  const restored = normalizeHubState(JSON.parse(JSON.stringify(raw)))
+    .workspaces[0];
+  assert.equal(restored.config.batchMode, 'tokens');
+  assert.equal(restored.config.batchTokens, 12345);
+  for (const limit of [0, -1, 1.5, 2000001, '8000']) {
+    const invalid = JSON.parse(JSON.stringify(raw));
+    invalid.workspaces[0].config.batchTokens = limit;
+    assert.throws(() => normalizeHubState(invalid));
+  }
 });
