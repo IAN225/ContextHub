@@ -87,16 +87,23 @@ const escape = (value: string) =>
         c
       ]!,
   );
-function page(content: string, cookie?: string, status = 200) {
+function page(
+  content: string,
+  cookie?: string,
+  status = 200,
+  redirectUri?: string,
+) {
   return new Response(
     `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>授权 ChatGPT · Context Hub</title><style>body{font:16px/1.7 system-ui,sans-serif;background:#f5f2ec;color:#443e36;margin:0;padding:36px 20px}main{max-width:560px;margin:8vh auto;background:#fffdf8;border:1px solid #ded8ce;border-radius:20px;padding:32px}h1{font-size:24px}code{display:block;overflow-wrap:anywhere;background:#eee9e1;padding:14px;border-radius:8px;user-select:all}button{font:inherit;padding:10px 18px;border:1px solid #b9ada0;border-radius:8px;background:#eee7dc;cursor:pointer;margin:8px 8px 0 0}small{color:#736b62}p{overflow-wrap:anywhere}</style><main>${content}</main></html>`,
     {
       status,
       headers: {
         ...baseHeaders,
+        // no-referrer turns a browser form POST's Origin into "null".
+        // Preserve same-origin consent checks without leaking cross-origin URLs.
+        'Referrer-Policy': 'same-origin',
         'Content-Type': 'text/html; charset=utf-8',
-        'Content-Security-Policy':
-          "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+        'Content-Security-Policy': `default-src 'none'; style-src 'unsafe-inline'; form-action 'self'${redirectUri && allowedOAuthRedirect(redirectUri) ? ' ' + redirectUri : ''}; frame-ancestors 'none'; base-uri 'none'`,
         ...(cookie ? { 'Set-Cookie': cookie } : {}),
       },
     },
@@ -278,6 +285,8 @@ export async function oauthHandler(
       return page(
         `<h1>连接 ChatGPT</h1><p>请在本机 Context Hub 中打开目标手账的「连接设置」，将下面的请求码粘贴到「确认 ChatGPT 授权」，核对后批准。</p><code>${id}</code><p><small>目标手账 ID：${escape(target.wid)}<br>有效期 10 分钟。只批准你刚刚在 ChatGPT 发起的连接。</small></p><p>批准后回到此页继续。授权包括读取记忆、检索原文、读写 Note 和导入分享链接，有效期 30 天，可随时在手账中吊销。</p><form method="post" action="/oauth/complete"><input type="hidden" name="request_id" value="${id}"><input type="hidden" name="csrf" value="${browser}"><button name="decision" value="continue">完成授权，返回 ChatGPT</button><button name="decision" value="cancel">取消</button></form>`,
         `ch_oauth_browser=${browser}; Path=/oauth; HttpOnly; Secure; SameSite=Lax; Max-Age=600`,
+        200,
+        r.redirect_uri,
       );
     }
     if (request.method === 'POST' && action === 'complete') {

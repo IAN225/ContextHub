@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os';
 import { join, resolve, dirname, basename } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { createRequire } from 'node:module';
+import { createServer } from 'node:http';
 import { unstable_dev } from 'wrangler';
 import { createMcpGateway } from '../scripts/mcp-gateway.mjs';
 import { blankWorkspace } from '../lib/domain.ts';
@@ -152,6 +154,115 @@ try {
   const client = await registration.json();
   const verifier = 'h'.repeat(64),
     redirect = 'https://chatgpt.com/connector_platform_oauth_redirect';
+  // Let Chrome generate the form's Origin and cookies. Handcrafted fetch
+  // headers cannot catch browser Referrer-Policy or CSP redirect failures.
+  const { chromium } = createRequire(import.meta.url)('playwright');
+  const browser = await chromium.launch({ channel: 'chrome', headless: true });
+  const callbackServer = createServer((_req, res) =>
+    res.end('Synthetic callback received'),
+  );
+  await new Promise((resolve) =>
+    callbackServer.listen(0, '127.0.0.1', resolve),
+  );
+  const browserRedirect = `http://127.0.0.1:${callbackServer.address().port}/callback`;
+  try {
+    const browserClient = await (
+      await fetch(remote + '/oauth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          redirect_uris: [browserRedirect],
+          token_endpoint_auth_method: 'none',
+        }),
+      })
+    ).json();
+    const page = await browser.newPage();
+    let submittedOrigin;
+    let completeStatus;
+    page.on('console', (message) => {
+      if (message.type() === 'error') console.log('Browser:', message.text());
+    });
+    await page.route(publicOrigin + '/**', async (route) => {
+      const request = route.request();
+      const headers = await request.allHeaders();
+      delete headers.host;
+      delete headers['content-length'];
+      if (request.url().includes('/oauth/complete'))
+        submittedOrigin = headers.origin;
+      const response = await fetch(
+        remote + request.url().slice(publicOrigin.length),
+        {
+          method: request.method(),
+          headers,
+          body: request.postDataBuffer() ?? undefined,
+          redirect: 'manual',
+        },
+      );
+      if (request.url().includes('/oauth/complete'))
+        completeStatus = response.status;
+      await route.fulfill({
+        status: response.status,
+        headers: Object.fromEntries(response.headers),
+        body: Buffer.from(await response.arrayBuffer()),
+      });
+    });
+    await page.goto(
+      publicOrigin +
+        '/oauth/authorize?' +
+        new URLSearchParams({
+          client_id: browserClient.client_id,
+          redirect_uri: browserRedirect,
+          response_type: 'code',
+          scope: 'context:tools',
+          resource,
+          state: 'browser-state',
+          code_challenge_method: 'S256',
+          code_challenge: await pkce(verifier),
+        }),
+    );
+    const browserRequestId = await page
+      .locator('[name="request_id"]')
+      .inputValue();
+    assert.equal(
+      (
+        await managed('oauth', {
+          action: 'approve',
+          requestId: browserRequestId,
+          workspaceId: w.id,
+        })
+      ).status,
+      200,
+    );
+    await page.getByRole('button', { name: '完成授权，返回 ChatGPT' }).click();
+    await page.waitForTimeout(500);
+    assert.equal(
+      submittedOrigin,
+      publicOrigin,
+      'Chrome must preserve the same-origin form Origin',
+    );
+    assert.equal(completeStatus, 303);
+    await page.waitForURL(
+      (url) => url.origin + url.pathname === browserRedirect,
+      { timeout: 10000 },
+    );
+    const callback = new URL(page.url());
+    assert.equal(callback.searchParams.get('state'), 'browser-state');
+    const tokenResponse = await post('token', {
+      client_id: browserClient.client_id,
+      grant_type: 'authorization_code',
+      code: callback.searchParams.get('code'),
+      code_verifier: verifier,
+      redirect_uri: browserRedirect,
+      resource,
+    });
+    assert.equal(tokenResponse.status, 200);
+    console.log(
+      'PASS real Chrome consent form, callback navigation and PKCE exchange',
+    );
+  } finally {
+    await browser.close();
+    await new Promise((resolve) => callbackServer.close(resolve));
+  }
   const auth = await fetch(
     remote +
       '/oauth/authorize?' +
@@ -167,6 +278,12 @@ try {
       }),
   );
   assert.equal(auth.status, 200);
+  assert.equal(auth.headers.get('referrer-policy'), 'same-origin');
+  assert.ok(
+    auth.headers
+      .get('content-security-policy')
+      .includes(`form-action 'self' ${redirect};`),
+  );
   const html = await auth.text();
   const requestId = html.match(/name="request_id" value="([a-f0-9]+)"/)[1];
   const csrf = html.match(/name="csrf" value="([a-f0-9]+)"/)[1];
