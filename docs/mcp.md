@@ -2,6 +2,8 @@
 
 2026-09-10。7 项工具已接入真实服务，支持 Streamable HTTP、本机 stdio，以及 ChatGPT 官方客户端的 OAuth 授权。工具不会调用摘要模型。完整用户登录、跨设备账号同步与正式公网部署仍留到后续；摘要质量由用户验收。
 
+实际验收：用户于 2026-09-10 确认 ChatGPT 移动端成功调用笔记创建工具并写入一篇 Note。后续计划部署 Ubuntu 轻量云服务器与固定 HTTPS 地址；目前仍使用下方临时隧道测试流程。
+
 ## 在 ChatGPT 官方客户端测试
 
 1. 本机已安装 Cloudflare 官方 `cloudflared`。新设备需自行安装并加入 PATH，或放到 `demo/.wrangler/bin/cloudflared.exe`。运行前先停止占用 3000 的旧服务。
