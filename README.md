@@ -19,6 +19,8 @@ pnpm start
 
 开始继续开发前，先读 [接续说明](docs/HANDOFF.md) 和 [Demo 功能说明](demo/README.md)。
 
+Sites 本地预览、本机服务与 HTTPS 隧道的实际启动关系，以及尚未实现的功能，见 [本地运行与功能边界](docs/local-service-and-status.md)。
+
 摘要设置页面可填写接口、模型和 API Key，保存后立即生效；Key 由本机服务保存，不进入浏览器手账备份。未从页面保存时兼容 `demo/.env.summary.local`，换设备需重新配置，详见 [摘要压缩说明](docs/summary-compression.md)。
 
 附件保存、公开地址获取和暂停续跑见 [附件与后台任务](docs/2026-09-10-attachments-background.md)。关闭网页后已入队任务可继续处理，启动服务的进程需保持运行；服务中断的模型请求暂停待检查，不自动重试。

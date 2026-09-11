@@ -76,8 +76,8 @@ export function InboxPet({
   }, [moveTo]);
   const waiting = count > 0;
   const label = waiting
-    ? `收件箱，${count} 份上下文待归档`
-    : '收件箱，暂无新上下文';
+    ? `收件箱，${count} 项待处理收件`
+    : '收件箱，暂无待处理收件';
   return (
     <button
       className={`inbox-pet-button${dragging ? ' is-dragging' : ''}`}

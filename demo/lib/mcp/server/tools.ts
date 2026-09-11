@@ -191,6 +191,7 @@ export async function callMcpTool(
       id: note.id,
       title: note.title,
       star: note.star,
+      updatedAt: note.updatedAt,
       revision: await revisionOf(note),
       saved: true,
     };
@@ -248,6 +249,7 @@ export async function callMcpTool(
       ...context,
       id: note.id,
       revision: await revisionOf(note),
+      updatedAt: note.updatedAt,
       saved: true,
     };
   } else {

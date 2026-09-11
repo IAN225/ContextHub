@@ -356,6 +356,82 @@
 .connection-sync-notes > .inline-note {
   margin: 16px 0 0;
 }
+.connection-details.has-oauth {
+  overflow: hidden;
+  padding-right: 0;
+}
+.oauth-connection-details {
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.oauth-connection-head {
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding-right: 12px;
+}
+.oauth-connection-head .oauth-refresh,
+.oauth-connection-head .oauth-refresh:hover {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.oauth-connection-body {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  padding-right: 12px;
+}
+.oauth-request-field {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: 12px 16px;
+  width: 100%;
+  font-size: 13px;
+}
+.oauth-request-field input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 7px 10px;
+  font-size: 13px;
+}
+.oauth-endpoint {
+  position: relative;
+  min-width: 0;
+}
+.oauth-endpoint .inline-code {
+  display: block;
+  padding-right: 44px;
+}
+.oauth-endpoint .copy-icon-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: 0;
+  background: transparent;
+}
+.oauth-inspect-button {
+  width: 100%;
+  justify-content: center;
+}
+.oauth-inspection-success {
+  font-weight: 600;
+}
+@media (max-width: 480px) {
+  .oauth-request-field {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+}
 @media (max-width: 760px) {
   .connection-workspace {
     grid-template-columns: minmax(0, 1fr);

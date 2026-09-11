@@ -427,6 +427,98 @@ void test('Note writes are persistent, idempotent and exact, reject stale or amb
     db.close();
   }
 });
+void test('Note timestamps distinguish writes from browser sync and remain stable on replay', async (t) => {
+  const initialSync = '2026-09-11T08:59:04.000Z';
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(initialSync) });
+  const { db, repo, token, w, cookie } = await setup();
+  type Result = {
+    id: string;
+    revision: string;
+    updatedAt: string;
+    syncedAt: string;
+  };
+  try {
+    t.mock.timers.setTime(Date.parse('2026-09-11T09:12:12.000Z'));
+    const createArgs = {
+      title: 'Timing',
+      body: 'unique',
+      star: true,
+      request_id: 'timed-create',
+    };
+    const created = (await callMcpTool(
+      repo,
+      token,
+      'note_create',
+      createArgs,
+    )) as Result;
+    assert.equal(created.updatedAt, new Date().toISOString());
+    assert.equal(created.syncedAt, initialSync);
+    const read = () =>
+      callMcpTool(repo, token, 'note_read', {
+        note_id: created.id,
+      }) as Promise<Result>;
+    assert.equal((await read()).updatedAt, created.updatedAt);
+
+    t.mock.timers.setTime(Date.parse('2026-09-11T09:14:16.000Z'));
+    const replaceArgs = {
+      note_id: created.id,
+      revision: created.revision,
+      old_text: 'unique',
+      new_text: 'unique edited',
+      request_id: 'timed-replace',
+    };
+    const changed = (await callMcpTool(
+      repo,
+      token,
+      'note_replace',
+      replaceArgs,
+    )) as Result;
+    assert.equal(changed.updatedAt, new Date().toISOString());
+    assert.equal(changed.syncedAt, initialSync);
+    assert.notEqual(changed.revision, created.revision);
+    assert.equal((await read()).updatedAt, changed.updatedAt);
+    assert.equal((await read()).syncedAt, initialSync);
+
+    t.mock.timers.setTime(Date.parse('2026-09-11T09:15:00.000Z'));
+    const unchanged = (await callMcpTool(repo, token, 'note_replace', {
+      ...replaceArgs,
+      revision: changed.revision,
+      new_text: 'unique',
+      request_id: 'timed-noop',
+    })) as Result;
+    assert.equal(unchanged.updatedAt, changed.updatedAt);
+    assert.equal(unchanged.revision, changed.revision);
+
+    const snapshot = (await repo.read(token.owner_id, w.id))!;
+    const sync = await manageMcp(
+      management(
+        'sync',
+        {
+          workspace: snapshot.workspace,
+          revision: snapshot.revision,
+          receivedIds: snapshot.events.map((event) => event.id),
+        },
+        cookie,
+      ),
+      'sync',
+      repo,
+    );
+    assert.equal(sync.status, 200);
+    assert.equal((await read()).syncedAt, new Date().toISOString());
+    assert.equal((await read()).updatedAt, changed.updatedAt);
+    assert.deepEqual(
+      await callMcpTool(repo, token, 'note_create', createArgs),
+      created,
+    );
+    assert.deepEqual(
+      await callMcpTool(repo, token, 'note_replace', replaceArgs),
+      changed,
+    );
+    assert.equal((await read()).revision, changed.revision);
+  } finally {
+    db.close();
+  }
+});
 void test('browser receipt and compare-and-swap preserve offline writes, concurrent edits and deletion without replay resurrection', async () => {
   const { db, repo, token, w, cookie } = await setup();
   try {

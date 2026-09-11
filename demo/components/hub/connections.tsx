@@ -195,7 +195,7 @@ export function ConnectionsPage({
         </section>
         <section
           key={`${selectedMethod ?? 'empty'}-${reveal ? 'result' : 'form'}`}
-          className="surface connection-details"
+          className={`surface connection-details${oauthProfile ? ' has-oauth' : ''}`}
           id="connection-details"
           aria-label="连接详情"
           aria-busy={busy || oauthBusy}
