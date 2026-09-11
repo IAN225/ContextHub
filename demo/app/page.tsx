@@ -104,6 +104,7 @@ export default function Hub() {
     return () => clearTimeout(timer);
   }, [notice]);
   const deliveries = inboxUploads(data.uploads);
+  const noteNotifications = data.noteNotifications ?? [];
   const directImports = pendingUploads(data.uploads, 'manual');
   const candidates = pendingUploads(data.uploads, 'workbench', w.id);
   const receiveDeliveries = useCallback(
@@ -487,6 +488,13 @@ export default function Hub() {
                               </p>
                             )}
                             <InboxPage
+                              notifications={noteNotifications}
+                              onRead={(id) =>
+                                dispatch({
+                                  type: 'notification/read',
+                                  notificationId: id,
+                                })
+                              }
                               uploads={deliveries}
                               workspaces={data.workspaces}
                               currentId={w.id}
@@ -595,7 +603,13 @@ export default function Hub() {
             onCleanup={cleanup}
           />
         )}
-        <InboxPet count={deliveries.length} onClick={() => navigate('inbox')} />
+        <InboxPet
+          count={
+            deliveries.length +
+            noteNotifications.filter((item) => !item.read).length
+          }
+          onClick={() => navigate('inbox')}
+        />
         {(notice || mcp.received) && (
           <output className="journal-toast">
             <Check size={16} />

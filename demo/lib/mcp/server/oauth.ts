@@ -6,6 +6,7 @@ import {
 } from '../../imports/server/share-service.ts';
 import { McpError, object } from '../contracts.ts';
 import type { OAuthRepository, OAuthRequest } from './oauth-repository.ts';
+import { oauthClientName } from '../oauth-clients.ts';
 
 export const OAUTH_SCOPE = 'context:tools';
 const baseHeaders = {
@@ -23,23 +24,7 @@ const str = (v: unknown, max = 2048) => {
   return v;
 };
 export function allowedOAuthRedirect(value: unknown) {
-  if (typeof value !== 'string') return false;
-  // Native MCP clients listen on an ephemeral loopback port. Match literals
-  // exactly: never allow LAN hosts, look-alike names, alternate IP encodings,
-  // credentials, queries or arbitrary callback paths.
-  const native = value.match(
-    /^http:\/\/(?:127\.0\.0\.1|\[::1\]):([1-9][0-9]{0,4})\/callback$/,
-  );
-  if (native) {
-    const port = Number(native[1]);
-    return port >= 1024 && port <= 65535;
-  }
-  return (
-    value === 'https://chatgpt.com/connector_platform_oauth_redirect' ||
-    /^https:\/\/chatgpt\.com\/connector\/oauth\/[a-zA-Z0-9_-]{1,200}$/.test(
-      value,
-    )
-  );
+  return oauthClientName(value) !== null;
 }
 function resource(value: unknown, origin: string) {
   const raw = str(value);
@@ -94,7 +79,7 @@ function page(
   redirectUri?: string,
 ) {
   return new Response(
-    `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>授权 ChatGPT · Context Hub</title><style>body{font:16px/1.7 system-ui,sans-serif;background:#f5f2ec;color:#443e36;margin:0;padding:36px 20px}main{max-width:560px;margin:8vh auto;background:#fffdf8;border:1px solid #ded8ce;border-radius:20px;padding:32px}h1{font-size:24px}code{display:block;overflow-wrap:anywhere;background:#eee9e1;padding:14px;border-radius:8px;user-select:all}button{font:inherit;padding:10px 18px;border:1px solid #b9ada0;border-radius:8px;background:#eee7dc;cursor:pointer;margin:8px 8px 0 0}small{color:#736b62}p{overflow-wrap:anywhere}</style><main>${content}</main></html>`,
+    `<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MCP 授权 · Context Hub</title><style>body{font:16px/1.7 system-ui,sans-serif;background:#f5f2ec;color:#443e36;margin:0;padding:36px 20px}main{max-width:560px;margin:8vh auto;background:#fffdf8;border:1px solid #ded8ce;border-radius:20px;padding:32px}h1{font-size:24px}code{display:block;overflow-wrap:anywhere;background:#eee9e1;padding:14px;border-radius:8px;user-select:all}button{font:inherit;padding:10px 18px;border:1px solid #b9ada0;border-radius:8px;background:#eee7dc;cursor:pointer;margin:8px 8px 0 0}small{color:#736b62}p{overflow-wrap:anywhere}</style><main>${content}</main></html>`,
     {
       status,
       headers: {
@@ -197,10 +182,7 @@ export async function oauthHandler(
         b.redirect_uris.length > 5 ||
         !b.redirect_uris.every(allowedOAuthRedirect)
       )
-        fail(
-          '只接受 ChatGPT 官方回调或桌面客户端的本机回调。',
-          'invalid_redirect_uri',
-        );
+        fail('回调地址不属于已支持的 OAuth 客户端。', 'invalid_redirect_uri');
       const method = b.token_endpoint_auth_method ?? 'client_secret_basic';
       if (
         typeof method !== 'string' ||
@@ -282,8 +264,9 @@ export async function oauthHandler(
         consumed: 0,
       };
       await repo.begin(r);
+      const clientName = escape(oauthClientName(r.redirect_uri)!);
       return page(
-        `<h1>连接 ChatGPT</h1><p>请在本机 Context Hub 中打开目标手账的「连接设置」，将下面的请求码粘贴到「确认 ChatGPT 授权」，核对后批准。</p><code>${id}</code><p><small>目标手账 ID：${escape(target.wid)}<br>有效期 10 分钟。只批准你刚刚在 ChatGPT 发起的连接。</small></p><p>批准后回到此页继续。授权包括读取记忆、检索原文、读写 Note 和导入分享链接，有效期 30 天，可随时在手账中吊销。</p><form method="post" action="/oauth/complete"><input type="hidden" name="request_id" value="${id}"><input type="hidden" name="csrf" value="${browser}"><button name="decision" value="continue">完成授权，返回 ChatGPT</button><button name="decision" value="cancel">取消</button></form>`,
+        `<h1>连接 ${clientName}</h1><p>请在本机 Context Hub 中打开目标手账的「连接设置」，将下面的请求码粘贴到「确认 OAuth 授权」，核对后批准。</p><code>${id}</code><p><small>目标手账 ID：${escape(target.wid)}<br>回调地址：${escape(r.redirect_uri)}<br>有效期 10 分钟。只批准你刚刚在 ${clientName} 发起的连接。</small></p><p>批准后回到此页继续。授权包括读取记忆、检索原文、读写 Note 和导入分享链接，有效期 30 天，可随时在手账中吊销。</p><form method="post" action="/oauth/complete"><input type="hidden" name="request_id" value="${id}"><input type="hidden" name="csrf" value="${browser}"><button name="decision" value="continue">完成授权，返回 ${clientName}</button><button name="decision" value="cancel">取消</button></form>`,
         `ch_oauth_browser=${browser}; Path=/oauth; HttpOnly; Secure; SameSite=Lax; Max-Age=600`,
         200,
         r.redirect_uri,

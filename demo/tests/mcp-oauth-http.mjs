@@ -10,6 +10,15 @@ import { unstable_dev } from 'wrangler';
 import { createMcpGateway } from '../scripts/mcp-gateway.mjs';
 import { blankWorkspace } from '../lib/domain.ts';
 import { pkce } from '../lib/mcp/server/oauth.ts';
+import { oauthConnectionProfiles } from '../lib/mcp/oauth-clients.ts';
+
+const clientId =
+  process.argv.find((arg) => arg.startsWith('--client='))?.slice(9) ??
+  'chatgpt';
+const profile = oauthConnectionProfiles.find((item) => item.id === clientId);
+const redirect = profile?.redirects.find((rule) => rule.kind === 'exact')?.uri;
+if (!profile || !redirect)
+  throw new Error('Select a configured client with an exact callback.');
 
 const temporary = await mkdtemp(join(tmpdir(), 'context-hub-oauth-http-'));
 const publicOrigin = 'https://oauth-http-fixture.example';
@@ -146,123 +155,129 @@ try {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      redirect_uris: ['https://chatgpt.com/connector_platform_oauth_redirect'],
+      redirect_uris: [redirect],
       token_endpoint_auth_method: 'none',
     }),
   });
   assert.equal(registration.status, 201);
   const client = await registration.json();
-  const verifier = 'h'.repeat(64),
-    redirect = 'https://chatgpt.com/connector_platform_oauth_redirect';
+  const verifier = 'h'.repeat(64);
   // Let Chrome generate the form's Origin and cookies. Handcrafted fetch
   // headers cannot catch browser Referrer-Policy or CSP redirect failures.
-  const { chromium } = createRequire(import.meta.url)('playwright');
-  const browser = await chromium.launch({ channel: 'chrome', headless: true });
-  const callbackServer = createServer((_req, res) =>
-    res.end('Synthetic callback received'),
-  );
-  await new Promise((resolve) =>
-    callbackServer.listen(0, '127.0.0.1', resolve),
-  );
-  const browserRedirect = `http://127.0.0.1:${callbackServer.address().port}/callback`;
-  try {
-    const browserClient = await (
-      await fetch(remote + '/oauth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          redirect_uris: [browserRedirect],
-          token_endpoint_auth_method: 'none',
-        }),
-      })
-    ).json();
-    const page = await browser.newPage();
-    let submittedOrigin;
-    let completeStatus;
-    page.on('console', (message) => {
-      if (message.type() === 'error') console.log('Browser:', message.text());
+  if (!process.argv.includes('--http-only')) {
+    const { chromium } = createRequire(import.meta.url)('playwright');
+    const browser = await chromium.launch({
+      channel: 'chrome',
+      headless: true,
     });
-    await page.route(publicOrigin + '/**', async (route) => {
-      const request = route.request();
-      const headers = await request.allHeaders();
-      delete headers.host;
-      delete headers['content-length'];
-      if (request.url().includes('/oauth/complete'))
-        submittedOrigin = headers.origin;
-      const response = await fetch(
-        remote + request.url().slice(publicOrigin.length),
-        {
-          method: request.method(),
-          headers,
-          body: request.postDataBuffer() ?? undefined,
-          redirect: 'manual',
-        },
-      );
-      if (request.url().includes('/oauth/complete'))
-        completeStatus = response.status;
-      await route.fulfill({
-        status: response.status,
-        headers: Object.fromEntries(response.headers),
-        body: Buffer.from(await response.arrayBuffer()),
-      });
-    });
-    await page.goto(
-      publicOrigin +
-        '/oauth/authorize?' +
-        new URLSearchParams({
-          client_id: browserClient.client_id,
-          redirect_uri: browserRedirect,
-          response_type: 'code',
-          scope: 'context:tools',
-          resource,
-          state: 'browser-state',
-          code_challenge_method: 'S256',
-          code_challenge: await pkce(verifier),
-        }),
+    const callbackServer = createServer((_req, res) =>
+      res.end('Synthetic callback received'),
     );
-    const browserRequestId = await page
-      .locator('[name="request_id"]')
-      .inputValue();
-    assert.equal(
-      (
-        await managed('oauth', {
-          action: 'approve',
-          requestId: browserRequestId,
-          workspaceId: w.id,
+    await new Promise((resolve) =>
+      callbackServer.listen(0, '127.0.0.1', resolve),
+    );
+    const browserRedirect = `http://127.0.0.1:${callbackServer.address().port}/callback`;
+    try {
+      const browserClient = await (
+        await fetch(remote + '/oauth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            redirect_uris: [browserRedirect],
+            token_endpoint_auth_method: 'none',
+          }),
         })
-      ).status,
-      200,
-    );
-    await page.getByRole('button', { name: '完成授权，返回 ChatGPT' }).click();
-    await page.waitForTimeout(500);
-    assert.equal(
-      submittedOrigin,
-      publicOrigin,
-      'Chrome must preserve the same-origin form Origin',
-    );
-    assert.equal(completeStatus, 303);
-    await page.waitForURL(
-      (url) => url.origin + url.pathname === browserRedirect,
-      { timeout: 10000 },
-    );
-    const callback = new URL(page.url());
-    assert.equal(callback.searchParams.get('state'), 'browser-state');
-    const tokenResponse = await post('token', {
-      client_id: browserClient.client_id,
-      grant_type: 'authorization_code',
-      code: callback.searchParams.get('code'),
-      code_verifier: verifier,
-      redirect_uri: browserRedirect,
-      resource,
-    });
-    assert.equal(tokenResponse.status, 200);
-    console.log(
-      'PASS real Chrome consent form, callback navigation and PKCE exchange',
-    );
-  } finally {
-    await browser.close();
-    await new Promise((resolve) => callbackServer.close(resolve));
-  }
+      ).json();
+      const page = await browser.newPage();
+      let submittedOrigin;
+      let completeStatus;
+      page.on('console', (message) => {
+        if (message.type() === 'error') console.log('Browser:', message.text());
+      });
+      await page.route(publicOrigin + '/**', async (route) => {
+        const request = route.request();
+        const headers = await request.allHeaders();
+        delete headers.host;
+        delete headers['content-length'];
+        if (request.url().includes('/oauth/complete'))
+          submittedOrigin = headers.origin;
+        const response = await fetch(
+          remote + request.url().slice(publicOrigin.length),
+          {
+            method: request.method(),
+            headers,
+            body: request.postDataBuffer() ?? undefined,
+            redirect: 'manual',
+          },
+        );
+        if (request.url().includes('/oauth/complete'))
+          completeStatus = response.status;
+        await route.fulfill({
+          status: response.status,
+          headers: Object.fromEntries(response.headers),
+          body: Buffer.from(await response.arrayBuffer()),
+        });
+      });
+      await page.goto(
+        publicOrigin +
+          '/oauth/authorize?' +
+          new URLSearchParams({
+            client_id: browserClient.client_id,
+            redirect_uri: browserRedirect,
+            response_type: 'code',
+            scope: 'context:tools',
+            resource,
+            state: 'browser-state',
+            code_challenge_method: 'S256',
+            code_challenge: await pkce(verifier),
+          }),
+      );
+      const browserRequestId = await page
+        .locator('[name="request_id"]')
+        .inputValue();
+      assert.equal(
+        (
+          await managed('oauth', {
+            action: 'approve',
+            requestId: browserRequestId,
+            workspaceId: w.id,
+          })
+        ).status,
+        200,
+      );
+      await page
+        .getByRole('button', { name: '完成授权，返回 本机 MCP 客户端' })
+        .click();
+      await page.waitForTimeout(500);
+      assert.equal(
+        submittedOrigin,
+        publicOrigin,
+        'Chrome must preserve the same-origin form Origin',
+      );
+      assert.equal(completeStatus, 303);
+      await page.waitForURL(
+        (url) => url.origin + url.pathname === browserRedirect,
+        { timeout: 10000 },
+      );
+      const callback = new URL(page.url());
+      assert.equal(callback.searchParams.get('state'), 'browser-state');
+      const tokenResponse = await post('token', {
+        client_id: browserClient.client_id,
+        grant_type: 'authorization_code',
+        code: callback.searchParams.get('code'),
+        code_verifier: verifier,
+        redirect_uri: browserRedirect,
+        resource,
+      });
+      assert.equal(tokenResponse.status, 200);
+      console.log(
+        'PASS real Chrome consent form, callback navigation and PKCE exchange',
+      );
+    } finally {
+      await browser.close();
+      await new Promise((resolve) => callbackServer.close(resolve));
+    }
+  } else console.log('SKIP browser consent/navigation (--http-only).');
   const auth = await fetch(
     remote +
       '/oauth/authorize?' +
@@ -285,6 +300,7 @@ try {
       .includes(`form-action 'self' ${redirect};`),
   );
   const html = await auth.text();
+  assert.ok(html.includes(`<h1>连接 ${profile.name}</h1>`));
   const requestId = html.match(/name="request_id" value="([a-f0-9]+)"/)[1];
   const csrf = html.match(/name="csrf" value="([a-f0-9]+)"/)[1];
   const browserCookie = auth.headers.get('set-cookie').split(';')[0];
@@ -305,6 +321,7 @@ try {
   );
   assert.equal(complete.status, 303, await complete.text());
   const returned = new URL(complete.headers.get('location'));
+  assert.equal(returned.origin + returned.pathname, redirect);
   assert.equal(returned.searchParams.get('iss'), publicOrigin);
   assert.equal(returned.searchParams.get('state'), 'http-state');
   const exchanged = await post('token', {
@@ -332,7 +349,7 @@ try {
   }
   const init = await rpc('initialize', {
     protocolVersion: '2025-11-25',
-    clientInfo: { name: 'synthetic ChatGPT', version: '1' },
+    clientInfo: { name: `synthetic ${profile.name}`, version: '1' },
     capabilities: {},
   });
   assert.equal(init.result.serverInfo.name, 'ContextHub');
@@ -380,7 +397,7 @@ try {
     401,
   );
   console.log(
-    'PASS OAuth HTTP: real Worker and bounded gateway, discovery, DCR, owner approval, PKCE, seven tools, restart, refresh and revocation; private app routes stay inaccessible.',
+    `PASS ${profile.name} OAuth HTTP: real Worker and bounded gateway, discovery, DCR, owner approval, PKCE, seven tools, restart, refresh and revocation; private app routes stay inaccessible.`,
   );
 } finally {
   if (gateway) await new Promise((resolve) => gateway.close(resolve));

@@ -22,6 +22,16 @@ import {
 import type { McpEvent } from './mcp/contracts.ts';
 import { receiveMcpNote } from './mcp/receive.ts';
 
+export type NoteNotification = {
+  id: string;
+  workspaceId: string;
+  workspaceName: string;
+  noteId: string;
+  title: string;
+  clientName: string;
+  createdAt: string;
+  read: boolean;
+};
 export type HubState = {
   schemaVersion: 1;
   workspaces: Workspace[];
@@ -30,6 +40,7 @@ export type HubState = {
   trashRestoredAt?: string;
   taskReceipts?: Record<string, number>;
   mcpReceipts?: string[];
+  noteNotifications?: NoteNotification[];
 };
 export function createEmptyHubState(): HubState {
   return {
@@ -68,6 +79,7 @@ export type WorkspaceCommand =
   | { type: 'token/revoke'; tokenId: string }
   | { type: 'token/rotate'; tokenId: string; token: Token };
 export type HubCommand =
+  | { type: 'notification/read'; notificationId: string }
   | { type: 'mcp/receive'; workspaceId: string; events: McpEvent[] }
   | { type: 'task/workbench'; taskId: string; step: number; upload: Upload }
   | {
@@ -277,6 +289,13 @@ export function applyHubCommand(
   command: HubCommand,
 ): HubState {
   switch (command.type) {
+    case 'notification/read':
+      return {
+        ...state,
+        noteNotifications: (state.noteNotifications ?? []).map((item) =>
+          item.id === command.notificationId ? { ...item, read: true } : item,
+        ),
+      };
     case 'mcp/receive': {
       let workspace = state.workspaces.find(
         (w) => w.id === command.workspaceId,
@@ -287,8 +306,27 @@ export function applyHubCommand(
       let next = state;
       for (const event of command.events) {
         if (receipts.has(event.id)) continue;
-        if (event.kind === 'note') workspace = receiveMcpNote(workspace, event);
-        else
+        if (event.kind === 'note') {
+          workspace = receiveMcpNote(workspace, event);
+          if (event.before === null) {
+            next = {
+              ...next,
+              noteNotifications: [
+                {
+                  id: event.id,
+                  workspaceId: workspace.id,
+                  workspaceName: workspace.name,
+                  noteId: event.note.id,
+                  title: event.note.title,
+                  clientName: event.note.editor,
+                  createdAt: event.note.createdAt,
+                  read: false,
+                },
+                ...(next.noteNotifications ?? []),
+              ],
+            };
+          }
+        } else
           next = applyHubCommand(next, {
             type: 'upload/receive',
             uploads: [event.upload],
@@ -522,6 +560,25 @@ export function normalizeHubState(raw: unknown): HubState {
   requireShape(record(raw));
   requireShape(raw.schemaVersion === undefined || raw.schemaVersion === 1);
   requireShape(Array.isArray(raw.workspaces) && Array.isArray(raw.uploads));
+  requireShape(
+    raw.noteNotifications === undefined ||
+      (Array.isArray(raw.noteNotifications) &&
+        raw.noteNotifications.every(
+          (item) =>
+            identified(item) &&
+            [
+              'workspaceId',
+              'workspaceName',
+              'noteId',
+              'title',
+              'clientName',
+              'createdAt',
+            ].every((key) => typeof item[key] === 'string') &&
+            typeof item.read === 'boolean',
+        ) &&
+        new Set(raw.noteNotifications.map((item) => item.id)).size ===
+          raw.noteNotifications.length),
+  );
   requireShape(
     raw.mcpReceipts === undefined ||
       (Array.isArray(raw.mcpReceipts) &&

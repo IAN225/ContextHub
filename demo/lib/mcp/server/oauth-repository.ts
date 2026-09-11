@@ -1,4 +1,5 @@
 import { McpError } from '../contracts.ts';
+import { oauthClientName } from '../oauth-clients.ts';
 
 export type OAuthClient = {
   id: string;
@@ -162,7 +163,7 @@ export function oauthRepository(db: D1Database) {
           tokenId,
           r.owner_id,
           r.workspace_id,
-          'ChatGPT · OAuth',
+          `${oauthClientName(r.redirect_uri) ?? 'MCP 客户端'} · OAuth`,
           accessHash,
           now,
           now + 3600000,
