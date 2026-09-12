@@ -9,13 +9,14 @@
     "dev": "node ./scripts/start-local.mjs --dev",
     "build": "vinext build",
     "start": "node ./scripts/start-local.mjs",
+    "server": "node ./scripts/start-server.mjs",
     "chatgpt": "node ./scripts/start-chatgpt.mjs",
     "claude": "node ./scripts/start-chatgpt.mjs",
     "mcp:oauth": "node ./scripts/start-chatgpt.mjs",
     "db:init": "node --import ./scripts/local-runtime.mjs ./node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --local --config dist/server/wrangler.json --persist-to .wrangler/state",
     "lint": "oxlint",
     "format": "oxfmt",
-    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test": "node --experimental-strip-types --test tests/*.test.ts tests/*.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

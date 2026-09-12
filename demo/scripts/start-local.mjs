@@ -41,11 +41,15 @@ if (existsSync(connection)) args.push('--env-file', connection);
 const mcpConnection = fileURLToPath(
   new URL('../.env.mcp.local', import.meta.url),
 );
+// Server mode owns a separate stable origin/key file; local tunnel mode keeps
+// its original configuration and data directory.
+const selectedMcpConnection =
+  process.env.CONTEXT_HUB_MCP_ENV_FILE || mcpConnection;
 if (
   process.env.CONTEXT_HUB_ENABLE_MCP_PUBLIC === '1' &&
-  existsSync(mcpConnection)
+  existsSync(selectedMcpConnection)
 )
-  args.push('--env-file', mcpConnection);
+  args.push('--env-file', selectedMcpConnection);
 args.push('--env-file', runnerEnv);
 const dev = process.argv.includes('--dev');
 const command = dev
