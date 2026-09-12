@@ -7,6 +7,7 @@ import {
   useCallback,
 } from 'react';
 import { flushSync } from 'react-dom';
+import Link from 'next/link';
 import {
   ArrowLeft,
   Plus,
@@ -590,6 +591,7 @@ export default function Hub() {
             <p className="callout">
               手账与草稿保存在当前浏览器。客户端投递先保存在本机服务的收件队列，浏览器接收成功后清除服务端正文。账号与云端同步尚未接入。
             </p>
+            <Link href="/server">服务器访问与 HTTPS 设置 →</Link>
           </Modal>
         )}
         {modal === 'tasks' && (

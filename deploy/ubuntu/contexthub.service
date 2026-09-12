@@ -1,0 +1,28 @@
+[Unit]
+Description=ContextHub server access and local application
+Wants=network-online.target
+After=network-online.target caddy-api.service
+
+[Service]
+Type=simple
+User=contexthub
+Group=contexthub
+WorkingDirectory=/opt/contexthub/demo
+# Replace this absolute path if Node is installed elsewhere.
+ExecStart=/usr/bin/node /opt/contexthub/demo/scripts/start-server.mjs
+Environment=HOME=/var/lib/contexthub
+Environment=WRANGLER_SEND_METRICS=false
+Environment=CONTEXT_HUB_SERVER_DATA_DIR=/opt/contexthub/demo/.wrangler/server
+UMask=0077
+Restart=on-failure
+RestartSec=5
+KillMode=mixed
+TimeoutStopSec=180
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/contexthub/demo/.wrangler /var/lib/contexthub
+
+[Install]
+WantedBy=multi-user.target
