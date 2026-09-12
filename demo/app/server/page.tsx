@@ -1,8 +1,9 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
+
 import { ArrowLeft, Globe, LockKeyhole, RotateCcw, LogOut } from 'lucide-react';
 import { Button } from '@/components/hub/shared';
+import { getAccountStatus } from '@/lib/account/client';
 import './server.css';
 
 type Access = {
@@ -32,6 +33,7 @@ export default function ServerPage() {
     [error, setError] = useState('');
   const load = useCallback(async () => {
     try {
+      await getAccountStatus();
       const response = await fetch('/api/server/status', { cache: 'no-store' });
       if (response.status === 404) {
         setStatus({ enabled: false });
@@ -93,10 +95,11 @@ export default function ServerPage() {
   }
   return (
     <main className="server-page">
-      <Link href="/" className="server-back">
+      {/* oxlint-disable-next-line nextjs/no-html-link-for-pages -- Reload after login to avoid cached anonymous navigation. */}
+      <a href="/" className="server-back">
         <ArrowLeft size={16} />
         返回手账
-      </Link>
+      </a>
       <header className="server-heading">
         <Globe size={25} />
         <div>
@@ -248,7 +251,7 @@ export default function ServerPage() {
             {changingOrigin && (
               <p className="callout warning">
                 更换地址后需重新连接
-                MCP。浏览器手账数据属于原地址，请先导出备份，再到新地址恢复。
+                MCP。账号数据保存在此服务器；换地址后需要重新登录。
               </p>
             )}
             <Button

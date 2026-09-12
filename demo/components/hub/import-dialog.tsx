@@ -1,4 +1,5 @@
 'use client';
+import { DraftBoundary } from './shared';
 import { useEffect, useRef, useState } from 'react';
 import { Button, Modal, Segments, SaveStatus } from './shared';
 import { usePersistent } from '@/lib/store';
@@ -92,76 +93,78 @@ export function ImportDialog({
       }
       onClose={onClose}
     >
-      <Segments
-        value={tab}
-        onChange={(tab) => {
-          request.current?.abort();
-          setBusy(false);
-          set({ tab });
-          setError('');
-        }}
-        options={[
-          { id: 'manual', label: '手动复制' },
-          { id: 'link', label: '分享链接' },
-          { id: 'api', label: '客户端投递' },
-        ]}
-      />
-      {tab !== 'api' && (
-        <div className="form-stack">
-          {tab === 'manual' && pendingCount > 0 && (
-            <Button onClick={onReview}>
-              继续确认手动导入（{pendingCount}）
-            </Button>
-          )}
-          <label className="field">
-            导入标题
-            <input
-              aria-label="导入标题"
-              value={draft.title}
-              onChange={(e) => set({ title: e.target.value })}
-              placeholder="留空时使用对话内容命名"
-            />
-          </label>
-        </div>
-      )}
-      {tab === 'manual' ? (
-        <ManualImport
-          text={draft.text}
-          format={draft.format || 'auto'}
-          onText={(text) => set({ text, json: '' })}
-          onFormat={(format) => set({ format })}
-          onSubmit={() => {
-            void submit();
+      <DraftBoundary state={persistence}>
+        <Segments
+          value={tab}
+          onChange={(tab) => {
+            request.current?.abort();
+            setBusy(false);
+            set({ tab });
+            setError('');
           }}
-          disabled={!persistence.ready || busy}
+          options={[
+            { id: 'manual', label: '手动复制' },
+            { id: 'link', label: '分享链接' },
+            { id: 'api', label: '客户端投递' },
+          ]}
         />
-      ) : tab === 'link' ? (
-        <LinkImport
-          link={draft.link}
-          onLink={(link) => set({ link })}
-          onSubmit={() => {
-            void submit();
-          }}
-          disabled={!persistence.ready}
-          busy={busy}
-        />
-      ) : (
-        <DeliverySettings
-          protocol={draft.protocol}
-          onProtocol={(protocol) => set({ protocol })}
-          onActivate={onDeliveryEnabled}
-        />
-      )}
-      {error && (
-        <p role="alert" className="error-text">
-          {error}
-        </p>
-      )}
-      <span className="save-caption">
-        <SaveStatus state={persistence}>
-          {persistence.saved ? '✓ 导入草稿已保存' : '正在保存草稿…'}
-        </SaveStatus>
-      </span>
+        {tab !== 'api' && (
+          <div className="form-stack">
+            {tab === 'manual' && pendingCount > 0 && (
+              <Button onClick={onReview}>
+                继续确认手动导入（{pendingCount}）
+              </Button>
+            )}
+            <label className="field">
+              导入标题
+              <input
+                aria-label="导入标题"
+                value={draft.title}
+                onChange={(e) => set({ title: e.target.value })}
+                placeholder="留空时使用对话内容命名"
+              />
+            </label>
+          </div>
+        )}
+        {tab === 'manual' ? (
+          <ManualImport
+            text={draft.text}
+            format={draft.format || 'auto'}
+            onText={(text) => set({ text, json: '' })}
+            onFormat={(format) => set({ format })}
+            onSubmit={() => {
+              void submit();
+            }}
+            disabled={!persistence.ready || busy}
+          />
+        ) : tab === 'link' ? (
+          <LinkImport
+            link={draft.link}
+            onLink={(link) => set({ link })}
+            onSubmit={() => {
+              void submit();
+            }}
+            disabled={!persistence.ready}
+            busy={busy}
+          />
+        ) : (
+          <DeliverySettings
+            protocol={draft.protocol}
+            onProtocol={(protocol) => set({ protocol })}
+            onActivate={onDeliveryEnabled}
+          />
+        )}
+        {error && (
+          <p role="alert" className="error-text">
+            {error}
+          </p>
+        )}
+        <span className="save-caption">
+          <SaveStatus state={persistence}>
+            {persistence.saved ? '✓ 导入草稿已保存' : '正在保存草稿…'}
+          </SaveStatus>
+        </span>
+      </DraftBoundary>
     </Modal>
   );
 }

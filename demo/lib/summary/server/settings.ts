@@ -21,12 +21,17 @@ export function publicSummarySettings(settings: SavedSummarySettings) {
     editable: true,
   };
 }
-export function summarySettingsRepository(db: D1Database) {
+export function summarySettingsRepository(db: D1Database, owner?: string) {
   async function read(
     environment: SummaryEnvironment,
   ): Promise<SavedSummarySettings> {
     const row = await db
-      .prepare("SELECT value,revision FROM summary_settings WHERE id='summary'")
+      .prepare(
+        owner
+          ? 'SELECT value,revision FROM account_summary_settings WHERE user_id=?'
+          : 'SELECT value,revision FROM summary_settings WHERE id=?',
+      )
+      .bind(owner ?? 'summary')
       .first<{ value: string; revision: string }>();
     if (row) {
       try {
@@ -42,6 +47,7 @@ export function summarySettingsRepository(db: D1Database) {
       }
     }
     // Only credential-related bindings enter the fingerprint, not DB or runner keys.
+    if (owner) environment = {};
     const env: SummaryEnvironment = {
       CONTEXT_HUB_SUMMARY_BASE_URL: environment.CONTEXT_HUB_SUMMARY_BASE_URL,
       CONTEXT_HUB_SUMMARY_MODEL: environment.CONTEXT_HUB_SUMMARY_MODEL,
@@ -79,6 +85,11 @@ export function summarySettingsRepository(db: D1Database) {
           409,
         );
       const baseUrl = normalizeBaseUrl(String(input.baseUrl).trim());
+      if (owner && new URL(baseUrl).protocol !== 'https:')
+        throw new SummaryError(
+          'INVALID_CONNECTION',
+          '云端账号的模型接口必须使用公网 HTTPS。',
+        );
       if (baseUrl.length > 2048)
         throw new SummaryError('INVALID_CONNECTION', '接口地址过长。');
       const protocol = String(input.protocol);
@@ -113,9 +124,16 @@ export function summarySettingsRepository(db: D1Database) {
       const revision = randomSecret('');
       const result = await db
         .prepare(
-          "INSERT INTO summary_settings(id,value,revision) VALUES('summary',?,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE summary_settings.revision=?",
+          owner
+            ? 'INSERT INTO account_summary_settings(user_id,value,revision) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE account_summary_settings.revision=?'
+            : 'INSERT INTO summary_settings(id,value,revision) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE summary_settings.revision=?',
         )
-        .bind(JSON.stringify(env), revision, current.revision)
+        .bind(
+          owner ?? 'summary',
+          JSON.stringify(env),
+          revision,
+          current.revision,
+        )
         .run();
       if (!result.meta.changes)
         throw new SummaryError(

@@ -247,7 +247,7 @@ export function SummaryPage({
             />
             后续自动压缩
           </label>
-          <span>本机服务运行期间，关闭网页也会继续；新结果会在打开时接收</span>
+          <span>服务运行期间，关闭网页也会继续；新结果会在打开时接收</span>
         </div>
         {(!w.config.configured || !w.config.modelEnabled) && (
           <p className="callout">

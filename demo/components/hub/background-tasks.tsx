@@ -38,7 +38,7 @@ export function BackgroundTaskManager({ onClose }: { onClose: () => void }) {
   return (
     <Modal
       title="后台任务"
-      description="关闭网页后，本机服务仍可继续处理。服务停止或电脑休眠时会中断；未完成的模型请求需要检查后手动继续。"
+      description="关闭网页后，后台服务仍可继续处理。服务停止时会中断；未完成的模型请求需要检查后手动继续。"
       onClose={onClose}
     >
       {(error || queue?.error) && (
@@ -48,7 +48,7 @@ export function BackgroundTaskManager({ onClose }: { onClose: () => void }) {
       )}
       {!queue?.ready && (
         <p className="callout warning">
-          后台服务尚未就绪，请使用本地启动脚本运行应用。
+          后台服务尚未就绪，请检查服务运行状态。
         </p>
       )}
       <div className="background-task-list">

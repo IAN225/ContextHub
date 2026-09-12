@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Download, Trash2 } from 'lucide-react';
 import { Button, Modal } from './shared';
 import type { HubState } from '@/lib/hub-state';
+import { cloudMode } from '@/lib/account/client';
 import { localRepository } from '@/lib/repository';
 import {
   BACKUP_LIMIT,
@@ -65,7 +66,7 @@ export function DataManager({
   }
   return (
     <Modal
-      title="本地数据"
+      title={cloudMode() ? '云端数据与备份' : '本地数据'}
       description="备份、恢复与回收站"
       onClose={() => {
         if (!busy) onClose();
@@ -75,7 +76,7 @@ export function DataManager({
         <section className="form-stack">
           <h3>备份与恢复</h3>
           <p className="inline-note">
-            导出已保存的手账、Note、摘要、待归档内容、草稿和本地附件。不包含模型
+            导出已保存的手账、Note、摘要、待归档内容、草稿和已保存附件。不包含模型
             Key、投递凭据、MCP 令牌及服务端尚未接收的变更。MCP
             写入需要先在网页接收，才会进入此备份。
           </p>
@@ -125,7 +126,9 @@ export function DataManager({
                 {imported.notes} 条 Note · {imported.uploads} 份待归档内容
               </p>
               <p className="inline-note">
-                恢复会覆盖此浏览器的现有数据，并自动刷新。
+                {cloudMode()
+                  ? '恢复会覆盖当前账号的云端手账与草稿，并自动刷新。其他设备的旧页面需要刷新。'
+                  : '恢复会覆盖此浏览器的现有数据，并自动刷新。'}
                 {state
                   ? '覆盖前会发起当前数据的备份下载；'
                   : '当前数据读取失败，无法生成覆盖前备份；'}
@@ -141,7 +144,11 @@ export function DataManager({
                   disabled={busy}
                   onChange={(event) => setConfirmed(event.target.checked)}
                 />
-                <span>我确认用此备份覆盖本地数据</span>
+                <span>
+                  {cloudMode()
+                    ? '我确认用此备份覆盖当前账号的手账数据'
+                    : '我确认用此备份覆盖本地数据'}
+                </span>
               </label>
               <Button
                 primary

@@ -77,13 +77,14 @@ function cachedResponse(value: { body: string; status: number }) {
 // charging twice. Nothing here is written to disk or sent to the model as an ID.
 export function createSummaryHandler() {
   const cache = new Map<string, CachedRequest>();
-  let busy = false;
+  const busy = new Set<string>();
   return async function handle(
     request: Request,
     action: string,
     env: SummaryEnvironment,
     fetcher?: typeof fetch,
     settings?: SummarySettingsRepository,
+    owner = 'local',
   ): Promise<Response> {
     try {
       localRequest(request);
@@ -132,8 +133,9 @@ export function createSummaryHandler() {
         throw new SummaryError('INVALID_JSON', '摘要请求 JSON 无效。');
       }
       const input = inputFrom(decoded);
-      const key = request.headers.get('idempotency-key') ?? '';
-      if (!/^[a-zA-Z0-9_-]{16,100}$/.test(key))
+      const requestKey = request.headers.get('idempotency-key') ?? '';
+      const key = owner + ':' + requestKey;
+      if (!/^[a-zA-Z0-9_-]{16,100}$/.test(requestKey))
         throw new SummaryError(
           'REQUEST_ID_REQUIRED',
           '摘要请求缺少有效任务编号。',
@@ -161,13 +163,13 @@ export function createSummaryHandler() {
           );
         return cachedResponse(await existing.response);
       }
-      if (busy)
+      if (busy.has(owner))
         throw new SummaryError(
           'SUMMARY_BUSY',
           '已有模型请求进行中，请等待完成或取消后再试。',
           409,
         );
-      busy = true;
+      busy.add(owner);
       const response = (async () => {
         try {
           const result = await generateSummary(
@@ -214,7 +216,7 @@ export function createSummaryHandler() {
         } catch (error) {
           return errorResponse(error);
         } finally {
-          busy = false;
+          busy.delete(owner);
         }
       })().then(async (result) => ({
         body: await result.text(),

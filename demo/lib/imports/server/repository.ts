@@ -8,6 +8,7 @@ type Receipt = {
   acknowledged_at: number | null;
 };
 export interface ImportRepository {
+  accountOwner?(id: string): Promise<Owner>;
   findOwner(sessionHash: string): Promise<Owner | null>;
   findDeliveryOwner(keyHash: string): Promise<Owner | null>;
   createOwner(id: string, sessionHash: string, keyHash: string): Promise<void>;
@@ -24,6 +25,18 @@ export interface ImportRepository {
 
 export function createD1ImportRepository(db: D1Database): ImportRepository {
   return {
+    async accountOwner(id) {
+      await db
+        .prepare(
+          'INSERT INTO import_owners(id,session_hash,key_hash,created_at) VALUES(?,?,NULL,?) ON CONFLICT(id) DO NOTHING',
+        )
+        .bind(id, 'account:' + id, Date.now())
+        .run();
+      return (await db
+        .prepare('SELECT id,key_hash FROM import_owners WHERE id=?')
+        .bind(id)
+        .first<Owner>())!;
+    },
     findOwner: (sessionHash) =>
       db
         .prepare(

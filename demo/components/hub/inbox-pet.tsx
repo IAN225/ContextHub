@@ -1,4 +1,5 @@
 'use client';
+import { localRepository } from '@/lib/repository';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   fitPetPosition,
@@ -42,25 +43,34 @@ export function InboxPet({
   }, []);
   const remember = () => {
     try {
-      localStorage.setItem(positionKey, JSON.stringify(position.current));
+      void localRepository
+        .write([{ key: positionKey, value: position.current }])
+        .catch(() => {});
     } catch {
       /* Moving remains available when browser storage is disabled. */
     }
   };
   useEffect(() => {
     const visible = viewport();
-    let saved = {
+    const saved = {
       x: visible.left + visible.width - PET_SIZE - 20,
       y: visible.top + visible.height - PET_SIZE - 24,
     };
-    try {
-      const value = JSON.parse(localStorage.getItem(positionKey) ?? 'null');
-      if (value && Number.isFinite(value.x) && Number.isFinite(value.y))
-        saved = value;
-    } catch {
-      /* Ignore stale local preferences. */
-    }
     const initialFrame = requestAnimationFrame(() => moveTo(saved));
+    let alive = true;
+    void localRepository
+      .read(positionKey)
+      .then((raw) => {
+        const value = raw as FloatingPoint | null;
+        if (
+          alive &&
+          value &&
+          Number.isFinite(value.x) &&
+          Number.isFinite(value.y)
+        )
+          moveTo(value);
+      })
+      .catch(() => {});
     const resize = () => {
       if (position.current) moveTo(position.current);
     };
@@ -68,6 +78,7 @@ export function InboxPet({
     window.visualViewport?.addEventListener('resize', resize);
     window.visualViewport?.addEventListener('scroll', resize);
     return () => {
+      alive = false;
       cancelAnimationFrame(initialFrame);
       window.removeEventListener('resize', resize);
       window.visualViewport?.removeEventListener('resize', resize);

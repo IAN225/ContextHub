@@ -73,6 +73,12 @@ function attachments(value: unknown) {
   }
 }
 function draft(key: string, value: unknown) {
+  if (key === 'context-hub-inbox-pet-position') {
+    check(
+      object(value) && Number.isFinite(value.x) && Number.isFinite(value.y),
+    );
+    return;
+  }
   if (key.startsWith('model-probes-')) {
     check(Array.isArray(value));
     for (const probe of value)
@@ -163,6 +169,7 @@ export function validateBackup(raw: unknown): HubBackup {
       entry.key === HUB_KEY ||
         entry.key === 'delivery-connection-v1' ||
         entry.key === 'search-draft' ||
+        entry.key === 'context-hub-inbox-pet-position' ||
         /^(turn-draft-|note-draft-|new-note-|model-draft-|model-probes-|workbench-|connection-draft-|import-draft|new-workspace-draft)/.test(
           entry.key,
         ),

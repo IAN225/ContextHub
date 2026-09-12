@@ -1,4 +1,8 @@
 import type { Repository, StorageEntry } from './repository.ts';
+const storageError = (failure: unknown, fallback: string) =>
+  failure instanceof Error && failure.name === 'CloudRepositoryError'
+    ? failure.message
+    : fallback;
 
 export type ValueUpdate<T> = T | ((current: T) => T);
 export type PersistentSnapshot<T> = {
@@ -70,11 +74,14 @@ export function createPersistentSession<T>(
     try {
       await repository.write([{ key, value }]);
       if (revision === version) publish({ saved: true, error: '' });
-    } catch {
+    } catch (failure) {
       if (revision === version)
         publish({
           saved: false,
-          error: '保存失败，修改仍保留在当前页面。请重试或先复制备份。',
+          error: storageError(
+            failure,
+            '保存失败，修改仍保留在当前页面。请重试或先复制备份。',
+          ),
         });
     }
   }
@@ -107,10 +114,13 @@ export function createPersistentSession<T>(
       if (!(await write(next))) throw new Error('Submission failed');
       publish({ value: next, saved: true, error: '' });
       return true;
-    } catch {
+    } catch (failure) {
       publish({
         saved: false,
-        error: '保存失败，原内容和草稿已保留，请重试提交。',
+        error: storageError(
+          failure,
+          '保存失败，原内容和草稿已保留，请重试提交。',
+        ),
       });
       return false;
     } finally {
@@ -129,12 +139,15 @@ export function createPersistentSession<T>(
         const version = ++revision;
         publish({ value, ready: true, saved: !needsSave, error: '' });
         if (needsSave && revision === version) await save(value, version);
-      } catch {
+      } catch (failure) {
         // Never make seed data writable after a failed read or decode.
         publish({
           ready: false,
           saved: false,
-          error: '本地数据读取失败，现有数据未覆盖。请重试读取。',
+          error: storageError(
+            failure,
+            '数据读取失败，现有数据未覆盖。请重试读取。',
+          ),
         });
       } finally {
         loading = undefined;

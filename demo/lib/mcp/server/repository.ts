@@ -35,6 +35,15 @@ export function mcpRepository(db: D1Database) {
       wid,
     ).first<{ revision: string }>();
   return {
+    async accountSession(id: string) {
+      await sql(
+        'INSERT INTO mcp_sessions(id,session_hash,created_at) VALUES(?,?,?) ON CONFLICT(id) DO NOTHING',
+        id,
+        'account:' + id,
+        Date.now(),
+      ).run();
+      return id;
+    },
     async session(hash: string) {
       return (
         await sql(

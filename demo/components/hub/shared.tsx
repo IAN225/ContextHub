@@ -70,6 +70,20 @@ export function SaveStatus({
     </span>
   );
 }
+export function DraftBoundary({
+  state,
+  children,
+}: {
+  state: { ready: boolean; error: string; retry: () => Promise<void> };
+  children: ReactNode;
+}) {
+  if (state.ready) return <>{children}</>;
+  return (
+    <output className="muted" aria-busy={!state.error}>
+      <SaveStatus state={state}>正在读取草稿…</SaveStatus>
+    </output>
+  );
+}
 export function Modal({
   title,
   description,
@@ -93,7 +107,7 @@ export function Modal({
           <div>
             <DialogTitle className="dialog-title">{title}</DialogTitle>
             <DialogDescription>
-              {description ?? '修改自动保存为本地草稿，点击外部不会关闭。'}
+              {description ?? '修改自动保存为草稿，点击外部不会关闭。'}
             </DialogDescription>
           </div>
           <button

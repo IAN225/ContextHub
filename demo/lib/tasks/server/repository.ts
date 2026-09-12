@@ -59,6 +59,15 @@ export function taskRepository(db: D1Database) {
   }
   return {
     get,
+    async accountSession(id: string) {
+      await bind(
+        'INSERT INTO task_sessions(id,session_hash,created_at) VALUES(?,?,?) ON CONFLICT(id) DO NOTHING',
+        id,
+        'account:' + id,
+        Date.now(),
+      ).run();
+      return id;
+    },
     async session(hash: string) {
       return (
         await bind(

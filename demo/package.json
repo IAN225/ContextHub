@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=22.13.0"
+    "node": ">=24.0.0"
   },
   "scripts": {
     "dev": "node ./scripts/start-local.mjs --dev",
-    "build": "vinext build",
+    "build": "vinext build && node scripts/prepare-server-build.mjs",
     "start": "node ./scripts/start-local.mjs",
     "server": "node ./scripts/start-server.mjs",
     "chatgpt": "node ./scripts/start-chatgpt.mjs",

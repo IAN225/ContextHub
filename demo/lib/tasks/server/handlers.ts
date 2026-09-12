@@ -176,6 +176,8 @@ export async function taskHandler(
   repo: TaskRepository,
   env: TaskEnvironment,
   fetcher?: typeof fetch,
+  accountId?: string,
+  connectionForOwner?: (owner: string) => Promise<SummaryEnvironment>,
 ) {
   try {
     if (action.startsWith('runner-')) {
@@ -213,7 +215,14 @@ export async function taskHandler(
         action === 'runner-summary' &&
         ['summary', 'workbench'].includes(task.kind)
       ) {
-        await runSummary(task, repo, env, fetcher);
+        await runSummary(
+          task,
+          repo,
+          connectionForOwner
+            ? { ...env, ...(await connectionForOwner(task.owner_id)) }
+            : env,
+          fetcher,
+        );
         return Response.json({ accepted: true }, { headers });
       }
       if (action === 'runner-attachment' && task.kind === 'attachments') {
@@ -256,7 +265,9 @@ export async function taskHandler(
       throw new TaskError('NOT_FOUND', '未知执行器操作。', 404);
     }
     requireManagementRequest(request);
-    let session = await owner(request, repo);
+    let session = accountId
+      ? await repo.accountSession(accountId)
+      : await owner(request, repo);
     if (action === 'session' && request.method === 'POST') {
       let cookie: string | undefined;
       if (!session) {

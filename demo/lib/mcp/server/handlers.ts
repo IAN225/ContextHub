@@ -90,11 +90,14 @@ export async function manageMcp(
   action: string,
   repo: McpRepository,
   oauth?: { repo: OAuthRepository; origin: string | null },
+  accountId?: string,
 ) {
   try {
     localOrigin(request);
     requireManagementRequest(request);
-    let ownerId = await owner(request, repo);
+    let ownerId = accountId
+      ? await repo.accountSession(accountId)
+      : await owner(request, repo);
     if (action === 'reset' && request.method === 'POST') {
       if (ownerId && oauth) await oauth.repo.reset(ownerId);
       if (ownerId) await repo.reset(ownerId);

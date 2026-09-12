@@ -43,6 +43,7 @@ export async function manageImports(
   action: string,
   repo: ImportRepository,
   fetcher?: typeof fetch,
+  accountId?: string,
 ) {
   requireManagementRequest(request);
   if (action === 'share' && request.method === 'POST') {
@@ -58,7 +59,10 @@ export async function manageImports(
       { headers: { 'Cache-Control': 'no-store' } },
     );
   }
-  const owner = await managementOwner(request, repo);
+  const owner =
+    accountId && repo.accountOwner
+      ? await repo.accountOwner(accountId)
+      : await managementOwner(request, repo);
   if (action === 'delivery' && request.method === 'GET')
     return Response.json(
       { enabled: !!owner?.key_hash },

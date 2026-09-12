@@ -1,4 +1,5 @@
 'use client';
+import { useAccount } from './account';
 import {
   ArrowUpRight,
   Plus,
@@ -31,6 +32,7 @@ export function JournalHome({
   onImport: () => void;
   onTasks: () => void;
 }) {
+  const { mode, user } = useAccount();
   return (
     <div className="journal-home" inert={!!openingId} aria-busy={!!openingId}>
       <header className="journal-home-header">
@@ -50,10 +52,10 @@ export function JournalHome({
           <button
             className="journal-header-action"
             onClick={onData}
-            aria-label="本地数据与备份"
+            aria-label={mode === 'cloud' ? '云端数据与备份' : '本地数据与备份'}
           >
             <Database size={17} />
-            <span>本地数据</span>
+            <span>{mode === 'cloud' ? '云端数据' : '本地数据'}</span>
           </button>
           <button className="journal-header-action" onClick={onSearch}>
             <Search size={17} />
@@ -61,10 +63,11 @@ export function JournalHome({
           </button>
           <button
             className="journal-avatar"
-            aria-label="个人空间"
+            aria-label="我的账号"
+            title={user?.username}
             onClick={onAccount}
           >
-            Y
+            {user?.username.slice(0, 1).toUpperCase() || 'Y'}
           </button>
         </div>
       </header>
@@ -166,7 +169,11 @@ export function JournalHome({
       </main>
       <footer className="journal-home-footer">
         <span>CONTEXT HUB · PERSONAL MEMORY JOURNAL</span>
-        <span>数据保存在此浏览器 · 可从“本地数据”导出备份</span>
+        <span>
+          {mode === 'cloud'
+            ? '数据保存在你的云端账号 · 可从“云端数据”导出备份'
+            : '数据保存在此浏览器 · 可从“本地数据”导出备份'}
+        </span>
       </footer>
     </div>
   );

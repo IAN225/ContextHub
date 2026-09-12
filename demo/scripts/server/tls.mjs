@@ -102,7 +102,10 @@ export async function configureCaddy(access, publicPort = 4080) {
   try {
     response = await fetch('http://127.0.0.1:2019/load', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: 'http://127.0.0.1:2019',
+      },
       body: JSON.stringify(caddyConfiguration(access, publicPort)),
       signal: AbortSignal.timeout(15000),
     });

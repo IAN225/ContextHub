@@ -59,6 +59,9 @@ export async function openAccessStore(directory) {
   // Persist the stable gateway key even before the first administrator exists.
   await update((value) => value);
   return {
+    get bootstrapAdmin() {
+      return state.admin && { ...state.admin };
+    },
     get initialized() {
       return !!state.admin;
     },

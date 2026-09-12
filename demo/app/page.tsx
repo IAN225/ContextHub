@@ -7,7 +7,7 @@ import {
   useCallback,
 } from 'react';
 import { flushSync } from 'react-dom';
-import Link from 'next/link';
+import { AccountBoundary, AccountPanel } from '@/components/hub/account';
 import {
   ArrowLeft,
   Plus,
@@ -65,7 +65,14 @@ const navigation = [
   { id: 'memory', label: '记忆包', icon: PackageOpen },
   { id: 'connect', label: '连接', icon: Plug },
 ];
-export default function Hub() {
+export default function HomePage() {
+  return (
+    <AccountBoundary>
+      <Hub />
+    </AccountBoundary>
+  );
+}
+function Hub() {
   const { data, persistence, dispatch, commit, cleanup } = useHub();
   const [emptyWorkspace] = useState(() => ({
     ...blankWorkspace('尚未创建手账'),
@@ -587,11 +594,8 @@ export default function Hub() {
           </Modal>
         )}
         {modal === 'account' && (
-          <Modal title="这本手账，只在此处" onClose={() => setModal('')}>
-            <p className="callout">
-              手账与草稿保存在当前浏览器。客户端投递先保存在本机服务的收件队列，浏览器接收成功后清除服务端正文。账号与云端同步尚未接入。
-            </p>
-            <Link href="/server">服务器访问与 HTTPS 设置 →</Link>
+          <Modal title="我的账号" description="管理你的登录信息和账号安全。" onClose={() => setModal('')}>
+            <AccountPanel saved={persistence.saved && !persistence.busy} />
           </Modal>
         )}
         {modal === 'tasks' && (

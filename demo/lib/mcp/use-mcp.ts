@@ -80,7 +80,7 @@ export function useMcp(
               }))
             )
               throw new Error(
-                'MCP 变更未保存到浏览器，服务端内容已保留，稍后重试。',
+                'MCP 变更未保存到手账，服务端内容已保留，稍后重试。',
               );
             setReceived(
               `已接收 ${unreceived.length} 项 MCP 变更；并行编辑会保留为冲突副本。`,

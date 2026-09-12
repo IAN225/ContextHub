@@ -1,3 +1,9 @@
+import {
+  createAccountHttp,
+  accountToken,
+  setAccountCookie,
+} from './account-http.mjs';
+import { createModelProxy } from './model-proxy.mjs';
 import { request as httpRequest } from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -56,11 +62,13 @@ export function proxy(
   req,
   res,
   port,
-  { origin, management = false, secure = false } = {},
+  { origin, management = false, secure = false, account, accountKey } = {},
 ) {
   const headers = { ...req.headers, host: `127.0.0.1:${port}` };
   for (const key of Object.keys(headers)) {
     if (
+      key.startsWith('x-context-hub-account') ||
+      key === 'x-context-hub-user' ||
       key.startsWith('x-forwarded-') ||
       key.startsWith('cf-') ||
       key === 'forwarded' ||
@@ -69,13 +77,22 @@ export function proxy(
     )
       delete headers[key];
   }
+  if (account) {
+    headers['x-context-hub-account'] = account.id;
+    headers['x-context-hub-account-key'] = accountKey;
+  }
   if (management) {
     if (headers.origin) headers.origin = `http://127.0.0.1:${port}`;
   } else if (origin) headers.host = new URL(origin).host;
   if (headers.cookie)
     headers.cookie = headers.cookie
       .split(';')
-      .filter((s) => !/^\s*(?:ch_server_local|__Host-ch_server)=/.test(s))
+      .filter(
+        (s) =>
+          !/^\s*(?:ch_server_local|__Host-ch_server|ch_account_local|__Host-ch_account|context_hub_mcp|context_hub_tasks|context_hub_import_session)=/.test(
+            s,
+          ),
+      )
       .join(';');
   const upstream = httpRequest(
     { host: '127.0.0.1', port, path: req.url, method: req.method, headers },
@@ -101,6 +118,9 @@ export function proxy(
 }
 
 export function createServerService(store, runtime, options = {}) {
+  const accounts = options.accounts;
+  const accountHttp = accounts && createAccountHttp(accounts);
+  const modelProxy = createModelProxy(store.gatewayKey);
   const appPort = options.appPort ?? 3000;
   const mcpPort = options.mcpPort ?? 3001;
   const publicPort = options.publicPort ?? 4080;
@@ -236,6 +256,7 @@ export function createServerService(store, runtime, options = {}) {
             req.headers['x-forwarded-proto'] === 'https';
         if (!accepted)
           return send(res, 403, { error: '请求地址不属于此服务器。' });
+        if(local && accounts && url.pathname === '/internal/model') return modelProxy(req,res);
         if (url.pathname === '/api/server/probe' && req.method === 'GET') {
           const nonce = url.searchParams.get('nonce');
           return challenges.has(nonce)
@@ -243,7 +264,23 @@ export function createServerService(store, runtime, options = {}) {
             : send(res, 404, { error: '验证请求已失效。' });
         }
         const token = cookie(req, local);
-        const authenticated = store.authenticated(token, local);
+        const userToken = accounts && accountToken(req, local);
+        const user = accounts?.user(userToken);
+        const maintenance = local && store.authenticated(token, local);
+        const authenticated = accounts
+          ? user?.role === 'admin' || maintenance
+          : store.authenticated(token, local);
+        if (
+          accountHttp &&
+          (await accountHttp(req, res, {
+            url,
+            origin,
+            local,
+            user,
+            token: userToken,
+          }))
+        )
+          return;
         if (url.pathname.startsWith('/api/server/')) {
           const action = url.pathname.slice('/api/server/'.length);
           if (req.method === 'GET' && action === 'status')
@@ -263,6 +300,8 @@ export function createServerService(store, runtime, options = {}) {
             return send(res, 403, {
               error: '请从本机配置页或当前 HTTPS 页面操作。',
             });
+          if (accounts && !local && ['setup', 'login'].includes(action))
+            return send(res, 403, { error: '请使用账号登录页面。' });
           if (['setup', 'login'].includes(action)) {
             const key = `${local}:${req.socket.remoteAddress}`;
             const at = Date.now();
@@ -284,6 +323,8 @@ export function createServerService(store, runtime, options = {}) {
                   error: '首次设置仅允许通过 SSH 转发的本机入口完成。',
                 });
               await store.initialize(input.password);
+              if (accounts && !accounts.list().length)
+                await accounts.create('admin', input.password, 'admin');
             }
             const session = await store.login(input.password, local);
             if (!session) return send(res, 401, { error: '密码不正确。' });
@@ -294,7 +335,16 @@ export function createServerService(store, runtime, options = {}) {
             return send(res, 200, { ok: true });
           }
           if (!authenticated)
-            return send(res, 401, { error: '请先登录管理员。' });
+            return send(res, user ? 403 : 401, {
+              error: '仅管理员可以配置服务器。',
+            });
+          if (accounts && user && req.headers['x-context-hub-user'] !== user.id)
+            return send(res, 409, { error: '登录账号已变化，请刷新页面。' });
+          if (action === 'logout' && accounts && user) {
+            accounts.logout(userToken);
+            setAccountCookie(res, '', local);
+            return send(res, 200, { ok: true });
+          }
           if (action === 'logout') {
             await store.logout(token);
             res.setHeader(
@@ -316,7 +366,7 @@ export function createServerService(store, runtime, options = {}) {
             )
               return send(res, 409, {
                 error:
-                  '更换地址后需重新连接 MCP，且浏览器数据不会自动迁移，请确认后再继续。',
+                  '更换地址后需重新登录并连接 MCP，账号数据仍保存在此服务器，请确认后再继续。',
               });
             begin(accessInput(input));
             return send(res, 202, { ok: true });
@@ -342,12 +392,15 @@ export function createServerService(store, runtime, options = {}) {
           );
         const loginPage =
           ['GET', 'HEAD'].includes(req.method) &&
-          (url.pathname === '/server' || staticAsset);
-        if (!authenticated && !loginPage) {
+          ((accounts
+            ? url.pathname === '/login' || (local && url.pathname === '/server')
+            : url.pathname === '/server') ||
+            staticAsset);
+        if (!(accounts ? user || maintenance : authenticated) && !loginPage) {
           if (url.pathname.startsWith('/api/'))
             return send(res, 401, { error: '管理员会话已失效，请重新登录。' });
           res.writeHead(302, {
-            Location: '/server',
+            Location: accounts ? '/login' : '/server',
             'Cache-Control': 'no-store',
           });
           return res.end();
@@ -357,7 +410,23 @@ export function createServerService(store, runtime, options = {}) {
           req.headers.origin !== origin
         )
           return send(res, 403, { error: '请求来源无效。' });
-        return proxy(req, res, appPort, { management: true, secure: !local });
+        if (accounts && url.pathname === '/server' && !authenticated)
+          return send(res, 403, { error: '仅管理员可以访问服务器管理。' });
+        if (accounts && url.pathname.startsWith('/api/tasks/runner-'))
+          return send(res, 403, { error: '执行器接口不接受公网请求。' });
+        if (
+          accounts &&
+          user &&
+          url.pathname.startsWith('/api/') &&
+          req.headers['x-context-hub-user'] !== user.id
+        )
+          return send(res, 409, { error: '登录账号已变化，请刷新页面。' });
+        return proxy(req, res, appPort, {
+          management: true,
+          secure: !local,
+          account: user,
+          accountKey: store.gatewayKey,
+        });
       } catch (failure) {
         if (!res.headersSent)
           send(res, 400, { error: failure.message || '操作失败。' });

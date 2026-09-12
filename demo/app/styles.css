@@ -20,3 +20,36 @@
 @import '../components/hub/inbox.css';
 @import '../components/hub/inbox-pet.css';
 @import '../components/hub/background-tasks.css';
+
+.account-loading {
+  padding: 48px;
+  color: #65745b;
+}
+.account-panel {
+  display: grid;
+  gap: 16px;
+}
+.account-panel form {
+  display: grid;
+  gap: 14px;
+}
+.account-panel label {
+  display: grid;
+  gap: 6px;
+}
+.account-panel input {
+  padding: 10px;
+  border: 1px solid #d5ddca;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  color: inherit;
+}
+.account-session-alert {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  padding: 16px;
+  background: #fff0d6;
+  color: #714523;
+}

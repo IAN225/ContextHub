@@ -74,7 +74,7 @@ export function createRuntime(root, directory, key, onFailure = () => {}) {
     const envFile = join(directory, 'runtime.env');
     await writeFile(
       envFile,
-      `CONTEXT_HUB_MCP_PUBLIC_ORIGIN=${origin ?? ''}\nCONTEXT_HUB_MCP_GATEWAY_KEY=${key}\n`,
+      `CONTEXT_HUB_ACCOUNT_MODE=1\nCONTEXT_HUB_MCP_PUBLIC_ORIGIN=${origin ?? ''}\nCONTEXT_HUB_MCP_GATEWAY_KEY=${key}\n`,
       { mode: 0o600 },
     );
     child = spawn(process.execPath, ['scripts/start-local.mjs'], {
