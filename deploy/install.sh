@@ -29,6 +29,10 @@ done
 [[ $(realpath -m "$PREFIX") == "$PREFIX" ]] || { echo 'Installation path must not traverse a symlink.' >&2; exit 1; }
 [[ -z $DOMAIN || $DOMAIN =~ ^[a-zA-Z0-9.-]+$ ]] || { echo 'Domain must be a hostname without a URL path.' >&2; exit 1; }
 [[ -z $DOMAIN || $MODE == external || $TERMS == true ]] || { echo 'Read the ACME terms and supply --accept-acme-terms.' >&2; exit 1; }
+if [[ ${CONTEXT_HUB_UPGRADE_CHILD:-} != 1 ]]; then
+  exec 8>/var/lock/contexthub-install.lock
+  flock -n 8 || { echo 'Another deployment is running.' >&2; exit 1; }
+fi
 command -v systemctl >/dev/null
 new_caddy=false
 if $DEPENDENCIES; then
@@ -67,14 +71,25 @@ PNPM=$(command -v pnpm)
 [[ $("$NODE" -p 'process.versions.node.split(".")[0]') == 24 ]] || { echo 'Node.js 24 is required.' >&2; exit 1; }
 id contexthub >/dev/null 2>&1 || useradd --system --home-dir /var/lib/contexthub --create-home --shell /usr/sbin/nologin contexthub
 install -d -o contexthub -g contexthub -m 700 /var/lib/contexthub
+if [[ -n ${CONTEXT_HUB_STAGED_APP:-} && ${CONTEXT_HUB_UPGRADE_CHILD:-} == 1 ]]; then
+  stage=$(dirname -- "$CONTEXT_HUB_STAGED_APP")
+else
 stage=$(mktemp -d /opt/contexthub-build.XXXXXXXX)
 chmod 755 "$stage"
 rsync -a --exclude=.git --exclude=node_modules --exclude=dist --exclude=.wrangler --exclude='.env*' --exclude=outputs "$SOURCE/app/" "$stage/app/"
 chown -R contexthub:contexthub "$stage"
 sudo -u contexthub env HOME=/var/lib/contexthub PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$2" install --frozen-lockfile; "$2" build' _ "$stage/app" "$PNPM"
+fi
+if [[ -f $PREFIX/app/.wrangler/server/accounts.sqlite && ${CONTEXT_HUB_UPGRADE_CHILD:-} != 1 ]]; then
+  $START || { echo 'An existing instance must be upgraded with startup verification; omit --no-start.' >&2; exit 1; }
+  upgrade_args=(source --stage "$stage/app" --prefix "$PREFIX" --service "$SERVICE" --domain "$DOMAIN")
+  [[ $MODE != external ]] || upgrade_args+=(--skip-caddy)
+  [[ $TERMS != true ]] || upgrade_args+=(--accept-acme-terms)
+  exec python3 "$SOURCE/deploy/upgrade.py" "${upgrade_args[@]}"
+fi
 # Compilation happens before stopping the old instance. Preserve all private state.
 if systemctl is-active --quiet "$SERVICE"; then systemctl stop "$SERVICE"; fi
-if [[ -d $PREFIX/app/.wrangler ]]; then
+if [[ -d $PREFIX/app/.wrangler && ${CONTEXT_HUB_UPGRADE_CHILD:-} != 1 ]]; then
   install -d -m 700 /var/backups/contexthub
   backup=/var/backups/contexthub/$SERVICE-$(date -u +%Y%m%d-%H%M%S).tar.gz
   (umask 077; tar -czf "$backup" -C "$PREFIX/app" .wrangler)
@@ -83,7 +98,7 @@ fi
 install -d -m 755 "$PREFIX/app"
 rsync -a --delete --no-perms --no-owner --no-group --exclude=.wrangler --exclude=".env*" --exclude=node_modules/.mf "$stage/app/" "$PREFIX/app/"
 install -d -o contexthub -g contexthub -m 700 "$PREFIX/app/.wrangler" "$PREFIX/app/dist/server/.wrangler" "$PREFIX/app/node_modules/.mf"
-sudo -u contexthub env HOME=/var/lib/contexthub PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$6" --import ./scripts/local-runtime.mjs ./node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --local --config dist/server/wrangler.json --persist-to .wrangler/state; CONTEXT_HUB_DOMAIN="$3" CONTEXT_HUB_HTTPS_MODE="$4" CONTEXT_HUB_ACCEPT_ACME_TERMS="$5" "$6" scripts/initialize-server.mjs' _ "$PREFIX/app" "$PNPM" "$DOMAIN" "$MODE" "$TERMS" "$NODE"
+sudo -u contexthub env HOME=/var/lib/contexthub PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$6" scripts/schema-check.mjs; "$6" --import ./scripts/local-runtime.mjs ./node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --local --config dist/server/wrangler.json --persist-to .wrangler/state; CONTEXT_HUB_DOMAIN="$3" CONTEXT_HUB_HTTPS_MODE="$4" CONTEXT_HUB_ACCEPT_ACME_TERMS="$5" "$6" scripts/initialize-server.mjs' _ "$PREFIX/app" "$PNPM" "$DOMAIN" "$MODE" "$TERMS" "$NODE"
 if [[ $MODE == automatic && $START == true ]]; then
   install -m 644 "$SOURCE/deploy/ubuntu/caddy-bootstrap.json" /etc/caddy/contexthub-bootstrap.json
   install -d /etc/systemd/system/caddy-api.service.d

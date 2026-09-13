@@ -36,7 +36,7 @@ ssh -N -L 4310:127.0.0.1:4310 ubuntu@server
 ```bash
 cp .env.example .env
 # 编辑 .env，填写域名并确认 CONTEXT_HUB_ACCEPT_ACME_TERMS=true
-bash deploy/docker.sh
+sudo bash deploy/docker.sh
 docker compose exec app cat .wrangler/server/initial-admin-password.txt
 ```
 

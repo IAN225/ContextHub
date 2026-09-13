@@ -1,4 +1,9 @@
-import type { Attachment, Summary, Workspace, Upload } from '../domain.ts';
+import type {
+  Attachment,
+  Summary,
+  WorkspaceSnapshotV1 as Workspace,
+  Upload,
+} from '../storage/payload-v1.ts';
 export type TaskStatus =
   | 'queued'
   | 'running'

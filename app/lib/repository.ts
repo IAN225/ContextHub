@@ -1,7 +1,10 @@
 export type StorageEntry = { key: string; value: unknown };
 export interface Repository {
   read(key: string): Promise<unknown>;
-  write(entries: readonly StorageEntry[]): Promise<void>;
+  write(
+    entries: readonly StorageEntry[],
+    guards?: readonly string[],
+  ): Promise<void>;
 }
 export interface DataRepository extends Repository {
   flush?(): Promise<void>;
@@ -18,7 +21,8 @@ async function repository(): Promise<DataRepository> {
       const status = await getAccountStatus();
       if (!status.user) throw new Error('请先登录。');
       const { createCloudRepository } = await import('./cloud-repository');
-      return createCloudRepository();
+      const { createEntityRepository } = await import('./storage/repository');
+      return createEntityRepository(createCloudRepository());
     })().catch((error) => {
       selected = undefined;
       throw error;

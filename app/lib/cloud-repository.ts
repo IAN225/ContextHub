@@ -1,3 +1,4 @@
+import { CLIENT_PROTOCOL } from './storage/protocol.ts';
 import type { DataRepository, StorageEntry } from './repository.ts';
 type RecordEntry = StorageEntry & { revision: number };
 type ReadResult = { generation: number; entry: RecordEntry };
@@ -27,7 +28,11 @@ export function createCloudRepository(
     const response = await fetcher('/api/account/data' + path, {
       method: body === undefined ? 'GET' : 'POST',
       cache: 'no-store',
-      headers: { 'Content-Type': 'application/json', 'X-Context-Hub': '1' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Context-Hub': '1',
+        'X-Context-Hub-Version': CLIENT_PROTOCOL,
+      },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     const value = (await response.json()) as T & { error?: string };
@@ -67,13 +72,16 @@ export function createCloudRepository(
     values: readonly StorageEntry[],
     mode = 'write',
     expected?: RecordEntry[],
+    guards: readonly string[] = [],
   ) {
     for (const entry of values)
       if (!revisions.has(entry.key)) await read(entry.key);
+    for (const key of guards) if (!revisions.has(key)) await read(key);
     if (generation === undefined) await entries();
     const data = {
       mode,
       generation,
+      guards: guards.map((key) => ({ key, revision: revisions.get(key) ?? 0 })),
       entries: values.map((entry) => ({
         ...entry,
         revision: revisions.get(entry.key) ?? 0,
@@ -105,7 +113,8 @@ export function createCloudRepository(
         );
     },
     read: (key) => serial(() => read(key)),
-    write: (values) => serial(() => write(values)),
+    write: (values, guards) =>
+      serial(() => write(values, 'write', undefined, guards)),
     entries: () => serial(entries),
     replace: (transform) =>
       serial(async () => {

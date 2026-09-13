@@ -1,3 +1,4 @@
+import { encodePayload, decodePayload } from '../../storage/payload.ts';
 import { uid } from '../../domain.ts';
 import {
   MAX_MCP_BYTES,
@@ -8,7 +9,7 @@ import {
 } from '../contracts.ts';
 
 function chunks(value: Mirror) {
-  const body = JSON.stringify(value);
+  const body = JSON.stringify(encodePayload('mcp-mirror', value));
   if (new TextEncoder().encode(body).length > MAX_MCP_BYTES)
     throw new McpError(
       'MEMORY_TOO_LARGE',
@@ -16,7 +17,7 @@ function chunks(value: Mirror) {
       413,
     );
   const parts: string[] = [];
-  for (let start = 0; start < body.length;) {
+  for (let start = 0; start < body.length; ) {
     let end = Math.min(start + 100000, body.length);
     if (end < body.length && /[\uD800-\uDBFF]/.test(body[end - 1])) end--;
     parts.push(body.slice(start, end));
@@ -154,7 +155,10 @@ export function mcpRepository(db: D1Database) {
         const after = await metadata(owner, wid);
         if (before.revision !== after?.revision) continue;
         return {
-          ...(JSON.parse(rows.results.map((r) => r.body).join('')) as Mirror),
+          ...decodePayload<Mirror>(
+            'mcp-mirror',
+            JSON.parse(rows.results.map((r) => r.body).join('')),
+          ),
           revision: before.revision,
         };
       }

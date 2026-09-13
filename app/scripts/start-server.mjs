@@ -1,3 +1,4 @@
+import { checkSchema, recordSchema } from './schema-check.mjs';
 import { createServer } from 'node:http';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +13,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const directory = resolve(
   process.env.CONTEXT_HUB_SERVER_DATA_DIR || `${root}/.wrangler/server`,
 );
+checkSchema(resolve(root, '.wrangler'), directory);
 for (const port of [3000, 3001, 4080, 4310]) await requireFreePort(port);
 const store = await openAccessStore(directory);
 const accounts = await openAccounts(directory, store.bootstrapAdmin);
@@ -26,7 +28,12 @@ const runtime = createRuntime(root, directory, store.gatewayKey, () => {
   process.exitCode = 1;
   void stop();
 });
-const service = createServerService(store, runtime, { accounts });
+let ready = false;
+const service = createServerService(store, runtime, {
+  accounts,
+  isReady: () => ready,
+  maintenanceFile: resolve(directory, 'upgrade-maintenance'),
+});
 const publicServer = createServer(service.handler(false));
 const setupServer = createServer(service.handler(true));
 let timer,
@@ -34,6 +41,7 @@ let timer,
 async function stop() {
   if (stopping) return;
   stopping = true;
+  ready = false;
   clearInterval(timer);
   // Let an in-progress configuration finish before stopping its application.
   await service.whenIdle();
@@ -68,6 +76,8 @@ try {
     });
   }
   if (store.access?.mode === 'automatic') await configureCaddy([store.access]);
+  recordSchema(resolve(root, '.wrangler'));
+  ready = true;
   timer = setInterval(() => {
     void service.check();
   }, 30 * 60000);

@@ -1,3 +1,4 @@
+import { CLIENT_PROTOCOL } from '../storage/protocol.ts';
 export type AccountUser = {
   id: string;
   username: string;
@@ -57,11 +58,14 @@ function bindAccountFetch(user: string) {
       init?.headers ?? (input instanceof Request ? input.headers : undefined),
     );
     headers.set('X-Context-Hub-User', user);
+    headers.set('X-Context-Hub-Version', CLIENT_PROTOCOL);
     const response = await original(input, {
       ...init,
       headers,
       cache: 'no-store',
     });
+    if (response.status === 426)
+      window.dispatchEvent(new Event('account-version-changed'));
     if (response.status === 401)
       window.dispatchEvent(new Event('account-session-ended'));
     return response;
@@ -74,7 +78,11 @@ export async function accountAction(action: string, data: object = {}) {
   }
   const response = await fetch('/api/account/' + action, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Context-Hub': '1' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Context-Hub': '1',
+      'X-Context-Hub-Version': CLIENT_PROTOCOL,
+    },
     body: JSON.stringify(data),
   });
   const result = (await response.json()) as {

@@ -22,6 +22,7 @@ export function AccountBoundary({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AccountStatus | null>(null);
   const [error, setError] = useState('');
   const [expired, setExpired] = useState(false);
+  const [outdated, setOutdated] = useState(false);
   useEffect(() => {
     let alive = true;
     void getAccountStatus()
@@ -47,10 +48,13 @@ export function AccountBoundary({ children }: { children: ReactNode }) {
           );
       });
     const ended = () => setExpired(true);
+    const versionChanged = () => setOutdated(true);
+    window.addEventListener('account-version-changed', versionChanged);
     window.addEventListener('account-session-ended', ended);
     return () => {
       alive = false;
       window.removeEventListener('account-session-ended', ended);
+      window.removeEventListener('account-version-changed', versionChanged);
     };
   }, []);
   if (!status)
@@ -64,6 +68,12 @@ export function AccountBoundary({ children }: { children: ReactNode }) {
     );
   return (
     <AccountContext.Provider value={status}>
+      {outdated && (
+        <aside className="account-session-alert" role="alert">
+          服务已升级，保存已暂停。请先复制未保存内容，再刷新页面。{' '}
+          <button onClick={() => window.location.reload()}>刷新页面</button>
+        </aside>
+      )}
       {expired && (
         <aside className="account-session-alert" role="alert">
           登录已失效，云端保存已暂停。请先复制未保存的内容，再打开登录页。{' '}

@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -47,7 +48,19 @@ const child = spawn(process.execPath, args, {
   windowsHide: true,
   env: { ...process.env, CONTEXT_HUB_TASK_RUNNER_KEY: runnerKey },
 });
-void runBackgroundTasks('http://127.0.0.1:3000', runnerKey, lifecycle.signal);
+void runBackgroundTasks(
+  'http://127.0.0.1:3000',
+  runnerKey,
+  lifecycle.signal,
+  () =>
+    !existsSync(
+      resolve(
+        process.env.CONTEXT_HUB_SERVER_DATA_DIR ||
+          fileURLToPath(new URL('../.wrangler/server', import.meta.url)),
+        'upgrade-maintenance',
+      ),
+    ),
+);
 child.on('exit', (code) => {
   lifecycle.abort();
   process.exitCode = code ?? 0;

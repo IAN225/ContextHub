@@ -1,3 +1,4 @@
+import { encodePayload, decodePayload } from '../../storage/payload.ts';
 import { uid } from '../../domain.ts';
 import {
   MAX_TASK_BYTES,
@@ -37,7 +38,9 @@ export function taskRepository(db: D1Database) {
     value: unknown,
     lease?: string,
   ) {
-    return parts(value).map((body, part) =>
+    return parts(
+      encodePayload(slot === 'state' ? 'task-state' : 'task-result', value),
+    ).map((body, part) =>
       lease
         ? bind(
             `INSERT INTO task_chunks(task_id,slot,part,body) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM background_tasks WHERE id=? AND lease=? AND status IN ('running','pausing'))`,
@@ -103,7 +106,10 @@ export function taskRepository(db: D1Database) {
         ).all<{ body: string }>()
       ).results;
       return chunks.length
-        ? (JSON.parse(chunks.map((c) => c.body).join('')) as T)
+        ? decodePayload<T>(
+            slot === 'state' ? 'task-state' : 'task-result',
+            JSON.parse(chunks.map((c) => c.body).join('')),
+          )
         : null;
     },
     async enqueue(task: TaskRecord, state: unknown) {
@@ -143,16 +149,17 @@ export function taskRepository(db: D1Database) {
         task.owner_id,
         task.workspace_id,
       );
-      const chunks = parts(state).map((body, part) =>
-        bind(
-          'INSERT INTO task_chunks(task_id,slot,part,body) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM background_tasks WHERE id=? AND request_hash=?)',
-          task.id,
-          'state',
-          part,
-          body,
-          task.id,
-          task.request_hash,
-        ),
+      const chunks = parts(encodePayload('task-state', state)).map(
+        (body, part) =>
+          bind(
+            'INSERT INTO task_chunks(task_id,slot,part,body) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM background_tasks WHERE id=? AND request_hash=?)',
+            task.id,
+            'state',
+            part,
+            body,
+            task.id,
+            task.request_hash,
+          ),
       );
       try {
         await db.batch([insert, ...chunks]);

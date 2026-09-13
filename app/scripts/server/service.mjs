@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { CLIENT_PROTOCOL } from '../../lib/storage/protocol.ts';
 import {
   createAccountHttp,
   accountToken,
@@ -257,7 +259,15 @@ export function createServerService(store, runtime, options = {}) {
         if (!accepted)
           return send(res, 403, { error: '请求地址不属于此服务器。' });
         if (local && url.pathname === '/healthz' && req.method === 'GET')
-          return send(res, 200, { ok: true });
+          return send(res, options.isReady?.() === false ? 503 : 200, {
+            ok: options.isReady?.() !== false,
+            schema: 3,
+            protocol: CLIENT_PROTOCOL,
+          });
+        if (options.maintenanceFile && existsSync(options.maintenanceFile)) {
+          res.setHeader('Retry-After', '30');
+          return send(res, 503, { error: '服务正在升级，请稍后重试。' });
+        }
         if (local && accounts && url.pathname === '/internal/model') {
           if (!accounts.state().activated)
             return send(res, 503, { error: '服务尚未激活。' });
@@ -272,6 +282,15 @@ export function createServerService(store, runtime, options = {}) {
         const token = cookie(req, local);
         const userToken = accounts && accountToken(req, local);
         const user = accounts?.user(userToken);
+        if (
+          user &&
+          url.pathname.startsWith('/api/') &&
+          !['GET', 'HEAD'].includes(req.method) &&
+          req.headers['x-context-hub-version'] !== CLIENT_PROTOCOL
+        )
+          return send(res, 426, {
+            error: '服务已升级，请先复制未保存内容，再刷新页面。',
+          });
         const maintenance =
           !accounts && local && store.authenticated(token, local);
         const authenticated = accounts

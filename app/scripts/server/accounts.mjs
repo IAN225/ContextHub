@@ -1,4 +1,10 @@
 import { DatabaseSync } from 'node:sqlite';
+import { migrateAccounts } from './account-migrations.mjs';
+import {
+  HUB_KEY,
+  RECORD_PREFIX,
+  decodeRecord,
+} from '../../lib/storage/records.ts';
 import { accountLifecycle } from './account-lifecycle.mjs';
 import {
   randomBytes,
@@ -8,7 +14,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 import { promisify } from 'node:util';
-import { mkdir, readFile, chmod } from 'node:fs/promises';
+import { mkdir, chmod } from 'node:fs/promises';
 import { join } from 'node:path';
 const derive = promisify(scrypt);
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -69,32 +75,11 @@ export async function openAccounts(directory, bootstrap) {
   db.exec(
     'PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;',
   );
-  db.exec(
-    await readFile(new URL('./account-schema.sql', import.meta.url), 'utf8'),
-  );
-  db.exec('BEGIN IMMEDIATE');
   try {
-    const columns = db
-      .prepare('PRAGMA table_info(users)')
-      .all()
-      .map((c) => c.name);
-    if (!columns.includes('status'))
-      db.exec(
-        "ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','pending','rejected'))",
-      );
-    if (!columns.includes('must_change_password'))
-      db.exec(
-        'ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0',
-      );
-    db.exec(`CREATE TABLE IF NOT EXISTS instance_settings (
-      id INTEGER PRIMARY KEY CHECK(id=1), deployed INTEGER NOT NULL DEFAULT 0,
-      activated_at INTEGER, registration_open INTEGER NOT NULL DEFAULT 1,
-      revision INTEGER NOT NULL DEFAULT 0);
-      INSERT OR IGNORE INTO instance_settings(id) VALUES(1);
-      PRAGMA user_version=2; COMMIT;`);
-  } catch (e) {
-    db.exec('ROLLBACK');
-    throw e;
+    migrateAccounts(db);
+  } catch (error) {
+    db.close();
+    throw error;
   }
   function transaction(action) {
     db.exec('BEGIN IMMEDIATE');
@@ -284,7 +269,7 @@ export async function openAccounts(directory, bootstrap) {
       if (
         !input ||
         !Array.isArray(input.entries) ||
-        input.entries.length > 10000 ||
+        input.entries.length > 100000 ||
         !Number.isSafeInteger(input.generation) ||
         !['write', 'replace'].includes(input.mode) ||
         typeof input.commitId !== 'string' ||
@@ -303,8 +288,31 @@ export async function openAccounts(directory, bootstrap) {
           entry.revision < 0
         )
           throw new AccountError('存储条目无效。');
+        if (entry.key === HUB_KEY)
+          throw new AccountError('存储格式已升级，请刷新页面后再保存。', 426);
+        if (entry.key.startsWith(RECORD_PREFIX) && entry.value !== undefined) {
+          try {
+            decodeRecord(entry.value);
+          } catch {
+            throw new AccountError('存储版本不兼容。', 426);
+          }
+        }
         seen.add(entry.key);
       }
+      const guards = input.guards ?? [];
+      if (
+        !Array.isArray(guards) ||
+        guards.length > 100000 ||
+        guards.some(
+          (e) =>
+            !e ||
+            typeof e.key !== 'string' ||
+            e.key.length > 300 ||
+            !Number.isSafeInteger(e.revision) ||
+            e.revision < 0,
+        )
+      )
+        throw new AccountError('依赖记录版本无效。');
       const fingerprint = hash(JSON.stringify(input));
       return transaction(() => {
         const user = lifecycle.requireActive(id);
@@ -323,7 +331,7 @@ export async function openAccounts(directory, bootstrap) {
             '账号数据已在其他页面恢复，请刷新后继续。',
             409,
           );
-        for (const entry of input.entries) {
+        for (const entry of [...input.entries, ...guards]) {
           if (record(id, entry.key).revision !== entry.revision)
             throw new AccountError(
               '数据已在另一页面或设备更新。请先复制未保存内容，再刷新页面。',

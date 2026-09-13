@@ -15,5 +15,5 @@ jobs:
         working-directory: app
       - run: pnpm typecheck && pnpm lint && pnpm build
         working-directory: app
-      - run: python3 -m py_compile deploy/backup.py && shellcheck deploy/install.sh deploy/docker.sh
+      - run: python3 -m py_compile deploy/backup.py deploy/upgrade.py && shellcheck deploy/install.sh deploy/docker.sh
       - run: docker compose config --quiet && docker build -t contexthub:check .

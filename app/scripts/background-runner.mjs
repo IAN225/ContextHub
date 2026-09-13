@@ -232,11 +232,11 @@ export async function runTaskOnce(
   }
   return true;
 }
-export async function runBackgroundTasks(origin, key, signal) {
+export async function runBackgroundTasks(origin, key, signal, canRun = () => true) {
   while (!signal.aborted) {
     let worked = false;
     try {
-      worked = await runTaskOnce(origin, key, signal);
+      if (canRun()) worked = await runTaskOnce(origin, key, signal);
     } catch {
       /* Startup/restart is retried without logging URLs, input or credentials. */
     }

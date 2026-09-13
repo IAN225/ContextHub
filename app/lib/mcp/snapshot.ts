@@ -1,9 +1,10 @@
+import type { WorkspaceSnapshotV1 } from '../storage/payload-v1.ts';
 import { attachmentContext } from '../attachments.ts';
 import type { Note, Workspace } from '../domain.ts';
 
 // This local service copy is deliberately not an account/device sync format.
 // Only memory inputs and Note history are exposed: no credentials or file bytes.
-export function mcpWorkspace(w: Workspace): Workspace {
+export function mcpWorkspace(w: Workspace): WorkspaceSnapshotV1 {
   return {
     id: w.id,
     name: w.name,

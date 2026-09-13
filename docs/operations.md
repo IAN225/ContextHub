@@ -16,9 +16,42 @@ Docker 部署使用 docker compose ps 与 docker compose logs --tail 100。内�
 
 ## 更新
 
-源码版检出新版本后重新执行原安装命令。脚本先构建，随后短暂停止服务，保留 .wrangler 状态、迁移数据库并启动。已有数据时自动创建升级前备份。Docker 版重新运行 bash deploy/docker.sh。不要使用 docker compose down -v 升级，它会删除数据卷。
+在检出的 GitHub 仓库根目录拉取新版本，然后执行对应的部署命令。源码目录应与 `/opt/contexthub/app` 运行目录分开。
 
-源码安装目录为 /opt/contexthub/app。--prefix、--service 可修改安装位置和服务名，--no-start 只安装不启动，--skip-dependencies 跳过已安装的依赖。参数见 deploy/install.sh --help。
+```bash
+git pull --ff-only
+# 源码：沿用首次部署的域名、HTTPS 模式、prefix 和 service 参数
+sudo bash deploy/install.sh --domain hub.example.com --accept-acme-terms
+# Docker：保持原 .env、Compose 项目名称与持久卷
+sudo bash deploy/docker.sh
+```
+
+有数据库时，命令自动进入升级流程：先构建，停止应用及本项目的证书服务，创建并校验完整状态快照，保存旧源码或 Docker 镜像及运行配置，然后迁移并启动新版。验证期间网页、MCP、投递接口暂停访问，后台任务暂停领取；健康检查通过后才恢复访问。失败时恢复旧代码和升级前的全部数据库、证书状态，避免旧代码读取新版数据。源码模式使用外部 HTTPS 时只管理应用本身。
+
+账号、密码、原文、Note 及历史、摘要、附件、草稿、模型配置、后台任务和 MCP / OAuth 授权均保留；不用重新激活或重新导入。已经打开的旧页面如果版本不兼容，会提示复制未保存内容后刷新。同一账号可同时修改不同内容记录，修改同一记录仍会触发冲突保护。升级有短暂停机，不是滚动更新。
+
+源码安装目录为 `/opt/contexthub/app`。`--prefix`、`--service` 可修改安装位置和服务名，`--skip-dependencies` 跳过已安装依赖；`--no-start` 仅用于首次安装，已有实例升级必须执行启动检查。Docker 脚本需要 sudo、Python 3.10+ 及同机标准本地卷。不使用 `docker compose down -v` 升级，也不直接把旧版本程序指向较新数据库。
+
+恢复材料放在 `/var/backups/contexthub/upgrade-*`，包含私有凭据，目录权限为 700。源码快照包含已安装依赖，请预留至少旧程序与完整状态副本所需磁盘空间。确认新版稳定后可由管理员清理不再需要的历史快照和回退镜像；脚本不会自动删除它们。系统软件包、外部反向代理及其他云服务配置不在应用回退范围内。
+
+若断电或进程被强制终止，脚本会拒绝覆盖尚未恢复的升级记录。按输出路径恢复：
+
+```bash
+sudo python3 deploy/upgrade.py source --recover /var/backups/contexthub/upgrade-实际编号
+# Docker 改用 docker；自定义部署需带回原 --prefix、--service、--skip-caddy 或 --project
+```
+
+恢复命令只适用于未完成的升级。如果记录已经是 committed，但仍显示维护页，应先确认新版本健康，再移除该实例 `.wrangler/server/upgrade-maintenance` 文件；不要回退已接受新写入的实例。需要回退已成功发布的版本时，应按完整实例备份恢复流程操作。
+
+### 数据结构与后续版本
+
+账号 SQLite 使用顺序迁移及迁移校验记录；启动前检查账号版本、D1 已执行迁移、迁移文件校验和与数据库完整性。历史迁移不可修改或删除，新变更追加新迁移。高版本数据库由低版本新启动器读取时会被拒绝。
+
+`account_records` 中每个账号的原文、附件、Note 正文、Note 历史、摘要、摘要设置、列表顺序和连接配置分别保存为独立记录；关系使用稳定 ID。各记录包含类型及格式版本。前端和个人 JSON 备份仍使用聚合视图，内部转换层负责拆分、重组和只提交变化的记录。以后改变存储形状时，必须追加对应格式转换和数据库迁移，不能只修改 TypeScript 类型。
+
+MCP 镜像、后台任务状态和任务结果使用各自带版本的数据封套，传输类型固定在 `app/lib/storage/payload-v1.ts`，与页面的 Workspace 类型分开。升级可读取原先没有封套的记录，未知新版本会被拒绝处理。后续发布若改变字段语义，应新增版本和转换器，并验证旧的排队任务与未接收结果；不以清空数据库代替迁移。
+
+模块可以分别开发，当前仍整体构建、发布一个应用。MCP / 任务数据库与账号数据库仍通过事件及接收回执协调，并非跨库单事务。普通模块功能更新可保留现有数据库运行；结构变化需要该版本明确提供迁移。
 
 ## 忘记密码
 

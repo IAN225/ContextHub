@@ -1,3 +1,4 @@
+import { CLIENT_PROTOCOL } from '../../lib/storage/protocol.ts';
 import { AccountError } from './accounts.mjs';
 export const accountCookie = (local) =>
   local ? 'ch_account_local' : '__Host-ch_account';
@@ -102,6 +103,14 @@ export function createAccountHttp(accounts) {
       if (!user) throw new AccountError('请先登录。', 401);
       if (req.headers['x-context-hub-user'] !== user.id)
         throw new AccountError('登录账号已变化，请刷新页面。', 409);
+      if (
+        action === 'data' &&
+        req.headers['x-context-hub-version'] !== CLIENT_PROTOCOL
+      )
+        throw new AccountError(
+          '服务已升级，请先复制未保存内容，再刷新页面。',
+          426,
+        );
       if (action === 'logout' && req.method === 'POST') {
         accounts.logout(token);
         setAccountCookie(res, '', local);

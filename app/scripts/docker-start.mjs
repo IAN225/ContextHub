@@ -1,3 +1,5 @@
+import { checkSchema } from './schema-check.mjs';
+checkSchema();
 import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
 const run = (args) =>
