@@ -1,3 +1,7 @@
+# 2026-09-13 验收分支
+
+当前分支 codex/acceptance-ready；验收记录见 [acceptance-verification.md](acceptance-verification.md)。管理员直接入口、前端模块拆分、历史实验接口清理、干净 Ubuntu pnpm 安装路径修复、完整备份恢复已完成。GitHub 已推送；线上升级需本轮单独许可（自动审批拦截了生产更新，服务未改动）。未使用 UI 模板保留，未获批批量删除。
+
 # 最新接续：部署与账号生命周期（2026-09-13）
 
 源码 / Docker 部署、随机初始管理员密码、强制改密激活、审批制注册、注册开关和角色调整已实现。参阅 [部署指南](deployment-and-activation.md)、[功能审查](feature-audit.md) 和 [验收记录](deployment-verification.md)。线上测试站点已升级，保留数据，等待用户用原 admin 密码改密激活。

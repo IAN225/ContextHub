@@ -100,6 +100,11 @@ if $START; then
   for ((i=0;i<60;i++)); do if curl -fsS http://127.0.0.1:4310/healthz >/dev/null; then ready=true; break; fi; sleep 2; done
   $ready || { echo "Service not ready. Inspect journalctl -u $SERVICE." >&2; exit 1; }
 fi
-printf 'Installed %s. Initial password (fresh installs): sudo cat %s/demo/.wrangler/server/initial-admin-password.txt\n' "$SERVICE" "$PREFIX"
+printf 'Installed %s.\n' "$SERVICE"
+if [[ -f $PREFIX/demo/.wrangler/server/initial-admin-password.txt ]]; then
+  printf 'Initial password: sudo cat %s/demo/.wrangler/server/initial-admin-password.txt\n' "$PREFIX"
+else
+  printf '%s\n' 'Existing account state preserved. Sign in with your account password.'
+fi
 printf 'SSH setup: ssh -N -L 4310:127.0.0.1:4310 user@server, then open http://127.0.0.1:4310/login\n'
 printf 'Public domain: %s\n' "${DOMAIN:-configure HTTPS after activation}"

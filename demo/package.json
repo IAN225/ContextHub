@@ -14,7 +14,7 @@
     "claude": "node ./scripts/start-chatgpt.mjs",
     "mcp:oauth": "node ./scripts/start-chatgpt.mjs",
     "db:init": "node --import ./scripts/local-runtime.mjs ./node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --local --config dist/server/wrangler.json --persist-to .wrangler/state",
-    "lint": "oxlint",
+    "lint": "oxlint app lib scripts tests components/hub components/admin components/ui/button.tsx components/ui/dialog.tsx components/ui/tabs.tsx components/ui/select.tsx components/ui/checkbox.tsx components/ui/switch.tsx",
     "format": "oxfmt",
     "test": "node --experimental-strip-types --test tests/*.test.ts tests/*.test.mjs",
     "typecheck": "tsc --noEmit"
