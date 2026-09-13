@@ -32,7 +32,7 @@ command -v systemctl >/dev/null
 new_caddy=false
 if $DEPENDENCIES; then
   apt-get update
-  apt-get install -y ca-certificates curl xz-utils rsync gnupg sudo
+  apt-get install -y ca-certificates curl xz-utils rsync gnupg sudo python3
   if ! command -v node >/dev/null || [[ $(node -p 'process.versions.node.split(".")[0]') != 24 ]]; then
     NODE_VERSION=24.21.0
     case "$(uname -m)" in x86_64) ARCH=x64 ;; aarch64) ARCH=arm64 ;; *) echo 'Unsupported CPU architecture.' >&2; exit 1 ;; esac

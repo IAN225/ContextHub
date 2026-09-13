@@ -1,3 +1,4 @@
+name: contexthub
 services:
   app:
     build: .

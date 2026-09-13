@@ -1,0 +1,22 @@
+name: Acceptance checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.21.0'
+      - run: npm install --global pnpm@11.19.0
+      - run: pnpm install --frozen-lockfile
+        working-directory: demo
+      - run: pnpm typecheck && pnpm lint && pnpm test && pnpm build
+        working-directory: demo
+      - run: python3 -m unittest discover -s deploy/tests -v
+      - run: shellcheck deploy/install.sh deploy/docker.sh
+      - run: docker compose config --quiet && docker build -t contexthub:ci .

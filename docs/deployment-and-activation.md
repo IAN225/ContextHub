@@ -45,6 +45,8 @@ docker compose exec app cat .wrangler/server/initial-admin-password.txt
 
 脚本等待应用健康检查通过后才结束。也可直接运行 docker compose up -d --build --wait。应用以非 root 用户运行；Caddy 提供 HTTPS 和证书续期。应用共享 Caddy 的网络空间，内部数据库、应用及 Caddy 管理端口不直接对公网发布；本机设置入口只映射到宿主机 127.0.0.1:4310。
 
+Compose 项目名固定为 contexthub，不会因检出目录改名而换用空数据卷。已有自定义项目需要继续设置 COMPOSE_PROJECT_NAME 或 -p。
+
 三个持久卷分别保存应用数据库、Caddy 证书与 Caddy 配置。停止或重建容器会保留数据；docker compose down -v 会删除数据卷，不能用作升级命令。
 
 Docker 的启动顺序、网络共享和卷定义遵循 [Compose 服务规范](https://docs.docker.com/reference/compose-file/services/)；Caddy 安装和服务方式见[官方说明](https://caddyserver.com/docs/install)。
@@ -62,7 +64,7 @@ Docker 的启动顺序、网络共享和卷定义遵循 [Compose 服务规范](h
 
 - 实例激活后默认开放注册申请。登录页提供“申请账号”入口。
 - 新账号固定为普通用户且处于待审批状态，不能登录或访问数据；提交 role、status 等额外字段不能自行升级权限。
-- 管理员在“我的账号 → 用户与注册管理”批准或拒绝申请。拒绝后的申请不可登录，用户名仍保留。
+- 管理员在“管理员设置”批准或拒绝申请。拒绝后的申请不可登录，用户名仍保留。
 - 管理员可以关闭或重新开放注册。关闭仅阻止新申请，既有账号和待处理申请不受影响。
 - 管理员可将已批准用户设为管理员，也可降为普通用户。权限在后续请求中立即重新核验；系统始终保留至少一名管理员。
 - 多个管理员同时操作时，过期的管理页面提交会被拒绝，刷新列表后重试。
@@ -85,3 +87,5 @@ docker compose up -d --build --force-recreate
 ## 数据库扩展
 
 users 增加 status（pending / active / rejected）与 must_change_password；instance_settings 保存 deployed、activated_at、registration_open 与管理版本号 revision。升级事务补齐字段，保留原账号记录。审批和角色变更在 SQLite 事务中核验当前管理员身份、目标状态及最新版本；密码哈希仍使用 scrypt，会话只保存令牌哈希。
+
+完整备份、校验与重装后恢复命令见 [备份与恢复](backup-and-restore.md)。GitHub 不保存用户数据库，重装前必须将备份复制到另一台机器。

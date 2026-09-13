@@ -20,3 +20,8 @@ Thumbs.db
 # Local reference links and observations may contain private source material.
 /share_url.txt
 /share-link-observations.md
+
+# Private server backups and Python test artifacts
+*.tar.gz
+*.sqlite*
+__pycache__/

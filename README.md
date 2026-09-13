@@ -22,13 +22,15 @@ bash deploy/docker.sh
 docker compose exec app cat .wrangler/server/initial-admin-password.txt
 ```
 
-初始用户名 admin，密码随机生成。管理员首次登录必须修改密码，完成后实例才激活。普通用户提交注册申请，管理员审批后才能登录；管理员可关闭注册或调整其他已批准用户的角色。
+初始用户名 admin，密码随机生成。管理员首次登录必须修改密码，完成后实例才激活。普通用户提交注册申请，管理员审批后才能登录；管理员可通过首页或手账页的“管理员设置”关闭注册、审批账号、调整角色和管理证书。
+
+重装服务器前，把 [完整备份](docs/backup-and-restore.md) 复制到另一台机器；仅拉取源码会得到空实例，不能恢复原账号内容。
 
 完整步骤、升级和备份见 [部署与激活指南](docs/deployment-and-activation.md)。已有账号版升级会保留数据与原密码，并要求初始管理员完成一次改密激活。
 
 ## 功能与开发
 
-实际应用代码位于 demo/（历史目录名），部署使用同一份代码。已经实现和未实现的能力见 [功能审查](docs/feature-audit.md)，数据库说明见 [云端账号设计](docs/cloud-accounts.md)。
+实际应用代码位于 demo/（历史目录名），部署使用同一份代码。已经实现和未实现的能力见 [功能审查](docs/feature-audit.md)，数据库说明见 [云端账号设计](docs/cloud-accounts.md)，前端模块见 [模块地图](docs/frontend-modules.md)。
 
 Node.js 24 与 pnpm 用于开发：
 

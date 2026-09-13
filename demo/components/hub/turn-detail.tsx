@@ -194,8 +194,8 @@ export function TurnDetail({
       </div>
       {current.status === 'trash' && (
         <p className="callout">
-          回收站按完整轮次保留。正式版将在删除 30 天后清理；本地 demo
-          不运行后台清理。
+          回收站按完整轮次保留。删除满 30
+          天后，会在手账打开时清理；清理前可以恢复。
         </p>
       )}
     </div>

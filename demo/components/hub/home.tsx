@@ -1,4 +1,5 @@
 'use client';
+import { AdminLink } from './admin-link';
 import { useAccount } from './account';
 import {
   ArrowUpRight,
@@ -12,6 +13,7 @@ import {
 import { coverage, type Workspace } from '@/lib/domain';
 
 export function JournalHome({
+  saved,
   openingId,
   workspaces,
   onOpen,
@@ -22,6 +24,7 @@ export function JournalHome({
   onImport,
   onTasks,
 }: {
+  saved: boolean;
   openingId: string | null;
   workspaces: Workspace[];
   onOpen: (id: string) => void;
@@ -41,6 +44,7 @@ export function JournalHome({
           <span>Context Hub</span>
         </button>
         <div>
+          <AdminLink saved={saved} />
           <button
             className="journal-header-action"
             onClick={onTasks}

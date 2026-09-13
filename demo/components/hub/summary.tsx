@@ -393,7 +393,7 @@ export function SummaryPage({
           )}
         </article>
       </div>
-      <p className="inline-note demo-disclaimer">
+      <p className="inline-note summary-execution-note">
         每批调用已配置的模型。仅完整结果保存成功后推进水位；中断或失败不会用摘录代替摘要。
       </p>
       {modal === 'settings' && (

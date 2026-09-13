@@ -521,3 +521,21 @@
     transform: translateY(0);
   }
 }
+
+@media (max-width: 600px) {
+  .journal-reader-header {
+    height: auto;
+    min-height: 76px;
+    flex-wrap: wrap;
+    padding-block: 10px;
+    gap: 10px;
+  }
+  .reader-actions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .reader-actions .admin-entry {
+    margin-right: auto;
+  }
+}

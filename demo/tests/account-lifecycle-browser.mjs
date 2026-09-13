@@ -76,8 +76,28 @@ try {
   }
   await login(admin.p, 'admin', state.password);
   await admin.p.getByRole('heading', { name: '我的手账' }).waitFor();
+  await admin.p.screenshot({
+    path: resolve(out, 'home-admin-desktop.png'),
+    fullPage: true,
+  });
+  await admin.p.setViewportSize({ width: 390, height: 844 });
+  await admin.p
+    .getByRole('button', { name: '管理员设置', exact: true })
+    .waitFor();
+  assert.ok(
+    await admin.p.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  );
+  await admin.p.screenshot({
+    path: resolve(out, 'home-admin-mobile.png'),
+    fullPage: true,
+  });
+  await admin.p.setViewportSize({ width: 1365, height: 900 });
   if (after) {
-    await admin.p.goto(origin + '/admin');
+    await admin.p
+      .getByRole('button', { name: '管理员设置', exact: true })
+      .click();
     await admin.p
       .getByText('注册申请已关闭，已有账号可正常登录，待审批申请仍可处理。')
       .waitFor();
@@ -87,7 +107,7 @@ try {
     await a.p.getByRole('heading', { name: '我的手账' }).waitFor();
     await a.p.getByRole('button', { name: new RegExp(state.name) }).waitFor();
     await a.p.goto(origin + '/admin');
-    await a.p.getByRole('heading', { name: '用户与注册管理' }).waitFor();
+    await a.p.getByRole('heading', { name: '管理员设置' }).waitFor();
     assert.equal(
       (await (await a.c.request.get(origin + '/api/account/status')).json())
         .user.role,
@@ -125,6 +145,20 @@ try {
     await login(member.p, 'approval-user', state.memberPassword);
     await member.p.getByRole('heading', { name: '我的手账' }).waitFor();
     assert.equal((await member.c.request.get(origin + '/admin')).status(), 403);
+    assert.equal(
+      await member.p
+        .getByRole('button', { name: '管理员设置', exact: true })
+        .count(),
+      0,
+    );
+    // A clean browser has no local durable store in cloud mode.
+    assert.deepEqual(
+      await member.p.evaluate(async () => ({
+        local: localStorage.length,
+        databases: await indexedDB.databases(),
+      })),
+      { local: 0, databases: [] },
+    );
     await member.p.getByRole('button', { name: /新建手账/ }).click();
     await member.p.getByLabel('手账名称', { exact: true }).fill(state.name);
     await member.p
@@ -140,8 +174,27 @@ try {
     await admin.p.getByText('设置已保存。', { exact: true }).waitFor();
     await admin.p.getByRole('button', { name: '关闭注册申请' }).click();
     await admin.p.getByRole('button', { name: '开放注册申请' }).waitFor();
-    await member.p.goto(origin + '/admin');
-    await member.p.getByRole('heading', { name: '用户与注册管理' }).waitFor();
+    await member.p.reload();
+    await member.p
+      .getByRole('button', { name: new RegExp(state.name) })
+      .click();
+    await member.p
+      .getByRole('button', { name: '管理员设置', exact: true })
+      .waitFor();
+    await member.p.setViewportSize({ width: 390, height: 844 });
+    assert.ok(
+      await member.p.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    );
+    await member.p.screenshot({
+      path: resolve(out, 'reader-admin-mobile.png'),
+      fullPage: true,
+    });
+    await member.p
+      .getByRole('button', { name: '管理员设置', exact: true })
+      .click();
+    await member.p.getByRole('heading', { name: '管理员设置' }).waitFor();
     const h = await auth(member.c);
     const denied = await member.c.request.post(
       origin + '/api/account/register',
