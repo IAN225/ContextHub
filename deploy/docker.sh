@@ -15,9 +15,5 @@ if [[ -n $(docker compose ps -aq app) ]]; then
 fi
 docker compose up -d --build --wait --wait-timeout 180
 python3 deploy/upgrade.py docker --project "$project" --record-compose
-if docker compose exec -T app test -f .wrangler/server/initial-admin-password.txt; then
-  printf '%s\n' 'Read the initial password: docker compose exec app cat .wrangler/server/initial-admin-password.txt' 'First login requires a password change.'
-else
-  printf '%s\n' 'Existing account state preserved. Sign in with your account password.'
-fi
+python3 deploy/access-info.py docker
 printf '%s\n' 'Check status: docker compose ps'

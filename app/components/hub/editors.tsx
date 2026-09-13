@@ -349,7 +349,7 @@ export function TurnEditor({
                 {reading
                   ? '正在保存附件…'
                   : save.saved
-                    ? '✓ 草稿已保存到此浏览器'
+                    ? '✓ 草稿已保存'
                     : '正在保存草稿…'}
               </span>
               <Button disabled={save.busy} onClick={onClose}>

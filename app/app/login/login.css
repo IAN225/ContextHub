@@ -65,3 +65,13 @@
     padding: 28px 22px;
   }
 }
+
+.login-recovery {
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.login-recovery code,
+.login-recovery small {
+  display: block;
+  margin-top: 8px;
+}

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { splitHub, HUB_KEY } from '../../lib/storage/records.ts';
-export const ACCOUNT_SCHEMA_VERSION = 3;
+export const ACCOUNT_SCHEMA_VERSION = 4;
 const base = readFileSync(
   new URL('./account-schema.sql', import.meta.url),
   'utf8',
@@ -63,6 +63,15 @@ const migrations = [
       db.prepare('DELETE FROM account_records WHERE record_key=?').run(HUB_KEY);
       db.exec(
         'UPDATE users SET generation=generation+1; DELETE FROM account_commits',
+      );
+    },
+  },
+  {
+    version: 4,
+    name: 'optional-password-setup-and-admin-recovery',
+    apply(db) {
+      db.exec(
+        'ALTER TABLE users ADD COLUMN password_setup_pending INTEGER NOT NULL DEFAULT 0; UPDATE users SET password_setup_pending=1 WHERE must_change_password=1; CREATE TABLE admin_password_recovery(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, iv BLOB NOT NULL, tag BLOB NOT NULL, ciphertext BLOB NOT NULL)',
       );
     },
   },

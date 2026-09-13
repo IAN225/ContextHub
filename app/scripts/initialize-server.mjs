@@ -17,7 +17,7 @@ try {
       ? '初始管理员：admin；随机密码文件：' + result.passwordFile
       : result.activated
         ? '已有实例保持激活，账号与密码未更改。'
-        : '实例等待管理员登录并修改初始密码。',
+        : '实例等待管理员首次登录激活。',
   );
 } finally {
   accounts.close();

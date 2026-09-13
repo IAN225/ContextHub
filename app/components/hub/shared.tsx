@@ -1,4 +1,5 @@
 'use client';
+import { copyText } from '@/lib/browser-compat';
 import { Check, Copy, X, MessageSquare } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import {
@@ -162,7 +163,7 @@ export function CopyButton({
       title={state || label}
       onClick={async () => {
         try {
-          await navigator.clipboard.writeText(text);
+          await copyText(text);
           set('已复制');
         } catch {
           set('复制失败，请手动选择');

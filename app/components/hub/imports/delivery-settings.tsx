@@ -1,4 +1,5 @@
 'use client';
+import { copyText } from '@/lib/browser-compat';
 import { useEffect, useState } from 'react';
 import { Copy, KeyRound, RefreshCw } from 'lucide-react';
 import { Button, Picker } from '../shared';
@@ -67,7 +68,7 @@ export function DeliverySettings({
   }
   async function copy(value: string) {
     try {
-      await navigator.clipboard.writeText(value);
+      await copyText(value);
       setNotice('已复制');
     } catch {
       setError('未能写入剪贴板，请选中内容手动复制。');

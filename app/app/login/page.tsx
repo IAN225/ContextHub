@@ -1,12 +1,18 @@
 'use client';
 /* oxlint-disable nextjs/no-html-link-for-pages -- Account navigation discards stale session state. */
 import { useEffect, useState } from 'react';
-import { accountAction, getAccountStatus } from '@/lib/account/client';
+import {
+  accountAction,
+  getAccountStatus,
+  AccountActionError,
+  type PasswordRecovery,
+} from '@/lib/account/client';
 import './login.css';
 export default function LoginPage() {
   const [username, setUsername] = useState(''),
     [password, setPassword] = useState('');
   const [ready, setReady] = useState(false);
+  const [recovery, setRecovery] = useState<PasswordRecovery>();
   const [registrationOpen, setRegistrationOpen] = useState(false);
   const [activated, setActivated] = useState(true);
   const [error, setError] = useState(''),
@@ -19,8 +25,8 @@ export default function LoginPage() {
         setActivated(status.activated !== false);
         if (status.user || status.mode === 'local')
           window.location.replace(
-            status.user?.mustChangePassword || status.activated === false
-              ? '/activate'
+            status.user?.role === 'admin' && status.user.passwordSetupPending
+              ? '/admin'
               : '/',
           );
       })
@@ -39,19 +45,23 @@ export default function LoginPage() {
             event.preventDefault();
             setBusy(true);
             setError('');
+            setRecovery(undefined);
             void accountAction('login', { username: username.trim(), password })
               .then((result) =>
                 window.location.assign(
-                  result.user?.mustChangePassword || !activated
-                    ? '/activate'
+                  result.user?.role === 'admin' &&
+                    result.user.passwordSetupPending
+                    ? '/admin'
                     : '/',
                 ),
               )
-              .catch((failure) =>
+              .catch((failure) => {
                 setError(
                   failure instanceof Error ? failure.message : '登录失败。',
-                ),
-              )
+                );
+                if (failure instanceof AccountActionError)
+                  setRecovery(failure.passwordRecovery);
+              })
               .finally(() => setBusy(false));
           }}
         >
@@ -84,6 +94,22 @@ export default function LoginPage() {
             <p role="alert" className="login-error">
               {error}
             </p>
+          )}
+          {recovery && username.trim().toLowerCase() === 'admin' && (
+            <div className="login-recovery">
+              {recovery.available ? (
+                <>
+                  <p>可在部署服务器上查看当前管理员密码：</p>
+                  <code>{recovery.command}</code>
+                  <small>密码文件：{recovery.path}</small>
+                </>
+              ) : (
+                <p>
+                  此旧实例尚无密码恢复文件。请按 README
+                  的“忘记密码”步骤在服务器上重置；重置后会生成恢复文件。
+                </p>
+              )}
+            </div>
           )}
           <button
             className="button primary"

@@ -15,6 +15,8 @@ services:
       CONTEXT_HUB_ACCEPT_ACME_TERMS: ${CONTEXT_HUB_ACCEPT_ACME_TERMS:-false}
       CONTEXT_HUB_WAIT_FOR_CADDY: "true"
       CONTEXT_HUB_SETUP_BIND: "0.0.0.0"
+      CONTEXT_HUB_PORT: "8080"
+      CONTEXT_HUB_DEPLOYMENT: "docker"
     volumes:
       - app_data:/app/.wrangler
     stop_grace_period: 3m
@@ -30,6 +32,7 @@ services:
       - "${CONTEXT_HUB_HTTP_BIND:-0.0.0.0:80}:80"
       - "${CONTEXT_HUB_HTTPS_BIND:-0.0.0.0:443}:443"
       - "127.0.0.1:${CONTEXT_HUB_SETUP_PORT:-4310}:4310"
+      - "0.0.0.0:${CONTEXT_HUB_PORT:-8080}:8080"
     restart: unless-stopped
     command: ["caddy", "run", "--resume", "--config", "/etc/caddy/bootstrap.json"]
     volumes:

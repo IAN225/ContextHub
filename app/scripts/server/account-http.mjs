@@ -93,7 +93,15 @@ export function createAccountHttp(accounts) {
         } finally {
           deriving--;
         }
-        if (!result) throw new AccountError('用户名或密码不正确。', 401);
+        if (!result) {
+          accountReply(res, 401, {
+            error: '用户名或密码不正确。',
+            ...(name === 'admin'
+              ? { passwordRecovery: accounts.passwordRecoveryInfo() }
+              : {}),
+          });
+          return true;
+        }
         attempts.delete(name);
         if (token) accounts.logout(token);
         setAccountCookie(res, result.token, local);
@@ -117,17 +125,18 @@ export function createAccountHttp(accounts) {
         accountReply(res, 200, { ok: true });
         return true;
       }
+      if (action === 'keep-password' && req.method === 'POST') {
+        accounts.keepPassword(token);
+        accountReply(res, 200, { ok: true });
+        return true;
+      }
       if (action === 'password' && req.method === 'POST') {
         const input = await json(req);
         if (deriving >= 4)
           throw new AccountError('服务繁忙，请稍后重试。', 429);
         deriving++;
         try {
-          await accounts.password(
-            user.id,
-            input.currentPassword,
-            input.password,
-          );
+          await accounts.password(user.id, undefined, input.password, token);
         } finally {
           deriving--;
         }

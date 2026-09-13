@@ -14,14 +14,17 @@ Docker 部署使用 docker compose ps 与 docker compose logs --tail 100。内�
 
 管理员在网页“管理员设置”管理用户与证书。证书可选择 Caddy 自动申请续期，或已有 HTTPS 入口。源码部署使用已有反向代理时加 --external-https，代理转发到 127.0.0.1:4080，并保留 Host、设置 X-Forwarded-Proto: https。
 
+无域名时访问 `http://服务器IP:8080`；网页不依赖 HTTPS，MCP 公开接口只接受 HTTPS。源码部署可用 `--port` 修改网页端口；Docker 修改 `.env` 中的 `CONTEXT_HUB_PORT` 后运行部署脚本。维护端口 4310 与内部应用端口不需要开放公网。
+
 ## 更新
 
 在检出的 GitHub 仓库根目录拉取新版本，然后执行对应的部署命令。源码目录应与 `/opt/contexthub/app` 运行目录分开。
 
 ```bash
 git pull --ff-only
-# 源码：沿用首次部署的域名、HTTPS 模式、prefix 和 service 参数
-sudo bash deploy/install.sh --domain hub.example.com --accept-acme-terms
+# 源码：域名和 HTTP 端口已持久保存，无需重复填写
+# 自定义的 prefix、service 和 --external-https 仍需沿用
+sudo bash deploy/install.sh
 # Docker：保持原 .env、Compose 项目名称与持久卷
 sudo bash deploy/docker.sh
 ```
@@ -54,6 +57,19 @@ MCP 镜像、后台任务状态和任务结果使用各自带版本的数据封�
 模块可以分别开发，当前仍整体构建、发布一个应用。MCP / 任务数据库与账号数据库仍通过事件及接收回执协调，并非跨库单事务。普通模块功能更新可保留现有数据库运行；结构变化需要该版本明确提供迁移。
 
 ## 忘记密码
+
+内置 `admin` 的当前密码可在服务器查看，网页修改和命令行重置后都会同步更新：
+
+```bash
+# 源码部署；自定义 prefix 时替换路径
+sudo cat /opt/contexthub/app/.wrangler/server/admin-password.txt
+# Docker：在 Compose 仓库根目录运行
+sudo docker compose exec app cat .wrangler/server/admin-password.txt
+```
+
+该文件为明文，权限 600；请随完整实例备份妥善保存。账号数据库内的恢复副本采用加密存储，恢复密钥位于同目录的 `.admin-recovery-key`；升级备份需保留整个状态目录。普通用户及其他管理员只保存密码哈希。旧版本已经删除的密码无法从哈希还原，升级后首次成功登录或命令行重置 `admin` 时会生成恢复文件。
+
+其他账号或缺少恢复文件时，可使用下面的命令行重置：
 
 将新密码存到只有 contexthub 服务用户可读的临时文件，至少 12 个字符。使用服务器 CLI 重置，不把密码写入命令行参数：
 
@@ -92,6 +108,6 @@ sudo python3 deploy/backup.py restore /path/to/contexthub.tar.gz --mode docker
 sudo bash deploy/docker.sh
 ```
 
-恢复前校验清单与 SHA-256，拒绝不安全归档路径。目标已有数据时默认拒绝覆盖；--replace-existing 会先将原文件保留到 /var/backups/contexthub/before-restore-*。恢复后服务保持停止，部署命令负责启动。使用外部 HTTPS 时，源码备份与恢复均加 --skip-caddy。
+恢复前校验清单与 SHA-256，拒绝不安全归档路径。目标已有数据时默认拒绝覆盖；--replace-existing 会先将原文件保留到 /var/backups/contexthub/before-restore-\*。恢复后服务保持停止，部署命令负责启动。使用外部 HTTPS 时，源码备份与恢复均加 --skip-caddy。
 
 默认 Compose 项目名为 contexthub，自定义项目要保持 --project 或 COMPOSE_PROJECT_NAME 一致。更换域名后需重新配置 HTTPS，第三方客户端可能要求重新授权。

@@ -12,5 +12,5 @@ WORKDIR /app
 COPY --from=build --chown=node:node /app/ ./
 RUN mkdir -p .wrangler dist/server/.wrangler node_modules/.mf && chown -R node:node .wrangler dist/server/.wrangler node_modules/.mf && chmod 700 .wrangler dist/server/.wrangler
 USER node
-EXPOSE 80 443 4310
+EXPOSE 80 443 4310 8080
 CMD ["node", "scripts/docker-start.mjs"]

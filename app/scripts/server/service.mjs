@@ -1,3 +1,4 @@
+import { isIP } from 'node:net';
 import { existsSync } from 'node:fs';
 import { CLIENT_PROTOCOL } from '../../lib/storage/protocol.ts';
 import {
@@ -239,7 +240,7 @@ export function createServerService(store, runtime, options = {}) {
       challenges.delete(nonce);
     }
   }
-  function handler(local) {
+  function handler(local, publicHttp = false) {
     return async (req, res) => {
       try {
         const host = req.headers.host ?? '';
@@ -252,16 +253,43 @@ export function createServerService(store, runtime, options = {}) {
         const url = new URL(req.url, `http://${host}`);
         req.url = url.pathname + url.search;
         const origin = local ? `http://${host}` : `https://${host}`;
+        const loopback = ['127.0.0.1', 'localhost', '[::1]'].includes(
+          url.hostname,
+        );
+        const peerIsLoopback = [
+          '127.0.0.1',
+          '::1',
+          '::ffff:127.0.0.1',
+        ].includes(req.socket.remoteAddress);
         const accepted = local
-          ? ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)
+          ? publicHttp
+            ? !url.username &&
+              !url.password &&
+              (loopback
+                ? peerIsLoopback
+                : !!isIP(url.hostname.replace(/^\[|\]$/g, '')))
+            : loopback
           : [store.access?.origin, pending?.origin].includes(origin) &&
             req.headers['x-forwarded-proto'] === 'https';
         if (!accepted)
           return send(res, 403, { error: '请求地址不属于此服务器。' });
+        // The public HTTP website never exposes loopback maintenance or MCP routes.
+        if (
+          publicHttp &&
+          (url.pathname.startsWith('/internal/') ||
+            url.pathname === '/healthz' ||
+            url.pathname.startsWith('/api/tasks/runner-'))
+        )
+          return send(res, 404, { error: '接口不存在。' });
+        if (local && publicMcp(url.pathname))
+          return send(res, 403, {
+            code: 'HTTPS_REQUIRED',
+            error: 'MCP 仅支持已配置的 HTTPS 地址。',
+          });
         if (local && url.pathname === '/healthz' && req.method === 'GET')
           return send(res, options.isReady?.() === false ? 503 : 200, {
             ok: options.isReady?.() !== false,
-            schema: 3,
+            schema: 4,
             protocol: CLIENT_PROTOCOL,
           });
         if (options.maintenanceFile && existsSync(options.maintenanceFile)) {
@@ -328,7 +356,7 @@ export function createServerService(store, runtime, options = {}) {
             publicDelivery(url.pathname)
           )
             return send(res, 403, {
-              error: '服务尚未激活，请管理员登录并修改初始密码。',
+              error: '服务尚未激活，请管理员登录。',
             });
           res.writeHead(302, {
             Location: user ? '/activate' : '/login',
@@ -345,7 +373,7 @@ export function createServerService(store, runtime, options = {}) {
                 ? accounts.list().length > 0
                 : store.initialized,
               authenticated,
-              localSetup: local,
+              localSetup: local && !publicHttp,
               ...(authenticated ? status() : {}),
             });
           if (req.method !== 'POST')
@@ -355,7 +383,7 @@ export function createServerService(store, runtime, options = {}) {
             req.headers['x-context-hub-server'] !== '1'
           )
             return send(res, 403, {
-              error: '请从本机配置页或当前 HTTPS 页面操作。',
+              error: '请从当前服务器页面操作。',
             });
           if (accounts && ['setup', 'login'].includes(action))
             return send(res, 403, { error: '请使用账号登录页面。' });
@@ -375,7 +403,7 @@ export function createServerService(store, runtime, options = {}) {
               });
             const input = await body(req);
             if (action === 'setup') {
-              if (!local)
+              if (!local || publicHttp)
                 return send(res, 403, {
                   error: '首次设置仅允许通过 SSH 转发的本机入口完成。',
                 });
@@ -438,10 +466,10 @@ export function createServerService(store, runtime, options = {}) {
           return send(res, 503, { error: '此地址仍在验证，尚未启用。' });
         if (!local && publicMcp(url.pathname))
           return proxy(req, res, mcpPort, { origin, secure: true });
-        if (!local && publicDelivery(url.pathname)) {
+        if ((!local || publicHttp) && publicDelivery(url.pathname)) {
           if (req.headers.origin && req.headers.origin !== origin)
             return send(res, 403, { error: '请求来源无效。' });
-          return proxy(req, res, appPort, { management: true, secure: true });
+          return proxy(req, res, appPort, { management: true, secure: !local });
         }
         const loginPage =
           ['GET', 'HEAD'].includes(req.method) &&

@@ -1,3 +1,4 @@
+import { httpPort } from './server/http-port.mjs';
 import { checkSchema, recordSchema } from './schema-check.mjs';
 import { createServer } from 'node:http';
 import { resolve } from 'node:path';
@@ -14,13 +15,15 @@ const directory = resolve(
   process.env.CONTEXT_HUB_SERVER_DATA_DIR || `${root}/.wrangler/server`,
 );
 checkSchema(resolve(root, '.wrangler'), directory);
-for (const port of [3000, 3001, 4080, 4310]) await requireFreePort(port);
+const webPort = httpPort(directory);
+for (const port of [3000, 3001, 4080, 4310, webPort])
+  await requireFreePort(port);
 const store = await openAccessStore(directory);
 const accounts = await openAccounts(directory, store.bootstrapAdmin);
 const initialization = await accounts.initializeDeployment();
 if (initialization.passwordFile)
   console.log(
-    `初始管理员：admin。随机密码已写入 ${initialization.passwordFile}；首次登录必须修改密码。`,
+    `初始管理员：admin。随机密码已写入 ${initialization.passwordFile}；首次管理员登录即激活，可保留当前密码。`,
   );
 await initializeOrigin(store);
 const runtime = createRuntime(root, directory, store.gatewayKey, () => {
@@ -36,6 +39,7 @@ const service = createServerService(store, runtime, {
 });
 const publicServer = createServer(service.handler(false));
 const setupServer = createServer(service.handler(true));
+const webServer = createServer(service.handler(true, true));
 let timer,
   stopping = false;
 async function stop() {
@@ -45,7 +49,7 @@ async function stop() {
   clearInterval(timer);
   // Let an in-progress configuration finish before stopping its application.
   await service.whenIdle();
-  for (const server of [publicServer, setupServer]) {
+  for (const server of [publicServer, setupServer, webServer]) {
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
   }
@@ -61,6 +65,7 @@ try {
   for (const [server, port] of [
     [publicServer, 4080],
     [setupServer, 4310],
+    [webServer, webPort],
   ]) {
     server.requestTimeout = 30000;
     server.headersTimeout = 10000;
@@ -68,7 +73,8 @@ try {
       server.once('error', reject);
       server.listen(
         port,
-        port === 4310 && process.env.CONTEXT_HUB_SETUP_BIND === '0.0.0.0'
+        server === webServer ||
+          (port === 4310 && process.env.CONTEXT_HUB_SETUP_BIND === '0.0.0.0')
           ? '0.0.0.0'
           : '127.0.0.1',
         resolve,
@@ -83,7 +89,7 @@ try {
   }, 30 * 60000);
   timer.unref();
   console.log(
-    '服务器管理已启动。首次配置通过 SSH 转发访问 http://127.0.0.1:4310/login 。',
+    `网页服务监听 0.0.0.0:${webPort}，浏览器访问 http://服务器IP:${webPort} 。`,
   );
   if (store.access) console.log(`HTTPS 访问地址：${store.access.origin}`);
 } catch {

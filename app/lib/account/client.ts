@@ -4,7 +4,21 @@ export type AccountUser = {
   username: string;
   role: 'admin' | 'user';
   mustChangePassword?: boolean;
+  passwordSetupPending?: boolean;
 };
+export type PasswordRecovery = {
+  available: boolean;
+  path: string;
+  command: string;
+};
+export class AccountActionError extends Error {
+  constructor(
+    message: string,
+    public passwordRecovery?: PasswordRecovery,
+  ) {
+    super(message);
+  }
+}
 export type AccountStatus = {
   mode: 'cloud' | 'local';
   user: AccountUser | null;
@@ -88,7 +102,12 @@ export async function accountAction(action: string, data: object = {}) {
   const result = (await response.json()) as {
     error?: string;
     user?: AccountUser;
+    passwordRecovery?: PasswordRecovery;
   };
-  if (!response.ok) throw new Error(result.error ?? '账号操作失败。');
+  if (!response.ok)
+    throw new AccountActionError(
+      result.error ?? '账号操作失败。',
+      result.passwordRecovery,
+    );
   return result;
 }

@@ -1,3 +1,4 @@
+import { adminPasswordRecovery } from './admin-password-recovery.mjs';
 import { DatabaseSync } from 'node:sqlite';
 import { migrateAccounts } from './account-migrations.mjs';
 import {
@@ -14,7 +15,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 import { promisify } from 'node:util';
-import { mkdir, chmod } from 'node:fs/promises';
+import { mkdir, chmod, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 const derive = promisify(scrypt);
 const hash = (value) => createHash('sha256').update(value).digest('hex');
@@ -25,6 +26,7 @@ const publicUser = (row) =>
         username: row.username,
         role: row.role,
         mustChangePassword: !!row.must_change_password,
+        passwordSetupPending: !!row.password_setup_pending,
       }
     : null;
 export class AccountError extends Error {
@@ -141,8 +143,60 @@ export async function openAccounts(directory, bootstrap) {
     requireUser,
     AccountError,
   });
+  let recovery;
+  try {
+    recovery = adminPasswordRecovery(db, directory);
+  } catch (error) {
+    db.close();
+    throw error;
+  }
+  function sessionUser(token) {
+    if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) return null;
+    return db
+      .prepare(
+        "SELECT u.* FROM user_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND u.disabled=0 AND u.status='active'",
+      )
+      .get(hash(token), Date.now());
+  }
   return {
     ...lifecycle,
+    passwordRecoveryInfo: recovery.info,
+    async initializeDeployment() {
+      const result = await lifecycle.initializeDeployment();
+      let password;
+      try {
+        password = (
+          await readFile(
+            result.passwordFile ||
+              join(directory, 'initial-admin-password.txt'),
+            'utf8',
+          )
+        ).trimEnd();
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+      if (password !== undefined) {
+        const admin = db
+          .prepare("SELECT * FROM users WHERE username='admin'")
+          .get();
+        if (await matches(password, admin)) {
+          transaction(() => recovery.remember(admin, password));
+          recovery.publish();
+          await lifecycle.removeInitialPassword();
+          result.passwordFile = recovery.file;
+        }
+      }
+      return result;
+    },
+    keepPassword(token) {
+      return transaction(() => {
+        const user = sessionUser(token);
+        if (!user) throw new AccountError('请先登录。', 401);
+        db.prepare('UPDATE users SET password_setup_pending=0 WHERE id=?').run(
+          user.id,
+        );
+      });
+    },
     close: () => db.close(),
     async create(username, password, role = 'user') {
       if (!['user', 'admin'].includes(role))
@@ -177,9 +231,18 @@ export async function openAccounts(directory, bootstrap) {
             : '注册申请未通过，请联系管理员。',
           403,
         );
-      return transaction(() => {
+      const result = transaction(() => {
         const current = requireUser(row.id);
         if (current.password_hash !== row.password_hash) return null;
+        if (current.role === 'admin') {
+          db.prepare(
+            'UPDATE instance_settings SET activated_at=COALESCE(activated_at,?),revision=revision+CASE WHEN activated_at IS NULL THEN 1 ELSE 0 END WHERE id=1',
+          ).run(Date.now());
+          db.prepare('UPDATE users SET must_change_password=0 WHERE id=?').run(
+            current.id,
+          );
+        }
+        recovery.remember(current, password);
         const token = randomBytes(32).toString('hex');
         db.prepare('DELETE FROM user_sessions WHERE expires_at<=?').run(
           Date.now(),
@@ -187,8 +250,13 @@ export async function openAccounts(directory, bootstrap) {
         db.prepare(
           'INSERT INTO user_sessions(token_hash,user_id,expires_at) VALUES(?,?,?)',
         ).run(hash(token), row.id, Date.now() + 12 * 3600000);
-        return { token, user: publicUser(row) };
+        return { token, user: publicUser(requireUser(row.id)) };
       });
+      if (result && row.username === 'admin') {
+        recovery.publish();
+        await lifecycle.removeInitialPassword();
+      }
+      return result;
     },
     user(token) {
       if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token))
@@ -207,41 +275,50 @@ export async function openAccounts(directory, bootstrap) {
           hash(token),
         );
     },
-    async password(id, current, password) {
+    async password(id, current, password, sessionToken) {
       const row = requireUser(id);
-      if (!(await matches(current, row)))
+      if (sessionToken !== undefined) {
+        if (sessionUser(sessionToken)?.id !== id)
+          throw new AccountError('请重新登录。', 401);
+      } else if (!(await matches(current, row)))
         throw new AccountError('当前密码不正确。', 403);
       if (current === password)
         throw new AccountError('新密码不能与当前密码相同。');
       const key = await credentials(password);
       transaction(() => {
+        if (sessionToken !== undefined && sessionUser(sessionToken)?.id !== id)
+          throw new AccountError('请重新登录。', 401);
         const result = db
           .prepare(
-            'UPDATE users SET password_salt=?,password_hash=?,must_change_password=0 WHERE id=? AND password_hash=?',
+            'UPDATE users SET password_salt=?,password_hash=?,must_change_password=0,password_setup_pending=0 WHERE id=? AND password_hash=?',
           )
           .run(key.salt, key.hash, id, row.password_hash);
         if (!result.changes)
           throw new AccountError('密码已变化，请重新登录。', 409);
+        recovery.remember(row, password);
         db.prepare('DELETE FROM user_sessions WHERE user_id=?').run(id);
         if (row.role === 'admin' && row.must_change_password)
           db.prepare(
             'UPDATE instance_settings SET activated_at=COALESCE(activated_at,?),revision=revision+1 WHERE id=1',
           ).run(Date.now());
       });
+      if (row.username === 'admin') recovery.publish();
       if (lifecycle.state().activated) await lifecycle.removeInitialPassword();
     },
     async resetPassword(username, password) {
       const key = await credentials(password);
       transaction(() => {
         const row = db
-          .prepare('SELECT id FROM users WHERE username=?')
+          .prepare('SELECT * FROM users WHERE username=?')
           .get(validateUsername(username));
         if (!row) throw new AccountError('账号不存在。', 404);
         db.prepare(
           'UPDATE users SET password_salt=?,password_hash=? WHERE id=?',
         ).run(key.salt, key.hash, row.id);
+        recovery.remember(row, password);
         db.prepare('DELETE FROM user_sessions WHERE user_id=?').run(row.id);
       });
+      if (validateUsername(username) === 'admin') recovery.publish();
     },
     read(id, key) {
       const user = lifecycle.requireActive(id);
