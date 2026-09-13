@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { cloudMode } from './account/client';
 import { memoryText, type Workspace } from './domain';
 type BrowserTool = {
   name: string;
@@ -23,7 +24,7 @@ export function useDemoMemoryTools(workspace: Workspace, enabled = true) {
   useEffect(() => {
     const context = (document as Document & { modelContext?: ModelContext })
       .modelContext;
-    if (!enabled || !context?.registerTool) return;
+    if (cloudMode() || !enabled || !context?.registerTool) return;
     const lifecycle = new AbortController();
     const definitions: BrowserTool[] = [
       {

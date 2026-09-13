@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { accountLifecycle } from './account-lifecycle.mjs';
 import {
   randomBytes,
   randomUUID,
@@ -12,7 +13,14 @@ import { join } from 'node:path';
 const derive = promisify(scrypt);
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const publicUser = (row) =>
-  row ? { id: row.id, username: row.username, role: row.role } : null;
+  row
+    ? {
+        id: row.id,
+        username: row.username,
+        role: row.role,
+        mustChangePassword: !!row.must_change_password,
+      }
+    : null;
 export class AccountError extends Error {
   constructor(message, status = 400) {
     super(message);
@@ -64,6 +72,30 @@ export async function openAccounts(directory, bootstrap) {
   db.exec(
     await readFile(new URL('./account-schema.sql', import.meta.url), 'utf8'),
   );
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const columns = db
+      .prepare('PRAGMA table_info(users)')
+      .all()
+      .map((c) => c.name);
+    if (!columns.includes('status'))
+      db.exec(
+        "ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','pending','rejected'))",
+      );
+    if (!columns.includes('must_change_password'))
+      db.exec(
+        'ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0',
+      );
+    db.exec(`CREATE TABLE IF NOT EXISTS instance_settings (
+      id INTEGER PRIMARY KEY CHECK(id=1), deployed INTEGER NOT NULL DEFAULT 0,
+      activated_at INTEGER, registration_open INTEGER NOT NULL DEFAULT 1,
+      revision INTEGER NOT NULL DEFAULT 0);
+      INSERT OR IGNORE INTO instance_settings(id) VALUES(1);
+      PRAGMA user_version=2; COMMIT;`);
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
   function transaction(action) {
     db.exec('BEGIN IMMEDIATE');
     try {
@@ -75,17 +107,29 @@ export async function openAccounts(directory, bootstrap) {
       throw error;
     }
   }
-  function insert(username, role, key) {
+  function insert(username, role, key, status = 'active') {
     const id = randomUUID();
     db.prepare(
-      'INSERT INTO users(id,username,role,password_salt,password_hash,created_at) VALUES(?,?,?,?,?,?)',
-    ).run(id, validateUsername(username), role, key.salt, key.hash, Date.now());
+      'INSERT INTO users(id,username,role,password_salt,password_hash,created_at,status) VALUES(?,?,?,?,?,?,?)',
+    ).run(
+      id,
+      validateUsername(username),
+      role,
+      key.salt,
+      key.hash,
+      Date.now(),
+      status,
+    );
     return publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(id));
   }
   if (bootstrap && !db.prepare('SELECT 1 FROM users LIMIT 1').get())
     insert('admin', 'admin', bootstrap);
   const getUser = (id) =>
-    db.prepare('SELECT * FROM users WHERE id=? AND disabled=0').get(id);
+    db
+      .prepare(
+        "SELECT * FROM users WHERE id=? AND disabled=0 AND status='active'",
+      )
+      .get(id);
   function requireUser(id) {
     const row = getUser(id);
     if (!row) throw new AccountError('账号已失效，请重新登录。', 401);
@@ -103,7 +147,17 @@ export async function openAccounts(directory, bootstrap) {
       ...(row?.value_json != null ? { value: JSON.parse(row.value_json) } : {}),
     };
   }
+  const lifecycle = accountLifecycle({
+    db,
+    directory,
+    transaction,
+    credentials,
+    insert,
+    requireUser,
+    AccountError,
+  });
   return {
+    ...lifecycle,
     close: () => db.close(),
     async create(username, password, role = 'user') {
       if (!['user', 'admin'].includes(role))
@@ -131,6 +185,13 @@ export async function openAccounts(directory, bootstrap) {
               .get(username.toLowerCase())
           : null;
       if (!(await matches(password, row))) return null;
+      if (row.status !== 'active')
+        throw new AccountError(
+          row.status === 'pending'
+            ? '账号正在等待管理员审批。'
+            : '注册申请未通过，请联系管理员。',
+          403,
+        );
       return transaction(() => {
         const current = requireUser(row.id);
         if (current.password_hash !== row.password_hash) return null;
@@ -150,7 +211,7 @@ export async function openAccounts(directory, bootstrap) {
       return publicUser(
         db
           .prepare(
-            'SELECT u.* FROM user_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND u.disabled=0',
+            "SELECT u.* FROM user_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND u.disabled=0 AND u.status='active'",
           )
           .get(hash(token), Date.now()),
       );
@@ -165,17 +226,24 @@ export async function openAccounts(directory, bootstrap) {
       const row = requireUser(id);
       if (!(await matches(current, row)))
         throw new AccountError('当前密码不正确。', 403);
+      if (current === password)
+        throw new AccountError('新密码不能与当前密码相同。');
       const key = await credentials(password);
       transaction(() => {
         const result = db
           .prepare(
-            'UPDATE users SET password_salt=?,password_hash=? WHERE id=? AND password_hash=?',
+            'UPDATE users SET password_salt=?,password_hash=?,must_change_password=0 WHERE id=? AND password_hash=?',
           )
           .run(key.salt, key.hash, id, row.password_hash);
         if (!result.changes)
           throw new AccountError('密码已变化，请重新登录。', 409);
         db.prepare('DELETE FROM user_sessions WHERE user_id=?').run(id);
+        if (row.role === 'admin' && row.must_change_password)
+          db.prepare(
+            'UPDATE instance_settings SET activated_at=COALESCE(activated_at,?),revision=revision+1 WHERE id=1',
+          ).run(Date.now());
       });
+      if (lifecycle.state().activated) await lifecycle.removeInitialPassword();
     },
     async resetPassword(username, password) {
       const key = await credentials(password);
@@ -191,14 +259,14 @@ export async function openAccounts(directory, bootstrap) {
       });
     },
     read(id, key) {
-      const user = requireUser(id);
+      const user = lifecycle.requireActive(id);
       if (typeof key !== 'string' || key.length > 300)
         throw new AccountError('存储键无效。');
       return { generation: user.generation, entry: record(id, key) };
     },
     entries(id) {
       return transaction(() => {
-        const user = requireUser(id);
+        const user = lifecycle.requireActive(id);
         const entries = db
           .prepare(
             'SELECT record_key,value_json,revision FROM account_records WHERE user_id=? AND value_json IS NOT NULL ORDER BY record_key',
@@ -239,7 +307,7 @@ export async function openAccounts(directory, bootstrap) {
       }
       const fingerprint = hash(JSON.stringify(input));
       return transaction(() => {
-        const user = requireUser(id);
+        const user = lifecycle.requireActive(id);
         const receipt = db
           .prepare(
             'SELECT body_hash,result_json FROM account_commits WHERE user_id=? AND commit_id=?',

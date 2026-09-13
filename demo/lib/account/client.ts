@@ -2,10 +2,13 @@ export type AccountUser = {
   id: string;
   username: string;
   role: 'admin' | 'user';
+  mustChangePassword?: boolean;
 };
 export type AccountStatus = {
   mode: 'cloud' | 'local';
   user: AccountUser | null;
+  activated?: boolean;
+  registrationOpen?: boolean;
 };
 let loading: Promise<AccountStatus> | undefined;
 let active: AccountStatus | undefined;
@@ -79,7 +82,10 @@ export async function accountAction(action: string, data: object = {}) {
     headers: { 'Content-Type': 'application/json', 'X-Context-Hub': '1' },
     body: JSON.stringify(data),
   });
-  const result = (await response.json()) as { error?: string };
+  const result = (await response.json()) as {
+    error?: string;
+    user?: AccountUser;
+  };
   if (!response.ok) throw new Error(result.error ?? '账号操作失败。');
   return result;
 }

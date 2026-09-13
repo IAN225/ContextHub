@@ -1,0 +1,13 @@
+**
+!demo/
+!demo/**
+!Dockerfile
+demo/node_modules
+demo/dist
+demo/.wrangler
+demo/.env*
+demo/outputs
+demo/.git
+demo/**/*.pem
+demo/**/*.key
+demo/**/*.sqlite*

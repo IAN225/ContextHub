@@ -38,7 +38,10 @@ async function json(req, limit = 8192) {
     chunks.push(chunk);
   }
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    if (!value || typeof value !== 'object' || Array.isArray(value))
+      throw new Error('object required');
+    return value;
   } catch {
     throw new AccountError('JSON 格式无效。');
   }
@@ -51,7 +54,7 @@ export function createAccountHttp(accounts) {
     try {
       const action = url.pathname.slice('/api/account/'.length);
       if (action === 'status' && req.method === 'GET') {
-        accountReply(res, 200, { mode: 'cloud', user });
+        accountReply(res, 200, { mode: 'cloud', user, ...accounts.state() });
         return true;
       }
       if (
@@ -59,11 +62,14 @@ export function createAccountHttp(accounts) {
         (req.method !== 'GET' && req.headers.origin !== origin)
       )
         throw new AccountError('请从当前页面操作。', 403);
-      if (action === 'login' && req.method === 'POST') {
+      if (['login', 'register'].includes(action) && req.method === 'POST') {
         const input = await json(req);
-        const name = String(input.username ?? '')
-          .toLowerCase()
-          .slice(0, 100);
+        const name =
+          action === 'register'
+            ? 'registration:' + (req.socket.remoteAddress ?? 'unknown')
+            : String(input.username ?? '')
+                .toLowerCase()
+                .slice(0, 100);
         const now = Date.now();
         for (const [key, value] of attempts)
           if (value.until < now) attempts.delete(key);
@@ -74,6 +80,14 @@ export function createAccountHttp(accounts) {
         deriving++;
         let result;
         try {
+          if (action === 'register') {
+            const result = await accounts.register(
+              input.username,
+              input.password,
+            );
+            accountReply(res, 201, result);
+            return true;
+          }
           result = await accounts.login(input.username, input.password);
         } finally {
           deriving--;
@@ -112,6 +126,15 @@ export function createAccountHttp(accounts) {
         accountReply(res, 200, { ok: true });
         return true;
       }
+      if (action === 'management' && req.method === 'GET') {
+        accountReply(res, 200, accounts.management(user.id));
+        return true;
+      }
+      if (action === 'management' && req.method === 'POST') {
+        accountReply(res, 200, accounts.manage(user.id, await json(req)));
+        return true;
+      }
+      accounts.requireActive(user.id);
       if (action === 'data' && req.method === 'GET') {
         const key = url.searchParams.get('key');
         accountReply(

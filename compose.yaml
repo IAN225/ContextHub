@@ -1,0 +1,41 @@
+services:
+  app:
+    build: .
+    image: contexthub:local
+    init: true
+    restart: unless-stopped
+    network_mode: service:caddy
+    depends_on:
+      caddy:
+        condition: service_started
+    environment:
+      CONTEXT_HUB_DOMAIN: ${CONTEXT_HUB_DOMAIN:-}
+      CONTEXT_HUB_HTTPS_MODE: ${CONTEXT_HUB_HTTPS_MODE:-automatic}
+      CONTEXT_HUB_ACCEPT_ACME_TERMS: ${CONTEXT_HUB_ACCEPT_ACME_TERMS:-false}
+      CONTEXT_HUB_WAIT_FOR_CADDY: "true"
+      CONTEXT_HUB_SETUP_BIND: "0.0.0.0"
+    volumes:
+      - app_data:/app/demo/.wrangler
+    stop_grace_period: 3m
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4310/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 120s
+      retries: 5
+  caddy:
+    image: caddy:2.11.4
+    ports:
+      - "${CONTEXT_HUB_HTTP_BIND:-0.0.0.0:80}:80"
+      - "${CONTEXT_HUB_HTTPS_BIND:-0.0.0.0:443}:443"
+      - "127.0.0.1:${CONTEXT_HUB_SETUP_PORT:-4310}:4310"
+    restart: unless-stopped
+    command: ["caddy", "run", "--resume", "--config", "/etc/caddy/bootstrap.json"]
+    volumes:
+      - ./deploy/ubuntu/caddy-bootstrap.json:/etc/caddy/bootstrap.json:ro
+      - caddy_data:/data
+      - caddy_config:/config
+volumes:
+  app_data:
+  caddy_data:
+  caddy_config:

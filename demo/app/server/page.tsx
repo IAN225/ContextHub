@@ -33,7 +33,8 @@ export default function ServerPage() {
     [error, setError] = useState('');
   const load = useCallback(async () => {
     try {
-      await getAccountStatus();
+      const account = await getAccountStatus();
+      if(account.mode==='cloud' && !account.user){window.location.replace('/login');return;}
       const response = await fetch('/api/server/status', { cache: 'no-store' });
       if (response.status === 404) {
         setStatus({ enabled: false });

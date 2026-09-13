@@ -6,6 +6,7 @@ import { createServerService } from './server/service.mjs';
 import { createRuntime, requireFreePort } from './server/runtime.mjs';
 import { openAccounts } from './server/accounts.mjs';
 import { configureCaddy } from './server/tls.mjs';
+import { initializeOrigin } from './server/initialize-origin.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const directory = resolve(
@@ -14,6 +15,12 @@ const directory = resolve(
 for (const port of [3000, 3001, 4080, 4310]) await requireFreePort(port);
 const store = await openAccessStore(directory);
 const accounts = await openAccounts(directory, store.bootstrapAdmin);
+const initialization = await accounts.initializeDeployment();
+if (initialization.passwordFile)
+  console.log(
+    `初始管理员：admin。随机密码已写入 ${initialization.passwordFile}；首次登录必须修改密码。`,
+  );
+await initializeOrigin(store);
 const runtime = createRuntime(root, directory, store.gatewayKey, () => {
   console.error('本机应用意外停止，服务器管理将退出以便系统服务重新启动。');
   process.exitCode = 1;
@@ -51,7 +58,13 @@ try {
     server.headersTimeout = 10000;
     await new Promise((resolve, reject) => {
       server.once('error', reject);
-      server.listen(port, '127.0.0.1', resolve);
+      server.listen(
+        port,
+        port === 4310 && process.env.CONTEXT_HUB_SETUP_BIND === '0.0.0.0'
+          ? '0.0.0.0'
+          : '127.0.0.1',
+        resolve,
+      );
     });
   }
   if (store.access?.mode === 'automatic') await configureCaddy([store.access]);
@@ -60,7 +73,7 @@ try {
   }, 30 * 60000);
   timer.unref();
   console.log(
-    '服务器管理已启动。首次配置通过 SSH 转发访问 http://127.0.0.1:4310/server 。',
+    '服务器管理已启动。首次配置通过 SSH 转发访问 http://127.0.0.1:4310/login 。',
   );
   if (store.access) console.log(`HTTPS 访问地址：${store.access.origin}`);
 } catch {

@@ -32,4 +32,3 @@ CREATE TABLE IF NOT EXISTS account_commits (
   created_at INTEGER NOT NULL,
   PRIMARY KEY(user_id,commit_id)
 );
-PRAGMA user_version = 1;

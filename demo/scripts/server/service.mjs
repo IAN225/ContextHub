@@ -256,7 +256,13 @@ export function createServerService(store, runtime, options = {}) {
             req.headers['x-forwarded-proto'] === 'https';
         if (!accepted)
           return send(res, 403, { error: '请求地址不属于此服务器。' });
-        if(local && accounts && url.pathname === '/internal/model') return modelProxy(req,res);
+        if (local && url.pathname === '/healthz' && req.method === 'GET')
+          return send(res, 200, { ok: true });
+        if (local && accounts && url.pathname === '/internal/model') {
+          if (!accounts.state().activated)
+            return send(res, 503, { error: '服务尚未激活。' });
+          return modelProxy(req, res);
+        }
         if (url.pathname === '/api/server/probe' && req.method === 'GET') {
           const nonce = url.searchParams.get('nonce');
           return challenges.has(nonce)
@@ -266,9 +272,12 @@ export function createServerService(store, runtime, options = {}) {
         const token = cookie(req, local);
         const userToken = accounts && accountToken(req, local);
         const user = accounts?.user(userToken);
-        const maintenance = local && store.authenticated(token, local);
+        const maintenance =
+          !accounts && local && store.authenticated(token, local);
         const authenticated = accounts
-          ? user?.role === 'admin' || maintenance
+          ? user?.role === 'admin' &&
+            !user.mustChangePassword &&
+            accounts.state().activated
           : store.authenticated(token, local);
         if (
           accountHttp &&
@@ -281,12 +290,41 @@ export function createServerService(store, runtime, options = {}) {
           }))
         )
           return;
+        const staticAsset =
+          /^\/_next\/static\/[a-zA-Z0-9_./-]+\.(?:js|css|woff2?|ttf|svg|png|ico)$/.test(
+            url.pathname,
+          );
+        const accountPage =
+          ['GET', 'HEAD'].includes(req.method) &&
+          (['/login', '/register', '/activate'].includes(url.pathname) ||
+            staticAsset);
+        if (
+          accounts &&
+          (!accounts.state().activated || user?.mustChangePassword) &&
+          !accountPage
+        ) {
+          if (
+            url.pathname.startsWith('/api/') ||
+            publicMcp(url.pathname) ||
+            publicDelivery(url.pathname)
+          )
+            return send(res, 403, {
+              error: '服务尚未激活，请管理员登录并修改初始密码。',
+            });
+          res.writeHead(302, {
+            Location: user ? '/activate' : '/login',
+            'Cache-Control': 'no-store',
+          });
+          return res.end();
+        }
         if (url.pathname.startsWith('/api/server/')) {
           const action = url.pathname.slice('/api/server/'.length);
           if (req.method === 'GET' && action === 'status')
             return send(res, 200, {
               enabled: true,
-              initialized: store.initialized,
+              initialized: accounts
+                ? accounts.list().length > 0
+                : store.initialized,
               authenticated,
               localSetup: local,
               ...(authenticated ? status() : {}),
@@ -300,7 +338,7 @@ export function createServerService(store, runtime, options = {}) {
             return send(res, 403, {
               error: '请从本机配置页或当前 HTTPS 页面操作。',
             });
-          if (accounts && !local && ['setup', 'login'].includes(action))
+          if (accounts && ['setup', 'login'].includes(action))
             return send(res, 403, { error: '请使用账号登录页面。' });
           if (['setup', 'login'].includes(action)) {
             const key = `${local}:${req.socket.remoteAddress}`;
@@ -386,15 +424,9 @@ export function createServerService(store, runtime, options = {}) {
             return send(res, 403, { error: '请求来源无效。' });
           return proxy(req, res, appPort, { management: true, secure: true });
         }
-        const staticAsset =
-          /^\/_next\/static\/[a-zA-Z0-9_./-]+\.(?:js|css|woff2?|ttf|svg|png|ico)$/.test(
-            url.pathname,
-          );
         const loginPage =
           ['GET', 'HEAD'].includes(req.method) &&
-          ((accounts
-            ? url.pathname === '/login' || (local && url.pathname === '/server')
-            : url.pathname === '/server') ||
+          ((accounts ? accountPage : url.pathname === '/server') ||
             staticAsset);
         if (!(accounts ? user || maintenance : authenticated) && !loginPage) {
           if (url.pathname.startsWith('/api/'))
@@ -410,7 +442,11 @@ export function createServerService(store, runtime, options = {}) {
           req.headers.origin !== origin
         )
           return send(res, 403, { error: '请求来源无效。' });
-        if (accounts && url.pathname === '/server' && !authenticated)
+        if (
+          accounts &&
+          ['/server', '/admin'].includes(url.pathname) &&
+          !authenticated
+        )
           return send(res, 403, { error: '仅管理员可以访问服务器管理。' });
         if (accounts && url.pathname.startsWith('/api/tasks/runner-'))
           return send(res, 403, { error: '执行器接口不接受公网请求。' });

@@ -1,17 +1,28 @@
 'use client';
+/* oxlint-disable nextjs/no-html-link-for-pages -- Account navigation discards stale session state. */
 import { useEffect, useState } from 'react';
 import { accountAction, getAccountStatus } from '@/lib/account/client';
 import './login.css';
 export default function LoginPage() {
   const [username, setUsername] = useState(''),
     [password, setPassword] = useState('');
+  const [ready, setReady] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(false);
+  const [activated, setActivated] = useState(true);
   const [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
   useEffect(() => {
     void getAccountStatus()
       .then((status) => {
+        setReady(true);
+        setRegistrationOpen(!!status.registrationOpen);
+        setActivated(status.activated !== false);
         if (status.user || status.mode === 'local')
-          window.location.replace('/');
+          window.location.replace(
+            status.user?.mustChangePassword || status.activated === false
+              ? '/activate'
+              : '/',
+          );
       })
       .catch((failure) =>
         setError(failure instanceof Error ? failure.message : '读取失败。'),
@@ -22,14 +33,24 @@ export default function LoginPage() {
       <section className="login-card">
         <span className="login-eyebrow">CONTEXT HUB</span>
         <h1>回到你的手账</h1>
-        <p>登录后继续整理对话、笔记和记忆。</p>
+        <p>
+          {activated
+            ? '登录后继续整理对话、笔记和记忆。'
+            : '服务尚未激活，请使用部署时的初始管理员密码登录。'}
+        </p>
         <form
           onSubmit={(event) => {
             event.preventDefault();
             setBusy(true);
             setError('');
             void accountAction('login', { username: username.trim(), password })
-              .then(() => window.location.assign('/'))
+              .then((result) =>
+                window.location.assign(
+                  result.user?.mustChangePassword || !activated
+                    ? '/activate'
+                    : '/',
+                ),
+              )
               .catch((failure) =>
                 setError(
                   failure instanceof Error ? failure.message : '登录失败。',
@@ -41,6 +62,7 @@ export default function LoginPage() {
           <label>
             用户名
             <input
+              disabled={!ready || busy}
               autoComplete="username"
               autoCapitalize="none"
               spellCheck={false}
@@ -54,6 +76,7 @@ export default function LoginPage() {
             密码
             <input
               type="password"
+              disabled={!ready || busy}
               autoComplete="current-password"
               required
               maxLength={256}
@@ -68,12 +91,22 @@ export default function LoginPage() {
           )}
           <button
             className="button primary"
-            disabled={busy || !username.trim() || !password}
+            disabled={!ready || busy || !username.trim() || !password}
           >
             {busy ? '正在登录…' : '登录'}
           </button>
         </form>
-        <small>暂未开放注册。创建账号或重置密码，请联系服务器管理员。</small>
+        {!ready && !error && <output>正在读取登录状态…</output>}
+        {!ready && error && (
+          <button className="button" onClick={() => window.location.reload()}>
+            重新加载
+          </button>
+        )}
+        {registrationOpen ? (
+          <a href="/register">申请账号 · 需管理员审批</a>
+        ) : (
+          <small>注册申请暂未开放。账号问题请联系管理员。</small>
+        )}
       </section>
     </main>
   );

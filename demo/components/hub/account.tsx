@@ -31,6 +31,13 @@ export function AccountBoundary({ children }: { children: ReactNode }) {
           window.location.replace('/login');
           return;
         }
+        if (
+          result.user &&
+          (result.user.mustChangePassword || result.activated === false)
+        ) {
+          window.location.replace('/activate');
+          return;
+        }
         setStatus(result);
       })
       .catch((failure) => {
@@ -103,6 +110,8 @@ export function AccountPanel({ saved = true }: { saved?: boolean }) {
       </p>
       {user?.role === 'admin' && (
         <p>
+          <a href="/admin">用户与注册管理 →</a>
+          <br />
           <a href="/server">服务器管理与 HTTPS 设置 →</a>
         </p>
       )}
