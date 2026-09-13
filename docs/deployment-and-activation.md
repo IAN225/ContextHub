@@ -43,7 +43,7 @@ docker compose ps
 docker compose exec app cat .wrangler/server/initial-admin-password.txt
 ```
 
-也可直接运行 docker compose up -d --build。应用以非 root 用户运行；Caddy 提供 HTTPS 和证书续期。应用共享 Caddy 的网络空间，内部数据库、应用及 Caddy 管理端口不直接对公网发布；本机设置入口只映射到宿主机 127.0.0.1:4310。
+脚本等待应用健康检查通过后才结束。也可直接运行 docker compose up -d --build --wait。应用以非 root 用户运行；Caddy 提供 HTTPS 和证书续期。应用共享 Caddy 的网络空间，内部数据库、应用及 Caddy 管理端口不直接对公网发布；本机设置入口只映射到宿主机 127.0.0.1:4310。
 
 三个持久卷分别保存应用数据库、Caddy 证书与 Caddy 配置。停止或重建容器会保留数据；docker compose down -v 会删除数据卷，不能用作升级命令。
 

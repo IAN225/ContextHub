@@ -9,9 +9,9 @@ import './server.css';
 type Access = {
   origin: string;
   mode: 'automatic' | 'external';
-  expiresAt: string;
-  issuer: string;
-  checkedAt: string;
+  expiresAt: string | null;
+  issuer: string | null;
+  checkedAt: string | null;
 };
 type ServerStatus = {
   enabled: boolean;
@@ -34,7 +34,10 @@ export default function ServerPage() {
   const load = useCallback(async () => {
     try {
       const account = await getAccountStatus();
-      if(account.mode==='cloud' && !account.user){window.location.replace('/login');return;}
+      if (account.mode === 'cloud' && !account.user) {
+        window.location.replace('/login');
+        return;
+      }
       const response = await fetch('/api/server/status', { cache: 'no-store' });
       if (response.status === 404) {
         setStatus({ enabled: false });
@@ -302,9 +305,13 @@ export default function ServerPage() {
                   <a href={status.access.origin}>{status.access.origin}</a>
                 </dd>
                 <dt>证书</dt>
-                <dd>{status.access.issuer}</dd>
+                <dd>{status.access.issuer || '等待验证'}</dd>
                 <dt>到期时间</dt>
-                <dd>{new Date(status.access.expiresAt).toLocaleString()}</dd>
+                <dd>
+                  {status.access.expiresAt
+                    ? new Date(status.access.expiresAt).toLocaleString()
+                    : '等待验证'}
+                </dd>
                 <dt>自动续期</dt>
                 <dd>
                   {status.access.mode === 'automatic'
@@ -312,7 +319,11 @@ export default function ServerPage() {
                     : '由外部 HTTPS 服务管理'}
                 </dd>
                 <dt>最近验证</dt>
-                <dd>{new Date(status.access.checkedAt).toLocaleString()}</dd>
+                <dd>
+                  {status.access.checkedAt
+                    ? new Date(status.access.checkedAt).toLocaleString()
+                    : '尚未验证，可点击检查连接'}
+                </dd>
               </dl>
             ) : (
               !status.pending && (

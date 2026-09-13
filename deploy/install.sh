@@ -80,9 +80,9 @@ if [[ -d $PREFIX/demo/.wrangler ]]; then
   printf 'State backup: %s\n' "$backup"
 fi
 install -d -m 755 "$PREFIX/demo"
-rsync -a --delete --no-perms --no-owner --no-group --exclude=.wrangler --exclude=node_modules/.mf "$stage/demo/" "$PREFIX/demo/"
+rsync -a --delete --no-perms --no-owner --no-group --exclude=.wrangler --exclude=".env*" --exclude=node_modules/.mf "$stage/demo/" "$PREFIX/demo/"
 install -d -o contexthub -g contexthub -m 700 "$PREFIX/demo/.wrangler" "$PREFIX/demo/dist/server/.wrangler" "$PREFIX/demo/node_modules/.mf"
-sudo -u contexthub env HOME=/var/lib/contexthub PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$2" db:init; CONTEXT_HUB_DOMAIN="$3" CONTEXT_HUB_HTTPS_MODE="$4" CONTEXT_HUB_ACCEPT_ACME_TERMS="$5" "$6" scripts/initialize-server.mjs' _ "$PREFIX/demo" "$PNPM" "$DOMAIN" "$MODE" "$TERMS" "$NODE"
+sudo -u contexthub env HOME=/var/lib/contexthub PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$6" --import ./scripts/local-runtime.mjs ./node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --local --config dist/server/wrangler.json --persist-to .wrangler/state; CONTEXT_HUB_DOMAIN="$3" CONTEXT_HUB_HTTPS_MODE="$4" CONTEXT_HUB_ACCEPT_ACME_TERMS="$5" "$6" scripts/initialize-server.mjs' _ "$PREFIX/demo" "$PNPM" "$DOMAIN" "$MODE" "$TERMS" "$NODE"
 if [[ $MODE == automatic && $START == true ]]; then
   install -m 644 "$SOURCE/deploy/ubuntu/caddy-bootstrap.json" /etc/caddy/contexthub-bootstrap.json
   install -d /etc/systemd/system/caddy-api.service.d
@@ -93,8 +93,8 @@ if [[ $MODE == automatic && $START == true ]]; then
 fi
 sed -e "s|/opt/contexthub|$PREFIX|g" -e "s|/usr/local/bin/node|$NODE|g" "$SOURCE/deploy/ubuntu/contexthub.service" > "/etc/systemd/system/$SERVICE.service"
 systemctl daemon-reload
-systemctl enable "$SERVICE"
 if $START; then
+  systemctl enable "$SERVICE"
   systemctl restart "$SERVICE"
   ready=false
   for ((i=0;i<60;i++)); do if curl -fsS http://127.0.0.1:4310/healthz >/dev/null; then ready=true; break; fi; sleep 2; done
