@@ -2,6 +2,7 @@
 # Debian/Ubuntu source installation. Run from a checked-out repository.
 set -Eeuo pipefail
 umask 022
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
 SOURCE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 PREFIX=/opt/contexthub
 SERVICE=contexthub
@@ -68,21 +69,21 @@ id contexthub >/dev/null 2>&1 || useradd --system --home-dir /var/lib/contexthub
 install -d -o contexthub -g contexthub -m 700 /var/lib/contexthub
 stage=$(mktemp -d /opt/contexthub-build.XXXXXXXX)
 chmod 755 "$stage"
-rsync -a --exclude=.git --exclude=node_modules --exclude=dist --exclude=.wrangler --exclude='.env*' --exclude=outputs "$SOURCE/demo/" "$stage/demo/"
+rsync -a --exclude=.git --exclude=node_modules --exclude=dist --exclude=.wrangler --exclude='.env*' --exclude=outputs "$SOURCE/app/" "$stage/app/"
 chown -R contexthub:contexthub "$stage"
-sudo -u contexthub env HOME=/var/lib/contexthub PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$2" install --frozen-lockfile; "$2" build' _ "$stage/demo" "$PNPM"
+sudo -u contexthub env HOME=/var/lib/contexthub PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$2" install --frozen-lockfile; "$2" build' _ "$stage/app" "$PNPM"
 # Compilation happens before stopping the old instance. Preserve all private state.
 if systemctl is-active --quiet "$SERVICE"; then systemctl stop "$SERVICE"; fi
-if [[ -d $PREFIX/demo/.wrangler ]]; then
+if [[ -d $PREFIX/app/.wrangler ]]; then
   install -d -m 700 /var/backups/contexthub
   backup=/var/backups/contexthub/$SERVICE-$(date -u +%Y%m%d-%H%M%S).tar.gz
-  (umask 077; tar -czf "$backup" -C "$PREFIX/demo" .wrangler)
+  (umask 077; tar -czf "$backup" -C "$PREFIX/app" .wrangler)
   printf 'State backup: %s\n' "$backup"
 fi
-install -d -m 755 "$PREFIX/demo"
-rsync -a --delete --no-perms --no-owner --no-group --exclude=.wrangler --exclude=".env*" --exclude=node_modules/.mf "$stage/demo/" "$PREFIX/demo/"
-install -d -o contexthub -g contexthub -m 700 "$PREFIX/demo/.wrangler" "$PREFIX/demo/dist/server/.wrangler" "$PREFIX/demo/node_modules/.mf"
-sudo -u contexthub env HOME=/var/lib/contexthub PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$6" --import ./scripts/local-runtime.mjs ./node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --local --config dist/server/wrangler.json --persist-to .wrangler/state; CONTEXT_HUB_DOMAIN="$3" CONTEXT_HUB_HTTPS_MODE="$4" CONTEXT_HUB_ACCEPT_ACME_TERMS="$5" "$6" scripts/initialize-server.mjs' _ "$PREFIX/demo" "$PNPM" "$DOMAIN" "$MODE" "$TERMS" "$NODE"
+install -d -m 755 "$PREFIX/app"
+rsync -a --delete --no-perms --no-owner --no-group --exclude=.wrangler --exclude=".env*" --exclude=node_modules/.mf "$stage/app/" "$PREFIX/app/"
+install -d -o contexthub -g contexthub -m 700 "$PREFIX/app/.wrangler" "$PREFIX/app/dist/server/.wrangler" "$PREFIX/app/node_modules/.mf"
+sudo -u contexthub env HOME=/var/lib/contexthub PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$6" --import ./scripts/local-runtime.mjs ./node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --local --config dist/server/wrangler.json --persist-to .wrangler/state; CONTEXT_HUB_DOMAIN="$3" CONTEXT_HUB_HTTPS_MODE="$4" CONTEXT_HUB_ACCEPT_ACME_TERMS="$5" "$6" scripts/initialize-server.mjs' _ "$PREFIX/app" "$PNPM" "$DOMAIN" "$MODE" "$TERMS" "$NODE"
 if [[ $MODE == automatic && $START == true ]]; then
   install -m 644 "$SOURCE/deploy/ubuntu/caddy-bootstrap.json" /etc/caddy/contexthub-bootstrap.json
   install -d /etc/systemd/system/caddy-api.service.d
@@ -101,8 +102,8 @@ if $START; then
   $ready || { echo "Service not ready. Inspect journalctl -u $SERVICE." >&2; exit 1; }
 fi
 printf 'Installed %s.\n' "$SERVICE"
-if [[ -f $PREFIX/demo/.wrangler/server/initial-admin-password.txt ]]; then
-  printf 'Initial password: sudo cat %s/demo/.wrangler/server/initial-admin-password.txt\n' "$PREFIX"
+if [[ -f $PREFIX/app/.wrangler/server/initial-admin-password.txt ]]; then
+  printf 'Initial password: sudo cat %s/app/.wrangler/server/initial-admin-password.txt\n' "$PREFIX"
 else
   printf '%s\n' 'Existing account state preserved. Sign in with your account password.'
 fi

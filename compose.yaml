@@ -16,7 +16,7 @@ services:
       CONTEXT_HUB_WAIT_FOR_CADDY: "true"
       CONTEXT_HUB_SETUP_BIND: "0.0.0.0"
     volumes:
-      - app_data:/app/demo/.wrangler
+      - app_data:/app/.wrangler
     stop_grace_period: 3m
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4310/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]

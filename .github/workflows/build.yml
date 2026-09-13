@@ -1,0 +1,19 @@
+name: Production build
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.21.0'
+      - run: npm install --global pnpm@11.19.0
+      - run: pnpm install --frozen-lockfile
+        working-directory: app
+      - run: pnpm typecheck && pnpm lint && pnpm build
+        working-directory: app
+      - run: python3 -m py_compile deploy/backup.py && shellcheck deploy/install.sh deploy/docker.sh
+      - run: docker compose config --quiet && docker build -t contexthub:check .

@@ -26,7 +26,10 @@ def run(*args, check=True):
 
 def digest(path):
     with path.open('rb') as source:
-        return hashlib.file_digest(source, 'sha256').hexdigest()
+        result = hashlib.sha256()
+        for block in iter(lambda: source.read(1024 * 1024), b''):
+            result.update(block)
+        return result.hexdigest()
 
 
 def pack(paths, output, mode):
@@ -125,7 +128,7 @@ class Instance:
             prefix = Path(args.prefix)
             if prefix.resolve() != prefix:
                 raise ValueError('Source prefix must not traverse a symlink.')
-            self.paths['app'] = prefix / 'demo/.wrangler'
+            self.paths['app'] = prefix / 'app/.wrangler'
             self.units = [args.service]
             if not args.skip_caddy:
                 self.paths['caddy'] = Path('/var/lib/caddy')
