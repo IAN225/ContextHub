@@ -81,3 +81,19 @@
     font-size: 25px;
   }
 }
+
+.admin-card form,
+.admin-card form label {
+  display: grid;
+  gap: 10px;
+}
+.admin-card form {
+  gap: 18px;
+}
+.admin-card form input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}

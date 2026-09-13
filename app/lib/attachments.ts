@@ -1,3 +1,4 @@
+import { sha256Hex } from './browser-compat.ts';
 import { uid, type Attachment } from './domain.ts';
 
 export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
@@ -126,12 +127,9 @@ export function storedAttachment(a: Attachment, url = a.url): Attachment {
 export async function fingerprintAttachment(a: Attachment) {
   const stored = storedAttachment(a);
   const { bytes } = dataUrlBytes(stored.url);
-  const hash = await crypto.subtle.digest('SHA-256', new Uint8Array(bytes));
   return {
     ...stored,
-    sha256: Array.from(new Uint8Array(hash), (v) =>
-      v.toString(16).padStart(2, '0'),
-    ).join(''),
+    sha256: sha256Hex(bytes),
   };
 }
 export function attachmentFromReference(value: {

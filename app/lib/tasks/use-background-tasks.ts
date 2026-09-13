@@ -1,4 +1,5 @@
 'use client';
+import { sha256Hex } from '../browser-compat';
 import {
   createContext,
   useCallback,
@@ -17,13 +18,7 @@ import { taskControl, taskRequest, taskResult } from './client';
 import type { BackgroundTask, SummaryTaskResult } from './contracts';
 
 async function hash(value: string) {
-  const bytes = await crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode(value),
-  );
-  return Array.from(new Uint8Array(bytes), (v) =>
-    v.toString(16).padStart(2, '0'),
-  ).join('');
+  return sha256Hex(new TextEncoder().encode(value));
 }
 function media(state: HubState) {
   return [

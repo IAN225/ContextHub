@@ -199,6 +199,8 @@ def perform(args):
             flags = ['--prefix', args.prefix, '--service', args.service, '--skip-dependencies']
             if args.skip_caddy:
                 flags += ['--external-https']
+            if getattr(args, 'port', ''):
+                flags += ['--port', args.port]
             if args.domain:
                 flags += ['--domain', args.domain]
             if args.accept_acme_terms:
@@ -230,7 +232,8 @@ def perform(args):
         except BaseException:
             print('Recovery incomplete. Keep services stopped and run deploy/upgrade.py with --recover ' + str(directory), file=sys.stderr)
         raise
-    print('Upgrade complete. Previous release and verified state: ' + str(directory))
+    print('Upgrade complete. Previous release and verified state: ' + str(directory), flush=True)
+    command(sys.executable, ROOT / 'deploy/access-info.py', args.mode, '--prefix', args.prefix)
 
 
 def main():
@@ -242,6 +245,7 @@ def main():
     parser.add_argument('--project', default='contexthub')
     parser.add_argument('--stage', type=Path)
     parser.add_argument('--domain', default='')
+    parser.add_argument('--port', default='')
     parser.add_argument('--accept-acme-terms', action='store_true')
     parser.add_argument('--recover', type=Path)
     parser.add_argument('--record-compose', action='store_true')

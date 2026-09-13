@@ -7,6 +7,7 @@ SOURCE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 PREFIX=/opt/contexthub
 SERVICE=contexthub
 DOMAIN=
+PORT=
 MODE=automatic
 TERMS=false
 START=true
@@ -16,11 +17,12 @@ while (($#)); do
     --prefix) PREFIX=$2; shift 2 ;;
     --service) SERVICE=$2; shift 2 ;;
     --domain) DOMAIN=$2; shift 2 ;;
+    --port) PORT=$2; shift 2 ;;
     --external-https) MODE=external; shift ;;
     --accept-acme-terms) TERMS=true; shift ;;
     --no-start) START=false; shift ;;
     --skip-dependencies) DEPENDENCIES=false; shift ;;
-    --help) printf '%s\n' 'sudo bash deploy/install.sh [--domain hub.example.com --accept-acme-terms] [--external-https] [--prefix /opt/contexthub] [--service contexthub] [--no-start] [--skip-dependencies]'; exit 0 ;;
+    --help) printf '%s\n' 'sudo bash deploy/install.sh [--domain hub.example.com --accept-acme-terms] [--port 8080] [--external-https] [--prefix /opt/contexthub] [--service contexthub] [--no-start] [--skip-dependencies]'; exit 0 ;;
     *) printf 'Unknown argument: %s\n' "$1" >&2; exit 2 ;;
   esac
 done
@@ -29,6 +31,12 @@ done
 [[ $(realpath -m "$PREFIX") == "$PREFIX" ]] || { echo 'Installation path must not traverse a symlink.' >&2; exit 1; }
 [[ -z $DOMAIN || $DOMAIN =~ ^[a-zA-Z0-9.-]+$ ]] || { echo 'Domain must be a hostname without a URL path.' >&2; exit 1; }
 [[ -z $DOMAIN || $MODE == external || $TERMS == true ]] || { echo 'Read the ACME terms and supply --accept-acme-terms.' >&2; exit 1; }
+if [[ -n $PORT ]]; then
+  if ! [[ $PORT =~ ^[1-9][0-9]{3,4}$ ]] || (( PORT < 1024 || PORT > 65535 )) || [[ $PORT == 3000 || $PORT == 3001 || $PORT == 4080 || $PORT == 4310 ]]; then
+    echo 'Invalid web port (1024-65535; exclude 3000, 3001, 4080, 4310).' >&2
+    exit 2
+  fi
+fi
 if [[ ${CONTEXT_HUB_UPGRADE_CHILD:-} != 1 ]]; then
   exec 8>/var/lock/contexthub-install.lock
   flock -n 8 || { echo 'Another deployment is running.' >&2; exit 1; }
@@ -83,6 +91,7 @@ fi
 if [[ -f $PREFIX/app/.wrangler/server/accounts.sqlite && ${CONTEXT_HUB_UPGRADE_CHILD:-} != 1 ]]; then
   $START || { echo 'An existing instance must be upgraded with startup verification; omit --no-start.' >&2; exit 1; }
   upgrade_args=(source --stage "$stage/app" --prefix "$PREFIX" --service "$SERVICE" --domain "$DOMAIN")
+  [[ -z $PORT ]] || upgrade_args+=(--port "$PORT")
   [[ $MODE != external ]] || upgrade_args+=(--skip-caddy)
   [[ $TERMS != true ]] || upgrade_args+=(--accept-acme-terms)
   exec python3 "$SOURCE/deploy/upgrade.py" "${upgrade_args[@]}"
@@ -99,6 +108,11 @@ install -d -m 755 "$PREFIX/app"
 rsync -a --delete --no-perms --no-owner --no-group --exclude=.wrangler --exclude=".env*" --exclude=node_modules/.mf "$stage/app/" "$PREFIX/app/"
 install -d -o contexthub -g contexthub -m 700 "$PREFIX/app/.wrangler" "$PREFIX/app/dist/server/.wrangler" "$PREFIX/app/node_modules/.mf"
 sudo -u contexthub env HOME=/var/lib/contexthub PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$6" scripts/schema-check.mjs; "$6" --import ./scripts/local-runtime.mjs ./node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --local --config dist/server/wrangler.json --persist-to .wrangler/state; CONTEXT_HUB_DOMAIN="$3" CONTEXT_HUB_HTTPS_MODE="$4" CONTEXT_HUB_ACCEPT_ACME_TERMS="$5" "$6" scripts/initialize-server.mjs' _ "$PREFIX/app" "$PNPM" "$DOMAIN" "$MODE" "$TERMS" "$NODE"
+if [[ -n $PORT ]]; then
+  printf '%s\n' "$PORT" > "$PREFIX/app/.wrangler/server/http-port"
+  chown contexthub:contexthub "$PREFIX/app/.wrangler/server/http-port"
+  chmod 600 "$PREFIX/app/.wrangler/server/http-port"
+fi
 if [[ $MODE == automatic && $START == true ]]; then
   install -m 644 "$SOURCE/deploy/ubuntu/caddy-bootstrap.json" /etc/caddy/contexthub-bootstrap.json
   install -d /etc/systemd/system/caddy-api.service.d
@@ -117,10 +131,8 @@ if $START; then
   $ready || { echo "Service not ready. Inspect journalctl -u $SERVICE." >&2; exit 1; }
 fi
 printf 'Installed %s.\n' "$SERVICE"
-if [[ -f $PREFIX/app/.wrangler/server/initial-admin-password.txt ]]; then
-  printf 'Initial password: sudo cat %s/app/.wrangler/server/initial-admin-password.txt\n' "$PREFIX"
-else
-  printf '%s\n' 'Existing account state preserved. Sign in with your account password.'
+if [[ ${CONTEXT_HUB_UPGRADE_CHILD:-} != 1 ]]; then
+  info_args=(source --prefix "$PREFIX")
+  $START || info_args+=(--not-started)
+  python3 "$SOURCE/deploy/access-info.py" "${info_args[@]}"
 fi
-printf 'SSH setup: ssh -N -L 4310:127.0.0.1:4310 user@server, then open http://127.0.0.1:4310/login\n'
-printf 'Public domain: %s\n' "${DOMAIN:-configure HTTPS after activation}"

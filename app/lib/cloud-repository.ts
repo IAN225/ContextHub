@@ -1,3 +1,4 @@
+import { randomId } from './browser-compat.ts';
 import { CLIENT_PROTOCOL } from './storage/protocol.ts';
 import type { DataRepository, StorageEntry } from './repository.ts';
 type RecordEntry = StorageEntry & { revision: number };
@@ -96,7 +97,7 @@ export function createCloudRepository(
         : {}),
     };
     const fingerprint = JSON.stringify(data);
-    const commitId = pending.get(fingerprint) ?? crypto.randomUUID();
+    const commitId = pending.get(fingerprint) ?? randomId();
     pending.set(fingerprint, commitId);
     const result = await request<WriteResult>('', { ...data, commitId });
     generation = result.generation;

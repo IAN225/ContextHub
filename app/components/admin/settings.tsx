@@ -1,9 +1,19 @@
 'use client';
 /* oxlint-disable nextjs/no-html-link-for-pages -- Admin navigation rechecks the current account. */
+import { AdminPasswordSetup } from './password-setup';
 import { useAccountManagement } from '@/lib/account/use-management';
 export function AdminSettings() {
-  const { state, self, busy, error, message, load, act, admins } =
-    useAccountManagement();
+  const {
+    state,
+    self,
+    busy,
+    error,
+    message,
+    load,
+    act,
+    admins,
+    passwordSetupPending,
+  } = useAccountManagement();
   return (
     <main className="admin-page">
       <nav>
@@ -25,6 +35,7 @@ export function AdminSettings() {
         刷新列表
       </button>
       {!state && !error && <output>正在读取用户…</output>}
+      {passwordSetupPending && <AdminPasswordSetup />}
       {state && (
         <>
           <section className="admin-card">

@@ -26,7 +26,7 @@ export function accountLifecycle({
   function requireActive(id) {
     const user = requireUser(id);
     if (!state().activated || user.must_change_password)
-      throw new AccountError('请先修改初始密码并激活服务。', 403);
+      throw new AccountError('请先由管理员登录激活服务。', 403);
     return user;
   }
   function requireAdmin(id) {
@@ -79,9 +79,9 @@ export function accountLifecycle({
       return transaction(() => {
         if (settings().deployed) return { created: false, ...state() };
         const admin = existing ?? insert('admin', 'admin', key);
-        db.prepare('UPDATE users SET must_change_password=1 WHERE id=?').run(
-          admin.id,
-        );
+        db.prepare(
+          'UPDATE users SET must_change_password=1,password_setup_pending=1 WHERE id=?',
+        ).run(admin.id);
         db.prepare('DELETE FROM user_sessions').run();
         db.prepare(
           'UPDATE instance_settings SET deployed=1,revision=revision+1 WHERE id=1',

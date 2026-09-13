@@ -86,8 +86,7 @@ export function AccountBoundary({ children }: { children: ReactNode }) {
 }
 export function AccountPanel({ saved = true }: { saved?: boolean }) {
   const { mode, user } = useAccount();
-  const [current, setCurrent] = useState(''),
-    [password, setPassword] = useState(''),
+  const [password, setPassword] = useState(''),
     [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
@@ -115,7 +114,7 @@ export function AccountPanel({ saved = true }: { saved?: boolean }) {
           event.preventDefault();
           setBusy(true);
           setError('');
-          void accountAction('password', { currentPassword: current, password })
+          void accountAction('password', { password })
             .then(() => window.location.assign('/login'))
             .catch((failure) =>
               setError(
@@ -126,16 +125,6 @@ export function AccountPanel({ saved = true }: { saved?: boolean }) {
         }}
       >
         <h3>修改密码</h3>
-        <label>
-          当前密码
-          <input
-            type="password"
-            autoComplete="current-password"
-            required
-            value={current}
-            onChange={(e) => setCurrent(e.target.value)}
-          />
-        </label>
         <label>
           新密码
           <input

@@ -16,6 +16,7 @@ type Management = {
 export function useAccountManagement() {
   const [state, setState] = useState<Management | null>(null),
     [self, setSelf] = useState('');
+  const [passwordSetupPending, setPasswordSetupPending] = useState(false);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [message, setMessage] = useState('');
@@ -28,6 +29,7 @@ export function useAccountManagement() {
       }
       if (status.user.role !== 'admin') throw Error('仅管理员可以访问此页面。');
       setSelf(status.user.id);
+      setPasswordSetupPending(!!status.user.passwordSetupPending);
       const r = await fetch('/api/account/management', {
         headers: { 'X-Context-Hub': '1' },
       });
@@ -72,5 +74,15 @@ export function useAccountManagement() {
   const admins =
     state?.users.filter((u) => u.role === 'admin' && u.status === 'active')
       .length ?? 0;
-  return { state, self, busy, error, message, load, act, admins };
+  return {
+    state,
+    self,
+    busy,
+    error,
+    message,
+    load,
+    act,
+    admins,
+    passwordSetupPending,
+  };
 }
