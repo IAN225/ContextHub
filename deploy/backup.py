@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Offline, verified backups for the standard Linux source/Compose deployments."""
 import argparse
-import contextlib
 import datetime
 import hashlib
 import io
@@ -98,6 +97,9 @@ def unpack(archive_path, staging):
                 target.chmod(0o600)
                 if digest(target) != manifest['files'][member.name]:
                     raise ValueError(f'Backup checksum failed: {member.name}')
+        for label in manifest['roots']:
+            if not (staging / label).is_dir():
+                raise ValueError('Backup is missing a state directory.')
         return manifest
 
 

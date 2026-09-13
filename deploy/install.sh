@@ -45,7 +45,7 @@ if $DEPENDENCIES; then
     tar -xJf "$download/$archive" -C /opt/contexthub-runtime
     for binary in node npm npx; do ln -sfn "/opt/contexthub-runtime/node-v$NODE_VERSION-linux-$ARCH/bin/$binary" "/usr/local/bin/$binary"; done
   fi
-  npm install -g pnpm@11.19.0
+  npm install --global --prefix /usr/local pnpm@11.19.0
   if [[ $MODE == automatic ]] && ! command -v caddy >/dev/null; then
     apt-get install -y debian-keyring debian-archive-keyring apt-transport-https
     curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
