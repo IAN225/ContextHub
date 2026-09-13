@@ -136,6 +136,9 @@ export async function probeHttps(
           new URL(`/api/server/probe?nonce=${nonce}`, origin),
           {
             method: 'GET',
+            // A resumed TLS session may omit peer certificate details. Each probe
+            // must perform a fresh handshake and use its newly validated DNS result.
+            agent: false,
             timeout: 5000,
             lookup: (_host, options, callback) =>
               options.all
