@@ -118,13 +118,6 @@ export function AccountPanel({ saved = true }: { saved?: boolean }) {
       <p className="callout">
         手账、附件、草稿、偏好和连接配置保存在你的云端账号中。其他设备登录后可继续使用。
       </p>
-      {user?.role === 'admin' && (
-        <p>
-          <a href="/admin">用户与注册管理 →</a>
-          <br />
-          <a href="/server">服务器管理与 HTTPS 设置 →</a>
-        </p>
-      )}
       <form
         onSubmit={(event) => {
           event.preventDefault();
