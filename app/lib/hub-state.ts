@@ -301,7 +301,7 @@ export function applyHubCommand(
         (w) => w.id === command.workspaceId,
       );
       if (!workspace)
-        throw new Error('手账已不存在，MCP 变更保留在本机服务中。');
+        throw new Error('工作区已不存在，MCP 变更保留在本机服务中。');
       const receipts = new Set(state.mcpReceipts ?? []);
       let next = state;
       for (const event of command.events) {
@@ -404,7 +404,7 @@ export function applyHubCommand(
       const current = state.workspaces.find(
         (w) => w.id === command.workspaceId,
       );
-      if (!current) throw new Error('手账已不存在。');
+      if (!current) throw new Error('工作区已不存在。');
       const next = applyWorkspaceCommand(current, command.command);
       return next === current
         ? state
@@ -501,7 +501,7 @@ export function applyHubCommand(
         upload.kind !== 'summary' ||
         (upload.workspaceId && upload.workspaceId !== current.id)
       )
-        throw new Error('候选摘要与手账不匹配，候选已保留。');
+        throw new Error('候选摘要与工作区不匹配，候选已保留。');
       const summary = {
         id: `candidate-${upload.id}`,
         title: upload.title,

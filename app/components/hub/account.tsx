@@ -60,7 +60,7 @@ export function AccountBoundary({ children }: { children: ReactNode }) {
   if (!status)
     return (
       <main className="account-loading">
-        <p role={error ? 'alert' : undefined}>{error || '正在打开手账…'}</p>
+        <p role={error ? 'alert' : undefined}>{error || '正在打开工作区…'}</p>
         {error && (
           <Button onClick={() => window.location.reload()}>重新加载</Button>
         )}
@@ -91,12 +91,7 @@ export function AccountPanel({ saved = true }: { saved?: boolean }) {
     [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
-  if (mode === 'local')
-    return (
-      <p className="callout">
-        当前为本地模式，手账保存在此浏览器。服务器部署后可使用云端账号。
-      </p>
-    );
+  if (mode === 'local') return <p className="callout">账号服务未启用。</p>;
   async function logout() {
     setBusy(true);
     setError('');
@@ -114,9 +109,6 @@ export function AccountPanel({ saved = true }: { saved?: boolean }) {
       <p>
         <strong>{user?.username}</strong> ·{' '}
         {user?.role === 'admin' ? '管理员' : '普通用户'}
-      </p>
-      <p className="callout">
-        手账、附件、草稿、偏好和连接配置保存在你的云端账号中。其他设备登录后可继续使用。
       </p>
       <form
         onSubmit={(event) => {

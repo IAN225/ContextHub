@@ -116,7 +116,7 @@ export function oauthRepository(db: D1Database) {
       if (!result.meta.changes)
         throw new McpError(
           'invalid_request',
-          '请求已处理、已到期或不属于这本手账。',
+          '请求已处理、已到期或不属于此工作区。',
           409,
         );
     },

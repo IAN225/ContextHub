@@ -71,7 +71,7 @@ export function SearchPage({
             value={d.scope}
             onChange={(scope) => setD({ ...d, scope })}
             options={[
-              { value: 'all', label: '所有手账' },
+              { value: 'all', label: '所有工作区' },
               ...workspaces.map((w) => ({ value: w.id, label: w.name })),
             ]}
           />
@@ -154,7 +154,7 @@ export function SearchPage({
         {d.query && !hits.total && (
           <Empty
             title="这一页暂时没找到"
-            detail="可以换一个关键词，或扩大到所有手账。弃用和回收站内容不参与搜索。"
+            detail="可以换一个关键词，或扩大到所有工作区。弃用和回收站内容不参与搜索。"
           />
         )}
         {selected && (

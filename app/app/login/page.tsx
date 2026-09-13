@@ -32,12 +32,8 @@ export default function LoginPage() {
     <main className="login-page">
       <section className="login-card">
         <span className="login-eyebrow">CONTEXT HUB</span>
-        <h1>回到你的手账</h1>
-        <p>
-          {activated
-            ? '登录后继续整理对话、笔记和记忆。'
-            : '服务尚未激活，请使用部署时的初始管理员密码登录。'}
-        </p>
+        <h1>登录</h1>
+        {!activated && <p>服务尚未激活，请使用初始管理员密码登录。</p>}
         <form
           onSubmit={(event) => {
             event.preventDefault();

@@ -82,17 +82,7 @@ export function ImportDialog({
     }
   }
   return (
-    <Modal
-      title="收录对话"
-      description={
-        tab === 'api'
-          ? '接收客户端发送的上下文，确认后归档。'
-          : tab === 'link'
-            ? '读取分享内容后放入收件箱，随时查看和归档。'
-            : '导入后先预览完整轮次，再选择归档到哪本手账。'
-      }
-      onClose={onClose}
-    >
+    <Modal title="收录对话" onClose={onClose}>
       <DraftBoundary state={persistence}>
         <Segments
           value={tab}

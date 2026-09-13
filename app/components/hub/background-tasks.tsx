@@ -52,11 +52,7 @@ export function BackgroundTaskManager({ onClose }: { onClose: () => void }) {
         </p>
       )}
       <div className="background-task-list">
-        {!queue?.tasks.length && (
-          <p className="inline-note">
-            还没有后台任务。摘要压缩和远程附件获取会出现在这里。
-          </p>
-        )}
+        {!queue?.tasks.length && <p className="inline-note">暂无后台任务。</p>}
         {queue?.tasks
           .filter((t) => t.status !== 'cancelled')
           .map((task) => (
@@ -140,7 +136,8 @@ export function BackgroundTaskManager({ onClose }: { onClose: () => void }) {
       {cancel && (
         <div className="callout warning">
           <p>
-            取消“{cancel.title}”并丢弃尚未接收的结果？已保存到手账的内容会保留。
+            取消“{cancel.title}
+            ”并丢弃尚未接收的结果？已保存到工作区的内容会保留。
           </p>
           <div className="action-row">
             <Button disabled={busy} onClick={() => setCancel(null)}>

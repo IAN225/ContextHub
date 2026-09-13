@@ -417,26 +417,25 @@ export function NewWorkspace({
   });
   return (
     <Modal
-      title="新建手账"
-      description="每本手账独立保存原文、摘要、Note 和记忆包，连接授权也按手账管理。"
+      title="新建工作区"
       onClose={() => {
         if (!p.busy) onClose();
       }}
     >
       <DraftBoundary state={p}>
         <label className="field">
-          手账名称
+          工作区名称
           <input
             value={d.name}
             onChange={(e) => setD({ ...d, name: e.target.value })}
-            placeholder="给这段对话起个名字"
+            placeholder="工作区名称"
           />
         </label>
         <label className="field">
           来源平台
           <Picker
             value={d.platform}
-            label="新手账平台"
+            label="新工作区平台"
             options={['ChatGPT', 'Claude', 'Chatbox', '其他'].map((v) => ({
               value: v,
               label: v,
@@ -444,9 +443,6 @@ export function NewWorkspace({
             onChange={(platform) => setD({ ...d, platform })}
           />
         </label>
-        <p className="callout">
-          第一次导入原文后，配置摘要模型，再由你手动开始首次压缩。
-        </p>
         <div className="form-actions">
           <span className="save-caption">
             {p.error || (p.saved ? '✓ 草稿已保存' : '保存中…')}
@@ -471,7 +467,7 @@ export function NewWorkspace({
             }}
           >
             <Plus size={15} />
-            创建手账
+            创建
           </Button>
         </div>
       </DraftBoundary>

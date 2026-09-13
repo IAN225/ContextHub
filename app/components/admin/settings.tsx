@@ -7,7 +7,7 @@ export function AdminSettings() {
   return (
     <main className="admin-page">
       <nav>
-        <a href="/">← 返回手账</a>
+        <a href="/">← 返回工作区</a>
         <a href="/server">HTTPS 与证书设置 →</a>
       </nav>
       <header>

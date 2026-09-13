@@ -66,8 +66,7 @@ export function DataManager({
   }
   return (
     <Modal
-      title={cloudMode() ? '云端数据与备份' : '本地数据'}
-      description="备份、恢复与回收站"
+      title="数据管理"
       onClose={() => {
         if (!busy) onClose();
       }}
@@ -76,7 +75,7 @@ export function DataManager({
         <section className="form-stack">
           <h3>备份与恢复</h3>
           <p className="inline-note">
-            导出已保存的手账、Note、摘要、待归档内容、草稿和已保存附件。不包含模型
+            导出已保存的工作区、Note、摘要、待归档内容、草稿和已保存附件。不包含模型
             Key、投递凭据、MCP 令牌及服务端尚未接收的变更。MCP
             写入需要先在网页接收，才会进入此备份。
           </p>
@@ -122,12 +121,12 @@ export function DataManager({
               <p className="callout">
                 备份时间：{new Date(backup.createdAt).toLocaleString()}
                 <br />
-                {imported.workspaces} 本手账 · {imported.turns} 轮原文 ·{' '}
+                {imported.workspaces} 个工作区 · {imported.turns} 轮原文 ·{' '}
                 {imported.notes} 条 Note · {imported.uploads} 份待归档内容
               </p>
               <p className="inline-note">
                 {cloudMode()
-                  ? '恢复会覆盖当前账号的云端手账与草稿，并自动刷新。其他设备的旧页面需要刷新。'
+                  ? '恢复会覆盖当前账号的云端工作区与草稿，并自动刷新。其他设备的旧页面需要刷新。'
                   : '恢复会覆盖此浏览器的现有数据，并自动刷新。'}
                 {state
                   ? '覆盖前会发起当前数据的备份下载；'
@@ -146,7 +145,7 @@ export function DataManager({
                 />
                 <span>
                   {cloudMode()
-                    ? '我确认用此备份覆盖当前账号的手账数据'
+                    ? '我确认用此备份覆盖当前账号的工作区数据'
                     : '我确认用此备份覆盖本地数据'}
                 </span>
               </label>

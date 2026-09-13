@@ -1,6 +1,6 @@
 'use client';
 import { DraftBoundary } from './shared';
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useEffect } from 'react';
 import {
   KeyRound,
   Plug,
@@ -25,7 +25,6 @@ import type { PublicMcpToken } from '@/lib/mcp/contracts';
 import { mcpTools } from '@/lib/mcp/catalog';
 import { OAuthConnection } from './oauth-connection';
 import { oauthConnectionProfiles } from '@/lib/mcp/oauth-clients';
-const subscribeOrigin = () => () => {};
 const connectionExpiry = (token: PublicMcpToken) =>
   token.grant_expires_at ?? token.expires_at;
 
@@ -41,11 +40,7 @@ export function ConnectionsPage({
   mcp: McpConnection;
 }) {
   const [clock, setClock] = useState(() => Date.now());
-  const origin = useSyncExternalStore(
-    subscribeOrigin,
-    () => window.location.origin,
-    () => '',
-  );
+  const origin = mcp.status.publicOrigin ?? '';
   useEffect(() => {
     if (!active) return;
     const timer = setInterval(() => setClock(Date.now()), 1000);
@@ -121,12 +116,14 @@ export function ConnectionsPage({
           <BookOpen size={24} />
           <div>
             <h2>{w.name}</h2>
-            <p>
-              当前连接仅属于这本手账。其他手账的原文、摘要与 Note
-              不包含在授权范围中。
-            </p>
+            <p>仅授权当前工作区。</p>
           </div>
         </div>
+        {!origin && (
+          <output className="callout" style={{ display: 'block' }}>
+            配置 HTTPS 后可启用 MCP。请联系管理员设置访问域名。
+          </output>
+        )}
         <div className="connection-workspace">
           <section className="surface connection-options" aria-label="连接方式">
             <div className="surface-head">
@@ -147,7 +144,7 @@ export function ConnectionsPage({
                 key={profile.id}
                 aria-pressed={selectedMethod === `oauth:${profile.id}`}
                 aria-controls="connection-details"
-                disabled={busy || oauthBusy}
+                disabled={busy || oauthBusy || !origin}
                 onClick={() => selectMethod(`oauth:${profile.id}`)}
               >
                 <span
@@ -168,7 +165,7 @@ export function ConnectionsPage({
                   </span>
                   <span className="connection-client-description">
                     {mcp.status.publicOrigin
-                      ? '确认手账范围与工具权限'
+                      ? '确认工作区范围与工具权限'
                       : 'HTTPS 授权入口未启动'}
                   </span>
                 </span>
@@ -179,7 +176,7 @@ export function ConnectionsPage({
               className="connection-client-row"
               aria-pressed={selectedMethod === 'token'}
               aria-controls="connection-details"
-              disabled={busy || oauthBusy}
+              disabled={busy || oauthBusy || !origin}
               onClick={() => selectMethod('token')}
             >
               <span className="row-icon client-avatar" aria-hidden="true">
@@ -220,7 +217,7 @@ export function ConnectionsPage({
                 {reveal ? (
                   <>
                     <p className="page-description">
-                      请现在复制并保存在客户端。切换连接方式或收好后无法再次查看，丢失时可以重新生成，旧令牌将失效。
+                      请现在复制并保存在客户端。切换连接方式或关闭后无法再次查看，丢失时可以重新生成，旧令牌将失效。
                     </p>
                     <code className="inline-code">{reveal.secret}</code>
                     <div className="form-actions">
@@ -238,7 +235,7 @@ export function ConnectionsPage({
                         )}
                         label="复制连接配置"
                       />
-                      <Button onClick={() => setReveal(null)}>收好</Button>
+                      <Button onClick={() => setReveal(null)}>关闭</Button>
                     </div>
                   </>
                 ) : (
@@ -275,7 +272,7 @@ export function ConnectionsPage({
                       />
                     </label>
                     <p className="callout">
-                      授权读取本手账记忆、创建和精准修改
+                      授权读取当前工作区记忆、创建和精准修改
                       Note，以及提交分享链接到待确认收件箱。服务需要保持运行。
                     </p>
                     {error && (
@@ -313,7 +310,7 @@ export function ConnectionsPage({
         </div>
         <div className="connection-sync-notes">
           <p className="inline-note">
-            首次创建时将这本手账的记忆内容保存到 MCP
+            首次连接会同步工作区到 MCP
             服务。网页打开时同步已保存版本；关闭后仍可读取上次同步内容及读写
             Note。草稿和附件文件不向 MCP 提供。
           </p>
@@ -331,7 +328,7 @@ export function ConnectionsPage({
         )}
         <section className="connection-history">
           <div className="surface-head">
-            <h2>这本手账的连接</h2>
+            <h2>已授权连接</h2>
             <small>
               {
                 tokens.filter(
@@ -371,7 +368,7 @@ export function ConnectionsPage({
                   <div className="action-row">
                     {!t.resource && (
                       <Button
-                        disabled={busy || oauthBusy}
+                        disabled={busy || oauthBusy || !origin}
                         onClick={() => {
                           void create(t);
                         }}
@@ -381,7 +378,7 @@ export function ConnectionsPage({
                       </Button>
                     )}
                     <Button
-                      disabled={busy || oauthBusy}
+                      disabled={busy || oauthBusy || !origin}
                       onClick={() => {
                         void revoke(t);
                       }}
@@ -394,15 +391,13 @@ export function ConnectionsPage({
               </div>
             ))
           ) : (
-            <div className="connection-empty">
-              还没有连接。选择上方客户端完成授权，或创建访问令牌。
-            </div>
+            <div className="connection-empty">暂无连接。</div>
           )}
         </section>
         <section className="tool-catalog">
           <div className="surface-head">
             <h2>模型可以使用的工具</h2>
-            <small>仅限当前授权手账</small>
+            <small>仅限当前授权工作区</small>
           </div>
           {mcpTools.map((tool) => (
             <div key={tool.name}>
@@ -414,10 +409,10 @@ export function ConnectionsPage({
         </section>
         <section className="surface workspace-settings">
           <div className="surface-head">
-            <h2>手账封面</h2>
+            <h2>工作区设置</h2>
           </div>
           <label className="field">
-            手账名称
+            工作区名称
             <input
               value={d.workspaceName}
               onChange={(e) => setD({ ...d, workspaceName: e.target.value })}

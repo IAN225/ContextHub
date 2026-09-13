@@ -457,15 +457,9 @@ export function NotesPage({
                       ? '暂无弃用 Note'
                       : filter === 'trash'
                         ? '回收站为空'
-                        : '还没有 Note'
+                        : '暂无 Note'
               }
-              detail={
-                query.trim()
-                  ? '试试其他关键词，或清空搜索条件。'
-                  : filter === 'all'
-                    ? '点击工具栏的笔形按钮，新建一条 Note。'
-                    : '切换筛选可查看其他 Note。'
-              }
+              detail={query.trim() ? '试试其他关键词，或清空搜索条件。' : ''}
             />
           </article>
         )}

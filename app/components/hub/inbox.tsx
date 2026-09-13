@@ -17,10 +17,6 @@ export function InboxPage({
         <PageTitle>收件箱</PageTitle>
         <span className="muted-label">分享链接 · 客户端投递 · Note 通知</span>
       </div>
-      <p className="inbox-description">
-        分享链接和客户端投递的对话可选择手账归档，模型创建 Note
-        的通知也会收在这里。
-      </p>
       {notifications.length > 0 && (
         <section className="note-notifications" aria-label="Note 创建通知">
           <div className="surface-head">

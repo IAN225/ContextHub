@@ -151,7 +151,7 @@ export function DeliverySettings({
         )}
       </div>
       <p className="inline-note">
-        客户端使用此服务的访问地址连接。服务运行期间，即使页面关闭也会保留待接收内容；再次打开手账后自动收取。
+        客户端使用此服务的访问地址连接。服务运行期间，即使页面关闭也会保留待接收内容；再次打开工作区后自动收取。
       </p>
       <Button
         disabled={!origin}

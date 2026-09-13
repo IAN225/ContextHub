@@ -33,7 +33,7 @@ export function decodeRecord(value: unknown, kind?: string): unknown {
 export function splitHub(value: unknown): StorageEntry[] {
   if (value === undefined) return [];
   const root = object(value);
-  if (root.schemaVersion !== 1) throw new Error('手账版本不兼容，无法迁移。');
+  if (root.schemaVersion !== 1) throw new Error('工作区版本不兼容，无法迁移。');
   const records: StorageEntry[] = [];
   const keys = new Set<string>();
   const put = (key: string, kind: string, data: unknown) => {
@@ -119,12 +119,12 @@ export function joinHub(entries: readonly StorageEntry[]): unknown {
   );
   if (!records.has(RECORD_PREFIX + 'root')) {
     if ([...records.keys()].some((k) => k.startsWith(RECORD_PREFIX)))
-      throw new Error('手账根记录缺失。');
+      throw new Error('工作区根记录缺失。');
     return undefined;
   }
   const get = (key: string, kind: string) => {
     if (!records.has(RECORD_PREFIX + key))
-      throw new Error('手账关联记录缺失：' + key);
+      throw new Error('工作区关联记录缺失：' + key);
     return decodeRecord(records.get(RECORD_PREFIX + key), kind);
   };
   const list = (

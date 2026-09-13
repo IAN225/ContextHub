@@ -13,7 +13,7 @@ function chunks(value: Mirror) {
   if (new TextEncoder().encode(body).length > MAX_MCP_BYTES)
     throw new McpError(
       'MEMORY_TOO_LARGE',
-      '授权手账及待接收变更超过 16 MB，请接收变更或缩小手账。',
+      '授权工作区及待接收变更超过 16 MB，请接收变更或缩小工作区。',
       413,
     );
   const parts: string[] = [];
@@ -162,7 +162,7 @@ export function mcpRepository(db: D1Database) {
           revision: before.revision,
         };
       }
-      throw new McpError('CONCURRENT_CHANGE', '手账正在更新，请重试。', 409);
+      throw new McpError('CONCURRENT_CHANGE', '工作区正在更新，请重试。', 409);
     },
     receipt: (tokenId: string, requestId: string) =>
       sql(
@@ -185,7 +185,7 @@ export function mcpRepository(db: D1Database) {
       if (value.events.length > 200)
         throw new McpError(
           'PENDING_LIMIT',
-          '待接收变更已达上限，请打开手账接收后重试。',
+          '待接收变更已达上限，请打开工作区接收后重试。',
           507,
         );
       const parts = chunks(value);
@@ -268,7 +268,7 @@ export function mcpRepository(db: D1Database) {
       if (!result[0].meta.changes)
         throw new McpError(
           'CONCURRENT_CHANGE',
-          '手账或授权已变化，或连接写入达到上限；请检查连接后使用同一 request_id 重试。',
+          '工作区或授权已变化，或连接写入达到上限；请检查连接后使用同一 request_id 重试。',
           409,
         );
       return revision;

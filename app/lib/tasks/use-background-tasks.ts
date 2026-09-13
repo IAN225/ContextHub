@@ -177,7 +177,7 @@ export function useBackgroundTasks(
         const workspace = latest.current.data.workspaces.find(
           (w) => w.id === task.workspace_id,
         );
-        if (!workspace) throw new Error('原手账已经不存在。');
+        if (!workspace) throw new Error('原工作区已经不存在。');
         await taskRequest('control', {
           id,
           action,
@@ -236,12 +236,12 @@ export function useBackgroundTasks(
           const w = latest.current.data.workspaces.find(
             (w) => w.id === task.workspace_id,
           );
-          if (!w) throw new Error('原手账已不存在，结果暂未应用。');
+          if (!w) throw new Error('原工作区已不存在，结果暂未应用。');
           const expected = summaryRevision(w);
           if ((await hash(expected)) !== result.expectedHash) {
             setCandidates((values) => ({ ...values, [task.id]: result }));
             throw new Error(
-              '原文或配置已变化，后台摘要没有覆盖当前手账。可复制结果，或取消旧任务后重新整理。',
+              '原文或配置已变化，后台摘要没有覆盖当前工作区。可复制结果，或取消旧任务后重新整理。',
             );
           }
           command = {

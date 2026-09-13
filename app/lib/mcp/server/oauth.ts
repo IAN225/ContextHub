@@ -266,7 +266,7 @@ export async function oauthHandler(
       await repo.begin(r);
       const clientName = escape(oauthClientName(r.redirect_uri)!);
       return page(
-        `<h1>连接 ${clientName}</h1><p>请在本机 Context Hub 中打开目标手账的「连接设置」，将下面的请求码粘贴到「确认 OAuth 授权」，核对后批准。</p><code>${id}</code><p><small>目标手账 ID：${escape(target.wid)}<br>回调地址：${escape(r.redirect_uri)}<br>有效期 10 分钟。只批准你刚刚在 ${clientName} 发起的连接。</small></p><p>批准后回到此页继续。授权包括读取记忆、检索原文、读写 Note 和导入分享链接，有效期 30 天，可随时在手账中吊销。</p><form method="post" action="/oauth/complete"><input type="hidden" name="request_id" value="${id}"><input type="hidden" name="csrf" value="${browser}"><button name="decision" value="continue">完成授权，返回 ${clientName}</button><button name="decision" value="cancel">取消</button></form>`,
+        `<h1>连接 ${clientName}</h1><p>请在本机 Context Hub 中打开目标工作区的「连接设置」，将下面的请求码粘贴到「确认 OAuth 授权」，核对后批准。</p><code>${id}</code><p><small>目标工作区 ID：${escape(target.wid)}<br>回调地址：${escape(r.redirect_uri)}<br>有效期 10 分钟。只批准你刚刚在 ${clientName} 发起的连接。</small></p><p>批准后回到此页继续。授权包括读取记忆、检索原文、读写 Note 和导入分享链接，有效期 30 天，可随时在工作区中吊销。</p><form method="post" action="/oauth/complete"><input type="hidden" name="request_id" value="${id}"><input type="hidden" name="csrf" value="${browser}"><button name="decision" value="continue">完成授权，返回 ${clientName}</button><button name="decision" value="cancel">取消</button></form>`,
         `ch_oauth_browser=${browser}; Path=/oauth; HttpOnly; Secure; SameSite=Lax; Max-Age=600`,
         200,
         r.redirect_uri,
@@ -302,7 +302,7 @@ export async function oauthHandler(
         if (b.decision !== 'continue') fail('无效的授权操作。');
         if (!r.owner_id)
           return page(
-            '<h1>还未批准</h1><p>请先在本机手账中批准该请求，然后返回上一页继续。</p>',
+            '<h1>还未批准</h1><p>请先在本机工作区中批准该请求，然后返回上一页继续。</p>',
             undefined,
             409,
           );

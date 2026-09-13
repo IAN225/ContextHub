@@ -150,7 +150,6 @@ export function Transcript({
       )}
       <div className="quiet-footer">
         <span>CONTEXT HUB</span>
-        <span>记忆有来处，对话有归处。</span>
       </div>
     </>
   );

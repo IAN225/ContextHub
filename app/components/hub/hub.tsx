@@ -62,7 +62,7 @@ const navigation = [
 export function Hub() {
   const { data, persistence, dispatch, commit, cleanup } = useHub();
   const [emptyWorkspace] = useState(() => ({
-    ...blankWorkspace('尚未创建手账'),
+    ...blankWorkspace('尚未创建工作区'),
     id: 'empty-workspace',
   }));
   const navigationState = useJournalNavigation(data.workspaces);
@@ -142,7 +142,7 @@ export function Hub() {
       if (inboxUploads([u]).length) {
         navigate('inbox');
         setModal('');
-        notify('对话已放入收件箱，可随时归档到手账。');
+        notify('已导入收件箱。');
       } else setModal('review-manual');
     }
     return saved;
@@ -169,7 +169,7 @@ export function Hub() {
     if (currentView.current === origin) {
       openWorkspace(fresh?.id ?? target);
       setModal('');
-      notify('对话已完整收进手账。');
+      notify('对话已归档。');
     }
     return true;
   }
@@ -226,7 +226,7 @@ export function Hub() {
         <BookOpen size={38} />
         <h1>Context Hub</h1>
         <p role={persistence.error ? 'alert' : undefined}>
-          {persistence.error || '正在翻开你的手账…'}
+          {persistence.error || '正在加载…'}
         </p>
         {persistence.error && (
           <Button
@@ -263,7 +263,6 @@ export function Hub() {
             onAccount={() => setModal('account')}
             onData={() => setModal('data')}
             onTasks={() => setModal('tasks')}
-            onImport={() => setModal('import')}
           />
         )}
         {home && persistence.error && (
@@ -304,7 +303,7 @@ export function Hub() {
                 <span>CONTEXT HUB</span>
               </aside>
               <div className="journal-sheet">
-                <nav className="journal-tabs" aria-label="手账章节">
+                <nav className="journal-tabs" aria-label="工作区章节">
                   {navigation.map((n) => (
                     <button
                       key={n.id}
@@ -459,8 +458,8 @@ export function Hub() {
             title={modal === 'review-manual' ? '确认对话导入' : '确认候选摘要'}
             description={
               modal === 'review-manual'
-                ? '预览后选择手账归档；未确认的内容可从收录对话入口继续处理。'
-                : '确认后设为活跃摘要；未确认的候选会保留在当前手账的摘要工作台。'
+                ? '预览后选择工作区归档；未确认的内容可从收录对话入口继续处理。'
+                : '确认后设为活跃摘要；未确认的候选会保留在当前工作区的摘要工作台。'
             }
             onClose={() => setModal('')}
           >

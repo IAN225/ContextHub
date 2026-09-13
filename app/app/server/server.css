@@ -112,3 +112,8 @@
     margin-bottom: 12px;
   }
 }
+
+.server-card output.callout {
+  display: block;
+  margin-top: 16px;
+}

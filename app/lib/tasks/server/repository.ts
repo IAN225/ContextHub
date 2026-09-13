@@ -176,7 +176,7 @@ export function taskRepository(db: D1Database) {
       if (!saved)
         throw new TaskError(
           'TASK_BUSY',
-          '这本手账已有任务，或待处理任务已达上限。请先接收结果或处理已有任务。',
+          '此工作区已有任务，或待处理任务已达上限。请先接收结果或处理已有任务。',
           409,
         );
       return saved;

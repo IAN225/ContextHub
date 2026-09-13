@@ -8,7 +8,6 @@ import {
   Plus,
 } from 'lucide-react';
 import { Button } from './shared';
-import { useAccount } from './account';
 import { AdminLink } from './admin-link';
 type Props = {
   workspaceName: string;
@@ -30,16 +29,15 @@ export function ReaderHeader({
   onSearch,
   onImport,
 }: Props) {
-  const { mode } = useAccount();
   return (
     <header className="journal-reader-header">
       <button
         className="back-to-shelf"
-        aria-label="返回我的手账"
+        aria-label="返回工作区"
         onClick={onHome}
       >
         <ArrowLeft size={16} />
-        <span>我的手账</span>
+        <span>我的工作区</span>
       </button>
       <div className="reader-breadcrumb">
         <span title={workspaceName}>{workspaceName}</span>
@@ -51,11 +49,7 @@ export function ReaderHeader({
         <button className="icon-button" aria-label="后台任务" onClick={onTasks}>
           <ListTodo size={17} />
         </button>
-        <button
-          className="icon-button"
-          aria-label={mode === 'cloud' ? '云端数据与备份' : '本地数据与备份'}
-          onClick={onData}
-        >
+        <button className="icon-button" aria-label="数据管理" onClick={onData}>
           <Database size={17} />
         </button>
         <span className="save-state">

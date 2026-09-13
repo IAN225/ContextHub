@@ -91,7 +91,7 @@ export async function callMcpTool(
   if (!snapshot)
     throw new McpError(
       'WORKSPACE_NOT_READY',
-      '手账副本尚未就绪，请在连接页重新连接。',
+      '工作区副本尚未就绪，请在连接页重新连接。',
       404,
     );
   const w = snapshot.workspace;
@@ -127,7 +127,7 @@ export async function callMcpTool(
     if (!n)
       throw new McpError(
         'NOTE_NOT_FOUND',
-        '这本手账中没有可读取的该 Note。',
+        '此工作区中没有可读取的该 Note。',
         404,
       );
     return n;

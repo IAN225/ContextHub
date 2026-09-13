@@ -116,7 +116,7 @@ export function ModelSettings({
         ),
       );
       if (saved) onClose();
-      else setError('模型连接已保存，但手账参数未能保存，请重试。');
+      else setError('模型连接已保存，但工作区参数未能保存，请重试。');
     } catch (failure) {
       setError(
         failure instanceof Error ? failure.message : '模型连接未能保存。',
@@ -159,8 +159,8 @@ export function ModelSettings({
       title="摘要模型与提示词"
       description={
         cloudMode()
-          ? 'Key 私密保存在你的云端账号中，不进入手账备份。模型接口需使用公网 HTTPS（443 端口）。提示词与预算保存在当前手账。'
-          : 'Key 保存在本机服务中，不进入手账备份。提示词与预算保存在当前手账。'
+          ? 'API Key 不包含在导出备份中。模型接口需使用公网 HTTPS（443 端口）。'
+          : 'API Key 不包含在导出备份中。'
       }
       onClose={() => {
         if (!saving) onClose();
@@ -355,8 +355,8 @@ export function ModelSettings({
               </div>
               <p className="callout">
                 {cloudMode()
-                  ? '模型连接由当前账号的手账共用，其他账号无法使用。保存后立即生效。更换地址或协议时请填写对应'
-                  : '模型连接由本机服务上的所有手账共用，保存后立即生效。更换地址或协议时请填写对应'}
+                  ? '模型连接由当前账号的工作区共用，其他账号无法使用。保存后立即生效。更换地址或协议时请填写对应'
+                  : '模型连接由本机服务上的所有工作区共用，保存后立即生效。更换地址或协议时请填写对应'}
                 Key；进行中的旧任务会在下一批前核对连接。
               </p>
               <p className="inline-note">

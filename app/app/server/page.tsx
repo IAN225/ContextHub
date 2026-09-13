@@ -31,6 +31,7 @@ export default function ServerPage() {
   const [terms, setTerms] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
+  const [feedback, setFeedback] = useState('');
   const load = useCallback(async () => {
     try {
       const account = await getAccountStatus();
@@ -68,6 +69,7 @@ export default function ServerPage() {
   async function action(name: string, input: object = {}) {
     setBusy(true);
     setError('');
+    setFeedback('');
     try {
       const response = await fetch(`/api/server/${name}`, {
         method: 'POST',
@@ -78,7 +80,9 @@ export default function ServerPage() {
         body: JSON.stringify(input),
       });
       const result = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(result.error || '操作未完成。');
+      if (!response.ok || result.error)
+        throw new Error(result.error || '操作未完成。');
+      if (name === 'check') setFeedback('连接正常');
       setPassword('');
       setConfirmation('');
       await load();
@@ -102,13 +106,12 @@ export default function ServerPage() {
       {/* oxlint-disable-next-line nextjs/no-html-link-for-pages -- Reload after login to avoid cached anonymous navigation. */}
       <a href="/" className="server-back">
         <ArrowLeft size={16} />
-        返回手账
+        返回工作区
       </a>
       <header className="server-heading">
         <Globe size={25} />
         <div>
           <h1>服务器访问</h1>
-          <p>管理登录、访问地址和 HTTPS 状态。</p>
         </div>
       </header>
       {!status && <output>正在读取服务器状态…</output>}
@@ -116,7 +119,7 @@ export default function ServerPage() {
         <section className="server-card">
           <h2>当前是本地模式</h2>
           <p>
-            服务器管理仅在服务器启动方式下启用，本机手账和临时 MCP
+            服务器管理仅在服务器启动方式下启用，本机工作区和临时 MCP
             连接照常使用。
           </p>
           <p>部署步骤见仓库的服务器部署文档。</p>
@@ -229,10 +232,7 @@ export default function ServerPage() {
                 disabled={busy || !!status.pending}
                 onChange={(e) => setOrigin(e.target.value)}
               />
-              <small>
-                使用标准 443 端口，不填写路径；公网 IP
-                证书将在客户端兼容性验证后提供。
-              </small>
+              <small>填写域名，不包含端口或路径。</small>
             </label>
             {mode === 'automatic' && (
               <label className="server-check">
@@ -286,7 +286,7 @@ export default function ServerPage() {
             <div className="server-card-head">
               <h2>连接状态</h2>
               <Button
-                disabled={busy || !!status.pending}
+                disabled={busy || !!status.pending || !status.access}
                 onClick={() => void action('check')}
               >
                 <RotateCcw size={14} />
@@ -326,9 +326,10 @@ export default function ServerPage() {
                 </dd>
               </dl>
             ) : (
-              !status.pending && (
-                <p>尚未启用公网地址。填写上方配置后开始验证。</p>
-              )
+              !status.pending && <p>尚未配置 HTTPS，MCP 未启用。</p>
+            )}
+            {feedback && !status.error && (
+              <output className="callout">{feedback}</output>
             )}
             {status.error && (
               <p role="alert" className="callout warning">

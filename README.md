@@ -20,7 +20,7 @@ sudo bash deploy/install.sh --domain hub.example.com --accept-acme-terms
 sudo cat /opt/contexthub/app/.wrangler/server/initial-admin-password.txt
 ```
 
-打开你的 HTTPS 域名登录，必须先修改初始密码才能激活。完成后使用新密码重新登录；初始密码文件会删除。新用户提交注册申请后，需要管理员审批。首页和手账页的“管理员设置”提供审批、关闭注册、角色与证书管理。
+打开你的 HTTPS 域名登录，必须先修改初始密码才能激活。完成后使用新密码重新登录；初始密码文件会删除。新用户提交注册申请后，需要管理员审批。首页和工作区页的“管理员设置”提供审批、关闭注册、角色与证书管理。
 
 没有准备域名时，可先运行 sudo bash deploy/install.sh，使用 SSH 隧道激活，再配置 HTTPS：
 
@@ -44,9 +44,9 @@ docker compose exec app cat .wrangler/server/initial-admin-password.txt
 
 ## 使用
 
-- 创建手账后，可写入或导入对话、Note，维护摘要和记忆包。
+- 创建工作区后，可写入或导入对话、Note，维护摘要和记忆包。
 - 摘要功能需要在模型设置中配置你自己的模型地址、名称与 API Key；任务在服务器后台执行。
-- 手账“连接”页提供正式 MCP / OAuth 配置，可授权 Claude、ChatGPT 等客户端访问该手账。
+- 工作区“连接”页提供正式 MCP / OAuth 配置，可授权 Claude、ChatGPT 等客户端访问该工作区。
 - 换浏览器或设备后使用同一账号登录，即可读取已保存内容。多设备同时修改可能触发版本冲突，按页面提示刷新处理。
 - 已下载附件跟随账号保存；尚未下载的外部附件仍依赖原地址。当前单个附件上限 5 MB。
 

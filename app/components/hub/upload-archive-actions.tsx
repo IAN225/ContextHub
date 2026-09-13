@@ -24,7 +24,7 @@ export function UploadArchiveActions({
       {u.kind === 'summary' ? (
         <>
           <p className="inline-note">
-            将替换「{w?.name ?? '来源手账不存在'}
+            将替换「{w?.name ?? '来源工作区不存在'}
             」的活跃摘要，并由你选择水位是否跟随。
           </p>
           <Button
@@ -39,7 +39,7 @@ export function UploadArchiveActions({
       ) : (
         <>
           <label className="field">
-            收进哪一本
+            归档到
             <Picker
               value={target}
               onChange={setTarget}
@@ -49,7 +49,7 @@ export function UploadArchiveActions({
                   value: w.id,
                   label: `${w.name} · 原文末尾拼接`,
                 })),
-                { value: 'new', label: '以这份对话新建一本手账' },
+                { value: 'new', label: '以这份对话新建工作区' },
               ]}
             />
           </label>
@@ -59,7 +59,7 @@ export function UploadArchiveActions({
             onClick={() => onImport(u, target)}
           >
             <ArrowRight size={15} />
-            {target === 'new' ? '新建手账并归档' : '拼接到原文末尾'}
+            {target === 'new' ? '新建工作区并归档' : '拼接到原文末尾'}
           </Button>
         </>
       )}
