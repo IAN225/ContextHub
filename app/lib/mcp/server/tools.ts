@@ -1,3 +1,5 @@
+import { summaryWorkspace, parseSummaryEngine } from '../../summary/engines.ts';
+import { coverage } from '../../domain.ts';
 import { memoryText, now, uid, type Note } from '../../domain.ts';
 import { createMemorySearch } from '../../memory-search.ts';
 import { digest } from '../../imports/server/auth.ts';
@@ -100,8 +102,24 @@ export async function callMcpTool(
     workspace: w.name,
     syncedAt: snapshot.syncedAt,
   };
-  if (name === 'memory_bootstrap')
-    return { ...context, content: memoryText(w) };
+  if (name === 'memory_bootstrap') {
+    const engine = parseSummaryEngine(args.engine ?? w.memoryEngine);
+    const scoped = summaryWorkspace(w, engine);
+    const c = coverage(scoped);
+    return {
+      ...context,
+      content: memoryText(scoped),
+      engine,
+      summaryId: c.active?.id ?? null,
+      coveredTurnIds: c.active?.covered ?? [],
+      recentTurnIds: c.recent.map((t) => t.id),
+      omittedTurnIds: [...c.gap, ...c.queued].map((t) => t.id),
+      status: c.active ? 'ready' : 'no_summary',
+      strategyVersion:
+        c.active?.generation?.strategy ??
+        (engine === 'custom' ? 'custom-v1' : null),
+    };
+  }
   if (name === 'notes_list') {
     const notes = w.notes.filter((n) => n.status === 'normal');
     const offset = Number(args.offset ?? 0),
@@ -149,7 +167,8 @@ export async function callMcpTool(
     if (!query) throw new McpError('INVALID_ARGUMENTS', '搜索关键词不能为空。');
     const offset = Number(args.offset ?? 0),
       limit = Number(args.limit ?? 20);
-    const found = createMemorySearch()([w], {
+    const engine = parseSummaryEngine(args.engine ?? w.memoryEngine);
+    const found = createMemorySearch()([summaryWorkspace(w, engine)], {
       query,
       kind: typeof args.kind === 'string' ? args.kind : 'all',
       scope: w.id,
@@ -157,6 +176,7 @@ export async function callMcpTool(
     });
     return {
       ...context,
+      engine,
       total: found.total,
       items: found.items.slice(offset, offset + limit).map((item) => ({
         ...item,

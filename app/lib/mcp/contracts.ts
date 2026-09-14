@@ -1,8 +1,8 @@
 import type {
   Note,
   Upload,
-  WorkspaceSnapshotV1 as Workspace,
-} from '../storage/payload-v1.ts';
+  WorkspaceSnapshotV2 as Workspace,
+} from '../storage/payload-v2.ts';
 
 export class McpError extends Error {
   code: string;

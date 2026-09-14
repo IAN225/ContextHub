@@ -1,4 +1,10 @@
 import {
+  parseSummaryEngine,
+  summaryTrack,
+  summaryWorkspace,
+  type SummaryEngine,
+} from './summary/engines.ts';
+import {
   restoreSummary,
   uploadChannel,
   type Block,
@@ -21,6 +27,7 @@ import {
 } from './summary/planning.ts';
 import type { McpEvent } from './mcp/contracts.ts';
 import { receiveMcpNote } from './mcp/receive.ts';
+import { deliveryTriggerTurn } from './imports/delivery-review.ts';
 
 export type NoteNotification = {
   id: string;
@@ -50,7 +57,12 @@ export function createEmptyHubState(): HubState {
     deliveryReceipts: [],
   };
 }
-export type WorkspaceCommand =
+export type WorkspaceCommand = WorkspaceCommandBody & {
+  engine?: SummaryEngine;
+};
+type WorkspaceCommandBody =
+  | { type: 'summary/tab'; value: SummaryEngine }
+  | { type: 'memory/engine'; value: SummaryEngine }
   | { type: 'workspace/rename'; name: string }
   | { type: 'turn/save'; turn: Turn; insert: boolean; afterId: string | null }
   | { type: 'turn/status'; turnId: string; status: Status; at: string }
@@ -107,6 +119,7 @@ export type HubCommand =
       uploadId: string;
       target: string | Workspace;
       batchId: string;
+      excludedTriggerId?: string;
     }
   | {
       type: 'upload/summary';
@@ -121,6 +134,25 @@ export function applyWorkspaceCommand(
   w: Workspace,
   command: WorkspaceCommand,
 ): Workspace {
+  if (command.type === 'summary/tab')
+    return { ...w, summaryTab: parseSummaryEngine(command.value) };
+  if (command.type === 'memory/engine')
+    return { ...w, memoryEngine: parseSummaryEngine(command.value) };
+  const engine =
+    command.type === 'summary/generated'
+      ? (command.generated.engine ?? command.engine)
+      : command.engine;
+  if (command.type.startsWith('summary/') && engine === 'reme') {
+    const scoped = summaryWorkspace(w, 'reme');
+    const next = applyWorkspaceCommand(scoped, {
+      ...command,
+      engine: 'custom',
+      ...(command.type === 'summary/generated'
+        ? { generated: { ...command.generated, engine: undefined } }
+        : {}),
+    } as WorkspaceCommand);
+    return { ...w, reme: summaryTrack(next) };
+  }
   switch (command.type) {
     case 'workspace/rename':
       return { ...w, name: command.name.trim() || w.name };
@@ -476,7 +508,17 @@ export function applyHubCommand(
           ? state.workspaces.find((w) => w.id === target)
           : target;
       if (!current) throw new Error('归档目标已不存在，收件已保留。');
-      const turns = upload.turns.map((t, i) => ({
+      if (
+        command.excludedTriggerId &&
+        deliveryTriggerTurn(upload)?.id !== command.excludedTriggerId
+      )
+        throw new Error('投递末尾消息已变化，请重新检查预览后归档。');
+      const includedTurns = upload.turns.filter(
+        (t) => t.id !== command.excludedTriggerId,
+      );
+      if (!includedTurns.length)
+        throw new Error('没有可归档的轮次，收件已保留。');
+      const turns = includedTurns.map((t, i) => ({
         ...t,
         id: `${command.batchId}-${i}`,
       }));
@@ -674,6 +716,26 @@ export function normalizeHubState(raw: unknown): HubState {
       item.firstComplete === undefined ||
         typeof item.firstComplete === 'boolean',
     );
+    for (const key of ['summaryEngine', 'summaryTab', 'memoryEngine'])
+      requireShape(
+        item[key] === undefined ||
+          item[key] === 'custom' ||
+          item[key] === 'reme',
+      );
+    if (item.reme !== undefined) {
+      requireShape(record(item.reme));
+      const scoped = {
+        ...item,
+        ...item.reme,
+        reme: undefined,
+        summaryEngine: undefined,
+      };
+      normalizeHubState({
+        schemaVersion: 1,
+        workspaces: [scoped],
+        uploads: [],
+      });
+    }
     const workspace = item as unknown as Workspace;
     if (workspace.firstComplete !== undefined) return workspace;
     changed = true;

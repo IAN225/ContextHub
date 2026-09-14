@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { summaryRequest } from './client';
 import type { SummaryConnection } from './contracts';
 
-export function useSummaryConnection() {
+export function useSummaryConnection(engine = 'custom') {
   const [connection, setConnection] = useState<SummaryConnection | null>(null);
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
@@ -15,7 +15,7 @@ export function useSummaryConnection() {
   useEffect(() => {
     const controller = new AbortController();
     void summaryRequest<SummaryConnection>(
-      'connection',
+      'connection?engine=' + engine,
       undefined,
       controller.signal,
     )
@@ -30,6 +30,6 @@ export function useSummaryConnection() {
           setError('未能读取本地摘要连接，请检查服务后重试。');
       });
     return () => controller.abort();
-  }, [revision]);
+  }, [revision, engine]);
   return { connection, error, refresh, accept };
 }

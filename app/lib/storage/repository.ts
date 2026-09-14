@@ -50,18 +50,32 @@ export function createEntityRepository(store: DataRepository): DataRepository {
         ];
         // Summary checkpoints depend on their source records. Compare those revisions
         // without rewriting them, so an old task cannot commit over newly edited input.
-        const summaryWorkspaces = new Set(
-          changes.flatMap((e) => {
-            const match =
-              /^hub\.v2\/workspace\/([^/]+)\/(summary-settings|summaries|summary\/)/.exec(
-                e.key,
-              );
-            return match ? [RECORD_PREFIX + 'workspace/' + match[1] + '/'] : [];
-          }),
-        );
+        const dependencies = changes.flatMap((e) => {
+          const match =
+            /^hub\.v2\/workspace\/([^/]+)\/(summary-settings|summaries|summary\/|reme-settings|reme-summaries|reme-summary\/)/.exec(
+              e.key,
+            );
+          return match
+            ? [
+                {
+                  prefix: RECORD_PREFIX + 'workspace/' + match[1] + '/',
+                  reme: match[2].startsWith('reme'),
+                },
+              ]
+            : [];
+        });
         const guards = before
           .filter((e) =>
-            [...summaryWorkspaces].some((prefix) => e.key.startsWith(prefix)),
+            dependencies.some(({ prefix, reme }) => {
+              if (!e.key.startsWith(prefix)) return false;
+              const suffix = e.key.slice(prefix.length);
+              return (
+                /^(turns$|turn\/|notes$|note\/)/.test(suffix) ||
+                (reme
+                  ? /^reme-(settings$|summaries$|summary\/)/.test(suffix)
+                  : /^(summary-settings$|summaries$|summary\/)/.test(suffix))
+              );
+            }),
           )
           .map((e) => e.key);
         if (changes.length) await store.write(changes, guards);

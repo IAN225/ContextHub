@@ -62,6 +62,27 @@ export function purgeTrash(
     return {
       ...w,
       watermark,
+      ...(w.reme
+        ? {
+            reme: {
+              ...w.reme,
+              watermark:
+                w.reme.watermark && removedTurns.has(w.reme.watermark)
+                  ? (w.turns
+                      .slice(
+                        0,
+                        w.turns.findIndex((t) => t.id === w.reme!.watermark),
+                      )
+                      .filter((t) => !removedTurns.has(t.id))
+                      .at(-1)?.id ?? null)
+                  : w.reme.watermark,
+              summaries: w.reme.summaries.map((s) => ({
+                ...s,
+                covered: s.covered.filter((id) => !removedTurns.has(id)),
+              })),
+            },
+          }
+        : {}),
       turns: w.turns.filter((t) => !removedTurns.has(t.id)),
       notes: w.notes.filter((n) => !removedNotes.has(n.id)),
       summaries: w.summaries.map((s) => ({

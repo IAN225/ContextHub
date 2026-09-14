@@ -1,3 +1,4 @@
+import { composeRemeInput } from './reme.ts';
 import {
   memoryNotes,
   type Block,
@@ -34,6 +35,7 @@ export function composeSummaryInput(
   previous?: Summary,
   instruction = '',
 ): SummaryInput {
+  if (w.summaryEngine === 'reme') return composeRemeInput(w, turns, previous);
   const blocks = w.config.promptBlocks ?? defaultSummaryPrompt;
   if (!blocks.some((b) => b.type === 'recent' && !b.custom))
     throw new SummaryError(

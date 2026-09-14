@@ -1,3 +1,4 @@
+import { parseSummaryEngine } from '@/lib/summary/engines';
 import { accountModelFetcher } from '@/lib/account/model-fetch';
 import { env } from 'cloudflare:workers';
 import { createSummaryHandler } from '@/lib/summary/server/handlers';
@@ -13,13 +14,24 @@ async function handle(
     AccountEnvironment & { DB: D1Database };
   const account = accountContext(request, bindings);
   if (account instanceof Response) return account;
+  let engine;
+  try {
+    engine = parseSummaryEngine(
+      new URL(request.url).searchParams.get('engine'),
+    );
+  } catch {
+    return Response.json(
+      { error: { code: 'INVALID_ENGINE', message: '未知摘要方案。' } },
+      { status: 400 },
+    );
+  }
   return handleSummary(
     request,
     (await context.params).action,
     bindings,
     accountModelFetcher(bindings),
-    summarySettingsRepository(bindings.DB, account ?? undefined),
-    account ?? 'local',
+    summarySettingsRepository(bindings.DB, account ?? undefined, engine),
+    (account ?? 'local') + ':' + engine,
   );
 }
 export const GET = handle;

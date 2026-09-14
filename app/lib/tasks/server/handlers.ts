@@ -1,4 +1,9 @@
 import {
+  engineLabels,
+  parseSummaryEngine,
+  type SummaryEngine,
+} from '../../summary/engines.ts';
+import {
   coverage,
   now,
   uid,
@@ -151,6 +156,7 @@ async function runSummary(
       { workspace: next },
       {
         kind: 'summary',
+        engine: w.summaryEngine ?? 'custom',
         expectedHash: await digest(summaryRevision(w)),
         summary: generated.summary,
         turnIds: generated.turnIds,
@@ -177,7 +183,10 @@ export async function taskHandler(
   env: TaskEnvironment,
   fetcher?: typeof fetch,
   accountId?: string,
-  connectionForOwner?: (owner: string) => Promise<SummaryEnvironment>,
+  connectionForOwner?: (
+    owner: string,
+    engine: SummaryEngine,
+  ) => Promise<SummaryEnvironment>,
 ) {
   try {
     if (action.startsWith('runner-')) {
@@ -219,7 +228,13 @@ export async function taskHandler(
           task,
           repo,
           connectionForOwner
-            ? { ...env, ...(await connectionForOwner(task.owner_id)) }
+            ? {
+                ...env,
+                ...(await connectionForOwner(
+                  task.owner_id,
+                  task.engine ?? 'custom',
+                )),
+              }
             : env,
           fetcher,
         );
@@ -311,6 +326,7 @@ export async function taskHandler(
         workspaceId: string | null = null,
         connection: string | null = null,
         total = 0;
+      let engine: SummaryEngine = 'custom';
       if (data.kind === 'summary' || data.kind === 'workbench') {
         const normalized = normalizeHubState({
           schemaVersion: 1,
@@ -318,6 +334,12 @@ export async function taskHandler(
           uploads: [],
         }).workspaces[0];
         const w = summaryTaskWorkspace(normalized);
+        engine = parseSummaryEngine(w.summaryEngine);
+        if (data.kind === 'workbench' && engine !== 'custom')
+          throw new TaskError(
+            'INVALID_ENGINE',
+            '自定义摘要工作台仅属于自定义压缩。',
+          );
         if (data.kind === 'workbench') {
           if (
             !Array.isArray(data.turnIds) ||
@@ -361,8 +383,11 @@ export async function taskHandler(
             throw new TaskError('NO_PENDING_TURNS', '当前没有需要压缩的原文。');
           state = { workspace: w };
         }
-        connection = await connectionHash(w, env);
-        title = `${w.name} · ${data.kind === 'workbench' ? '工作台候选' : '摘要压缩'}`;
+        connection = await connectionHash(
+          w,
+          connectionForOwner ? await connectionForOwner(session, engine) : env,
+        );
+        title = `${w.name} · ${data.kind === 'workbench' ? '工作台候选' : engineLabels[engine]}`;
         workspaceId = w.id;
       } else if (data.kind === 'attachments') {
         if (
@@ -397,6 +422,7 @@ export async function taskHandler(
       const record: TaskRecord = {
         id: data.id,
         owner_id: session,
+        engine,
         kind: data.kind,
         title,
         workspace_id: workspaceId,

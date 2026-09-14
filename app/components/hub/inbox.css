@@ -7,7 +7,96 @@
 .upload-review-dialog {
   min-width: 0;
 }
+.page-content.page-content-inbox {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.inbox-chapter:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.inbox-chapter > .section-heading {
+  flex-shrink: 0;
+}
+.inbox-chapter > .note-notifications {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+.inbox-chapter:has(> .inbox-layout) > .note-notifications {
+  max-height: 25%;
+}
+.inbox-chapter > .inbox-layout {
+  flex: 1;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+}
+.inbox-layout .inbox-list {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.inbox-layout .inbox-paper {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.inbox-paper-top,
+.inbox-paper .inbox-file-action {
+  flex-shrink: 0;
+}
+.inbox-paper .inbox-paper-top {
+  margin-bottom: 0;
+}
+.inbox-paper-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 16px 6px 16px 0;
+}
+.inbox-paper .inbox-file-action {
+  margin-top: 0;
+  padding-top: 16px;
+}
+.delivery-trigger-option {
+  padding: 12px 14px;
+  border: 1px solid #e1e8d3;
+  border-radius: 6px;
+  background: #f6f8ef;
+  color: #7b866d;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.delivery-trigger-option label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.delivery-trigger-option input {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.delivery-trigger-option p {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.delivery-trigger-option summary {
+  cursor: pointer;
+  margin-top: 8px;
+}
 .upload-review-dialog .inbox-layout {
+  height: min(68dvh, 760px);
   grid-template-columns: 180px minmax(0, 1fr);
   gap: 18px;
 }
@@ -58,7 +147,13 @@
   }
 }
 @media (max-width: 800px) {
+  .inbox-chapter > .inbox-layout,
   .upload-review-dialog .inbox-layout {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 12px;
+  }
+  .inbox-layout .inbox-list {
+    max-height: 112px;
   }
 }

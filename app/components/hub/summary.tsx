@@ -1,4 +1,5 @@
 'use client';
+import { engineLabels } from '@/lib/summary/engines';
 import { useState } from 'react';
 import {
   Layers,
@@ -37,7 +38,7 @@ import {
   type Workspace,
   type Summary,
 } from '@/lib/domain';
-export function SummaryPage({
+export function SummaryEnginePage({
   w,
   active,
   onCommand,
@@ -79,7 +80,7 @@ export function SummaryPage({
     <>
       <div className="section-heading compact">
         <div>
-          <PageTitle>记忆摘要</PageTitle>
+          <PageTitle>{engineLabels[w.summaryEngine ?? 'custom']}</PageTitle>
         </div>
         <Button
           onClick={() => {
@@ -337,18 +338,20 @@ export function SummaryPage({
               条。选择历史摘要后，可单独决定是否回退原文水位。
             </p>
           </div>
-          <button
-            type="button"
-            className={`checkpoint-create ${creating ? 'selected' : ''}`}
-            aria-pressed={creating}
-            onClick={() => {
-              task.stop();
-              setCreating(true);
-            }}
-          >
-            <Plus size={17} />
-            <span>新建自定义摘要</span>
-          </button>
+          {w.summaryEngine !== 'reme' && (
+            <button
+              type="button"
+              className={`checkpoint-create ${creating ? 'selected' : ''}`}
+              aria-pressed={creating}
+              onClick={() => {
+                task.stop();
+                setCreating(true);
+              }}
+            >
+              <Plus size={17} />
+              <span>新建自定义摘要</span>
+            </button>
+          )}
         </aside>
         <article className="summary-paper">
           {creating ? (

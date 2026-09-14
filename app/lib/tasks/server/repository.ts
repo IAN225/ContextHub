@@ -129,10 +129,10 @@ export function taskRepository(db: D1Database) {
       // A partial unique index is unsuitable for pausing/completed-but-unreceived
       // summary tasks, so duplicate workspace work is checked in the atomic INSERT.
       const insert = bind(
-        `INSERT INTO background_tasks(id,owner_id,kind,title,workspace_id,status,request_hash,connection_hash,total,created_at,updated_at)
-        SELECT ?,?,?,?,?,?,?,?,?,?,?
+        `INSERT INTO background_tasks(id,owner_id,kind,title,workspace_id,status,request_hash,connection_hash,total,created_at,updated_at,engine)
+        SELECT ?,?,?,?,?,?,?,?,?,?,?,?
         WHERE (SELECT COUNT(*) FROM background_tasks WHERE owner_id=? AND (status NOT IN ('completed','cancelled') OR step > acknowledged)) < 20
-          AND (? <> 'summary' OR NOT EXISTS(SELECT 1 FROM background_tasks WHERE owner_id=? AND kind='summary' AND workspace_id=? AND (status NOT IN ('completed','cancelled') OR step > acknowledged)))`,
+          AND (? <> 'summary' OR NOT EXISTS(SELECT 1 FROM background_tasks WHERE owner_id=? AND kind='summary' AND workspace_id=? AND engine=? AND (status NOT IN ('completed','cancelled') OR step > acknowledged)))`,
         task.id,
         task.owner_id,
         task.kind,
@@ -144,10 +144,12 @@ export function taskRepository(db: D1Database) {
         task.total,
         task.created_at,
         task.updated_at,
+        task.engine ?? 'custom',
         task.owner_id,
         task.kind,
         task.owner_id,
         task.workspace_id,
+        task.engine ?? 'custom',
       );
       const chunks = parts(encodePayload('task-state', state)).map(
         (body, part) =>

@@ -56,7 +56,17 @@ export function splitHub(value: unknown): StorageEntry[] {
       return v.id;
     });
   const workspaces = list(root.workspaces, 'workspace', 'workspace', (w, p) => {
-    const { turns, notes, summaries, blocks, tokens, ...metadata } = w;
+    const { turns, notes, summaries, blocks, tokens, reme, ...metadata } = w;
+    if (reme !== undefined) {
+      const { summaries: history, ...settings } = object(reme);
+      put(p + '/reme-settings', 'reme-settings', settings);
+      put(
+        p + '/reme-summaries',
+        'summary-index',
+        list(history, p + '/reme-summary', 'summary'),
+      );
+      metadata.hasReme = true;
+    }
     const settings: ObjectValue = {};
     for (const key of [
       'activeId',
@@ -141,7 +151,19 @@ export function joinHub(entries: readonly StorageEntry[]): unknown {
   return {
     ...root,
     workspaces: list(root.workspaces, 'workspace', 'workspace', (w, p) => ({
-      ...w,
+      ...Object.fromEntries(Object.entries(w).filter(([k]) => k !== 'hasReme')),
+      ...(w.hasReme
+        ? {
+            reme: {
+              ...object(get(p + '/reme-settings', 'reme-settings')),
+              summaries: list(
+                get(p + '/reme-summaries', 'summary-index'),
+                p + '/reme-summary',
+                'summary',
+              ),
+            },
+          }
+        : {}),
       ...object(get(p + '/summary-settings', 'summary-settings')),
       blocks: get(p + '/blocks', 'memory-blocks'),
       tokens: get(p + '/tokens', 'connections'),
