@@ -232,7 +232,7 @@ export function UploadReview({
       {remove && u && (
         <Modal
           title="删除这份未归档内容？"
-          description="只影响当前收件，不影响已经存在于工作区中的原文。"
+          description="编辑当前收件。"
           onClose={() => setRemove(false)}
         >
           <p className="callout warning">

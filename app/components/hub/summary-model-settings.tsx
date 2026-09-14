@@ -1,6 +1,5 @@
 'use client';
 import { engineLabels } from '@/lib/summary/engines';
-import { remeSections } from '@/lib/summary/reme';
 import { DraftBoundary } from './shared';
 import { cloudMode } from '@/lib/account/client';
 import { useEffect, useRef, useState } from 'react';
@@ -182,9 +181,14 @@ export function ModelSettings({
             >
               模型与预算
             </Button>
-            <Button primary={tab === 'prompt'} onClick={() => setTab('prompt')}>
-              {engine === 'reme' ? '压缩结构' : '提示词编排'}
-            </Button>
+            {engine === 'custom' && (
+              <Button
+                primary={tab === 'prompt'}
+                onClick={() => setTab('prompt')}
+              >
+                提示词编排
+              </Button>
+            )}
             <Button
               primary={tab === 'capability'}
               onClick={() => setTab('capability')}
@@ -369,15 +373,6 @@ export function ModelSettings({
               <p className="inline-note">
                 总预算包括提示词、上一份摘要、本批原文、输出预留和安全余量。使用保守估算，超限时减少完整轮次数，不截断消息。
               </p>
-            </div>
-          ) : tab === 'prompt' && engine === 'reme' ? (
-            <div className="form-stack">
-              <p>实验方案使用固定结构；自定义提示词请切换到“自定义压缩”。</p>
-              <ol>
-                {remeSections.map((section) => (
-                  <li key={section}>{section}</li>
-                ))}
-              </ol>
             </div>
           ) : tab === 'prompt' ? (
             <div className="form-stack">

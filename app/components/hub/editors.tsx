@@ -224,7 +224,7 @@ export function TurnEditor({
       title={turn ? '编辑完整轮次' : '留下一段完整的对话'}
       description={
         turn
-          ? '保留每条消息的位置与工具调用结构。修改已有原文不会重写历史摘要。'
+          ? '编辑当前轮次。'
           : `插入位置：${position === 0 ? '原文链开头' : `第 ${position} 轮之后`}。输入与后续模型、工具消息作为一个整体保存。`
       }
       onClose={() => {
@@ -336,8 +336,7 @@ export function TurnEditor({
               ))}
             </div>
             <p className="inline-note">
-              <ImagePlus size={13} />{' '}
-              可以直接粘贴图片，或使用编辑栏添加附件。新建轮次标记为「时间未知」。
+              <ImagePlus size={13} /> 可粘贴图片，或添加附件。
             </p>
             {(error || save.error) && (
               <p role="alert" className="error-text">

@@ -1,4 +1,5 @@
 'use client';
+import { engineLabels, type SummaryEngine } from '@/lib/summary/engines';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { GripVertical, Plus } from 'lucide-react';
@@ -15,8 +16,10 @@ import { MemoryBlockEditor } from './memory-block-editor';
 export function MemoryComposer({
   w,
   onChange,
+  onEngineChange,
 }: {
   w: Workspace;
+  onEngineChange: (engine: SummaryEngine) => void;
   onChange: (blocks: Block[]) => void;
 }) {
   const [editing, setEditing] = useState<string | null>(null);
@@ -36,6 +39,11 @@ export function MemoryComposer({
           <MemoryBlockCard
             key={b.id}
             block={b}
+            sourceLabel={
+              b.type === 'summary'
+                ? engineLabels[w.summaryEngine ?? 'custom']
+                : undefined
+            }
             preview={memoryText(w, [b])
               .replace(/^\[[^\]]*\]\n/, '')
               .slice(0, 100)}
@@ -85,6 +93,7 @@ export function MemoryComposer({
           key={block.id}
           w={w}
           block={block}
+          onEngineChange={onEngineChange}
           onUpdate={update}
           onClose={() => setEditing(null)}
           onRemove={() => {

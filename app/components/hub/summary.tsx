@@ -106,7 +106,7 @@ export function SummaryEnginePage({
         <ChainMap w={w} />
         <div className="summary-controls">
           <fieldset className="summary-limit" aria-label="近期原文保留窗口">
-            <span>保留近期</span>
+            <legend>近期原文</legend>
             <input
               aria-label={
                 retainTokenMode ? '保留原文 token 上限' : '保留近期轮次数'
@@ -141,12 +141,11 @@ export function SummaryEnginePage({
                 { value: 'turns', label: '轮' },
               ]}
             />
-            <span>原文</span>
             <span
               className="summary-limit-hint"
               title="根据当前原文窗口保守估算；只纳入完整轮次。"
             >
-              · 约
+              估算：约
               {retainTokenMode
                 ? c.recent.length
                 : recentTokens.toLocaleString()}
@@ -154,7 +153,7 @@ export function SummaryEnginePage({
             </span>
           </fieldset>
           <fieldset className="summary-limit" aria-label="每批发送上限">
-            <span>每批发送上限</span>
+            <legend>每批发送上限</legend>
             <input
               aria-label={batchTokenMode ? '每批 token 上限' : '每批轮次数'}
               className={batchTokenMode ? 'token-limit-input' : ''}
@@ -202,7 +201,7 @@ export function SummaryEnginePage({
               className="summary-limit-hint"
               title="根据下一批完整请求保守估算，包含提示词、已有摘要和原文，并受模型上下文预算限制。"
             >
-              · 约
+              估算：约
               {batchTokenMode
                 ? (batchPreview?.batch.length ?? 0)
                 : batchTokens.toLocaleString()}
@@ -396,9 +395,6 @@ export function SummaryEnginePage({
           )}
         </article>
       </div>
-      <p className="inline-note summary-execution-note">
-        每批调用已配置的模型。仅完整结果保存成功后推进水位；中断或失败不会用摘录代替摘要。
-      </p>
       {modal === 'settings' && (
         <ModelSettings w={w} onCommit={onCommit} onClose={() => setModal('')} />
       )}{' '}

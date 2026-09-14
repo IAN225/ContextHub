@@ -5,6 +5,7 @@ import { memoryBlockLabel, type Block } from '@/lib/domain';
 export function MemoryBlockCard({
   block: b,
   preview,
+  sourceLabel,
   first,
   last,
   dragging,
@@ -14,6 +15,7 @@ export function MemoryBlockCard({
 }: {
   block: Block;
   preview: string;
+  sourceLabel?: string;
   first: boolean;
   last: boolean;
   dragging: boolean;
@@ -41,9 +43,12 @@ export function MemoryBlockCard({
         >
           <span className="memory-block-heading">
             <strong title={memoryBlockLabel(b)}>{memoryBlockLabel(b)}</strong>
-            <small>
+            <small className="memory-block-tag">
               {b.custom || b.type === 'text' ? '自定义' : '动态引用'}
             </small>
+            {sourceLabel && (
+              <small className="memory-block-tag source">{sourceLabel}</small>
+            )}
           </span>
           <span className="memory-block-preview">
             {preview || '点击编写内容'}

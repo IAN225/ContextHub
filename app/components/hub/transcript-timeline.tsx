@@ -87,7 +87,7 @@ export function TranscriptTimeline({
                     <span className="point-stem" />
                     <span className="point-dot" />
                     <span className="point-time">
-                      {t.time ? formatDate(t.time).split(' ')[0] : '时间未知'}
+                      {t.time ? formatDate(t.time).split(' ')[0] : ''}
                     </span>
                   </button>
                 </Fragment>

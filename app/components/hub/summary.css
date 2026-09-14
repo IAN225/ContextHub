@@ -506,3 +506,48 @@
     font-size: 14px;
   }
 }
+
+.summary-controls {
+  align-items: stretch;
+  gap: 16px;
+}
+.summary-controls .summary-limit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #dce4d2;
+  border-radius: 8px;
+  background: #f8faf4;
+}
+.summary-limit legend {
+  padding: 0 5px;
+  font-size: 12px;
+  color: #61734f;
+}
+.summary-controls .summary-limit input {
+  min-height: 36px;
+  min-width: 64px;
+  font-size: 14px;
+}
+.summary-controls .summary-limit .summary-limit-hint {
+  flex-basis: 100%;
+  border-top: 1px solid #e1e7d9;
+  padding-top: 8px;
+  margin: 0;
+  font-size: 11px;
+  color: #88937d;
+}
+
+.summary-controls .summary-limit {
+  flex: 0 1 260px;
+  white-space: normal;
+}
+.summary-limit .hub-select {
+  min-height: 36px !important;
+  padding: 6px 10px;
+  border: 1px solid #dce4d2;
+  border-radius: 6px;
+}

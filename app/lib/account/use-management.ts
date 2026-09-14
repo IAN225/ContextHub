@@ -14,6 +14,7 @@ type Management = {
   users: Member[];
 };
 export function useAccountManagement() {
+  const [loading, setLoading] = useState(true);
   const [state, setState] = useState<Management | null>(null),
     [self, setSelf] = useState('');
   const [passwordSetupPending, setPasswordSetupPending] = useState(false);
@@ -21,13 +22,18 @@ export function useAccountManagement() {
     [error, setError] = useState(''),
     [message, setMessage] = useState('');
   const load = useCallback(async () => {
+    setLoading(true);
     try {
       const status = await getAccountStatus();
       if (!status.user) {
         window.location.replace('/login');
         return;
       }
-      if (status.user.role !== 'admin') throw Error('仅管理员可以访问此页面。');
+      if (status.user.role !== 'admin') {
+        setState(null);
+        setError('');
+        return;
+      }
       setSelf(status.user.id);
       setPasswordSetupPending(!!status.user.passwordSetupPending);
       const r = await fetch('/api/account/management', {
@@ -39,6 +45,8 @@ export function useAccountManagement() {
       setError('');
     } catch (e) {
       setError(e instanceof Error ? e.message : '加载失败。');
+    } finally {
+      setLoading(false);
     }
   }, []);
   useEffect(() => {
@@ -76,6 +84,7 @@ export function useAccountManagement() {
       .length ?? 0;
   return {
     state,
+    loading,
     self,
     busy,
     error,

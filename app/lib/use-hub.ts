@@ -6,6 +6,7 @@ import {
   useLayoutEffect,
   useEffect,
 } from 'react';
+import { removeWorkspaceData } from './workspace-lifecycle';
 import { purgeTrash, trashCounts } from './recycle-bin';
 import { usePersistent } from './store';
 import {
@@ -46,6 +47,10 @@ export function useHub() {
     latest.current = data;
   }, [data]);
   const transact = persistence.transact;
+  const removeWorkspace = useCallback(
+    (id: string) => transact((current) => removeWorkspaceData(current, id)),
+    [transact],
+  );
   const cleanup = useCallback(
     async (mode: 'expired' | 'all') => {
       const at = Date.now();
@@ -75,5 +80,5 @@ export function useHub() {
       window.removeEventListener('focus', sweep);
     };
   }, [persistence.ready, cleanup]);
-  return { data, persistence, dispatch, commit, cleanup };
+  return { data, persistence, dispatch, commit, cleanup, removeWorkspace };
 }

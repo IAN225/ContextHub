@@ -107,15 +107,11 @@ export function Modal({
         <div className="dialog-heading">
           <div>
             <DialogTitle className="dialog-title">{title}</DialogTitle>
-            <DialogDescription>
-              {description ?? '修改自动保存为草稿，点击外部不会关闭。'}
+            <DialogDescription className={description ? undefined : 'sr-only'}>
+              {description ?? title}
             </DialogDescription>
           </div>
-          <button
-            aria-label="关闭，保留草稿"
-            className="icon-button"
-            onClick={onClose}
-          >
+          <button aria-label="关闭" className="icon-button" onClick={onClose}>
             <X size={20} />
           </button>
         </div>

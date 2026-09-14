@@ -106,6 +106,17 @@ export async function manageMcp(
       if (ownerId) await repo.reset(ownerId);
       return Response.json({ reset: true }, { headers });
     }
+    if (action === 'remove-workspace' && request.method === 'POST') {
+      const body = object(await json(request, 4096));
+      if (
+        typeof body.workspaceId !== 'string' ||
+        !body.workspaceId ||
+        body.workspaceId.length > 200
+      )
+        throw new McpError('INVALID_WORKSPACE', '工作区 ID 无效。');
+      if (ownerId) await repo.removeWorkspace(ownerId, body.workspaceId);
+      return Response.json({ removed: true }, { headers });
+    }
     if (action === 'status' && request.method === 'GET') {
       const state = ownerId
         ? await repo.list(ownerId)

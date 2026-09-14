@@ -1,4 +1,8 @@
 import {
+  validAppearance,
+  type WorkspaceAppearance,
+} from './workspace-appearance.ts';
+import {
   parseSummaryEngine,
   summaryTrack,
   summaryWorkspace,
@@ -64,6 +68,11 @@ type WorkspaceCommandBody =
   | { type: 'summary/tab'; value: SummaryEngine }
   | { type: 'memory/engine'; value: SummaryEngine }
   | { type: 'workspace/rename'; name: string }
+  | {
+      type: 'workspace/settings';
+      name: string;
+      appearance: WorkspaceAppearance;
+    }
   | { type: 'turn/save'; turn: Turn; insert: boolean; afterId: string | null }
   | { type: 'turn/status'; turnId: string; status: Status; at: string }
   | { type: 'note/create'; note: Note }
@@ -110,6 +119,7 @@ export type HubCommand =
     }
   | { type: 'workspace'; workspaceId: string; command: WorkspaceCommand }
   | { type: 'workspace/create'; workspace: Workspace }
+  | { type: 'workspace/delete'; workspaceId: string }
   | { type: 'upload/add'; upload: Upload }
   | { type: 'upload/receive'; uploads: Upload[] }
   | { type: 'upload/update'; upload: Upload }
@@ -154,6 +164,14 @@ export function applyWorkspaceCommand(
     return { ...w, reme: summaryTrack(next) };
   }
   switch (command.type) {
+    case 'workspace/settings':
+      if (!validAppearance(command.appearance))
+        throw Error('工作区外观设置无效。');
+      return {
+        ...w,
+        name: command.name.trim() || w.name,
+        appearance: command.appearance,
+      };
     case 'workspace/rename':
       return { ...w, name: command.name.trim() || w.name };
     case 'turn/save': {
@@ -447,6 +465,19 @@ export function applyHubCommand(
             ),
           };
     }
+    case 'workspace/delete':
+      return {
+        ...state,
+        workspaces: state.workspaces.filter(
+          (w) => w.id !== command.workspaceId,
+        ),
+        uploads: state.uploads.filter(
+          (u) => u.workspaceId !== command.workspaceId,
+        ),
+        noteNotifications: state.noteNotifications?.filter(
+          (n) => n.workspaceId !== command.workspaceId,
+        ),
+      };
     case 'workspace/create':
       return state.workspaces.some((w) => w.id === command.workspace.id)
         ? state
@@ -715,6 +746,9 @@ export function normalizeHubState(raw: unknown): HubState {
     requireShape(
       item.firstComplete === undefined ||
         typeof item.firstComplete === 'boolean',
+    );
+    requireShape(
+      item.appearance === undefined || validAppearance(item.appearance),
     );
     for (const key of ['summaryEngine', 'summaryTab', 'memoryEngine'])
       requireShape(
