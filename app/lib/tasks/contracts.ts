@@ -1,9 +1,10 @@
+import type { SummaryEngine } from '../summary/engines.ts';
 import type {
   Attachment,
   Summary,
-  WorkspaceSnapshotV1 as Workspace,
+  WorkspaceSnapshotV2 as Workspace,
   Upload,
-} from '../storage/payload-v1.ts';
+} from '../storage/payload-v2.ts';
 export type TaskStatus =
   | 'queued'
   | 'running'
@@ -14,6 +15,7 @@ export type TaskStatus =
   | 'cancelled';
 export type TaskKind = 'summary' | 'workbench' | 'attachments';
 export type BackgroundTask = {
+  engine?: SummaryEngine;
   id: string;
   kind: TaskKind;
   title: string;
@@ -42,6 +44,7 @@ export type WorkbenchTaskState = {
 };
 export type AttachmentTaskState = { attachments: Attachment[] };
 export type SummaryTaskResult = {
+  engine?: SummaryEngine;
   kind: 'summary';
   expectedHash: string;
   summary: Summary;
@@ -79,6 +82,7 @@ export class TaskError extends Error {
 }
 export function publicTask(task: TaskRecord): BackgroundTask {
   const {
+    engine,
     id,
     kind,
     title,
@@ -92,6 +96,7 @@ export function publicTask(task: TaskRecord): BackgroundTask {
     updated_at,
   } = task;
   return {
+    engine: engine ?? 'custom',
     id,
     kind,
     title,

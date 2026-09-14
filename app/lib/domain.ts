@@ -1,3 +1,4 @@
+import { summaryWorkspace, type SummaryEngine } from './summary/engines.ts';
 import { attachmentContext } from './attachments.ts';
 import { estimateTextTokens } from './token-budget.ts';
 export type Status = 'normal' | 'deprecated' | 'trash';
@@ -51,6 +52,7 @@ export type Summary = {
   generation?: {
     model: string;
     protocol: string;
+    strategy?: string;
     usage?: { input?: number; output?: number };
   };
 };
@@ -103,7 +105,24 @@ export type Config = {
   thinking?: string;
   outputField?: string;
 };
+export type SummaryTrack = Pick<
+  Workspace,
+  | 'summaries'
+  | 'activeId'
+  | 'watermark'
+  | 'retain'
+  | 'retainMode'
+  | 'retainTokens'
+  | 'config'
+  | 'started'
+  | 'firstComplete'
+>;
 export type Workspace = {
+  reme?: SummaryTrack;
+  summaryTab?: SummaryEngine;
+  memoryEngine?: SummaryEngine;
+  /** Present only on scoped task/UI views, never on canonical workspaces. */
+  summaryEngine?: SummaryEngine;
   id: string;
   name: string;
   platform: string;
@@ -306,7 +325,12 @@ export function restoreSummary(
     watermark: mode === 'rewind' ? (last?.id ?? null) : w.watermark,
   };
 }
-export function memoryText(w: Workspace, blocks = w.blocks) {
+export function memoryText(
+  w: Workspace,
+  blocks = w.blocks,
+  engine: SummaryEngine = w.summaryEngine ?? w.memoryEngine ?? 'custom',
+) {
+  w = summaryWorkspace(w, engine);
   const c = coverage(w);
   return blocks
     .map((b) => {

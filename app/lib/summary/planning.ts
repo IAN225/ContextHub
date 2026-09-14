@@ -1,3 +1,5 @@
+import { REME_STRATEGY_VERSION, validateRemeSummary } from './reme.ts';
+import type { SummaryEngine } from './engines.ts';
 import {
   coverage,
   type Summary,
@@ -16,6 +18,7 @@ import {
 } from './contracts.ts';
 
 export type SummaryPlan = {
+  engine?: SummaryEngine;
   expected: string;
   input: SummaryInput;
   turnIds: string[];
@@ -28,6 +31,9 @@ export type SummaryPlan = {
 // running must not advance a stale watermark. Unrelated notebook names are free.
 export function summaryRevision(w: Workspace) {
   return JSON.stringify({
+    ...(w.summaryEngine === 'reme'
+      ? { engine: 'reme', strategy: REME_STRATEGY_VERSION }
+      : {}),
     turns: w.turns.map((t) => ({
       ...t,
       messages: t.messages.map(
@@ -98,6 +104,7 @@ export function planCompression(w: Workspace): SummaryPlan | null {
       '提示词、上一份摘要和下一完整轮次超出每批发送上限或模型预算。请提高上限、缩短提示词或降低输出预留；系统不会截断轮次。',
     );
   return {
+    engine: w.summaryEngine ?? 'custom',
     expected: summaryRevision(w),
     input,
     turnIds: batch.map((t) => t.id),
@@ -136,6 +143,7 @@ export function planWorkbench(
   };
 }
 export type GeneratedCheckpoint = {
+  engine?: SummaryEngine;
   expected: string;
   summary: Summary;
   turnIds: string[];
@@ -148,16 +156,19 @@ export function checkpointFromResult(
 ): GeneratedCheckpoint {
   if (!result.text.trim() || result.text.length > MAX_SUMMARY_TEXT)
     throw new SummaryError('INVALID_SUMMARY', '模型没有返回可保存的完整摘要。');
+  if (plan.engine === 'reme') validateRemeSummary(result.text);
   return {
+    engine: plan.engine,
     expected: plan.expected,
     turnIds: plan.turnIds,
     summary: {
       id,
       createdAt,
-      title: '增量摘要',
+      title: plan.engine === 'reme' ? 'ReMeLight 风格检查点' : '增量摘要',
       text: result.text,
       covered: plan.covered,
       generation: {
+        strategy: plan.engine === 'reme' ? REME_STRATEGY_VERSION : 'custom-v1',
         model: result.model,
         protocol: result.protocol,
         usage: result.usage,

@@ -20,6 +20,7 @@ export function useSummaryTask(
   const current = queue?.tasks.find(
     (t) =>
       t.workspace_id === w.id &&
+      (t.engine ?? 'custom') === (w.summaryEngine ?? 'custom') &&
       t.kind === 'summary' &&
       t.status !== 'cancelled',
   );

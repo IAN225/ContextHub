@@ -1,3 +1,4 @@
+import { summaryWorkspace } from './summary/engines.ts';
 import type { Workspace, Turn, Summary, Note } from './domain.ts';
 
 type SearchDocument = {
@@ -45,7 +46,11 @@ export function createMemorySearch() {
     const items: MemorySearchHit[] = [];
     let total = 0;
     if (!needle) return { total, items };
-    for (const w of workspaces) {
+    for (const source of workspaces) {
+      const w = summaryWorkspace(
+        source,
+        source.summaryEngine ?? source.memoryEngine ?? 'custom',
+      );
       if (options.scope !== 'all' && w.id !== options.scope) continue;
       function collect(
         kind: MemorySearchHit['kind'],

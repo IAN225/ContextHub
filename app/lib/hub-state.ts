@@ -1,4 +1,10 @@
 import {
+  parseSummaryEngine,
+  summaryTrack,
+  summaryWorkspace,
+  type SummaryEngine,
+} from './summary/engines.ts';
+import {
   restoreSummary,
   uploadChannel,
   type Block,
@@ -51,7 +57,12 @@ export function createEmptyHubState(): HubState {
     deliveryReceipts: [],
   };
 }
-export type WorkspaceCommand =
+export type WorkspaceCommand = WorkspaceCommandBody & {
+  engine?: SummaryEngine;
+};
+type WorkspaceCommandBody =
+  | { type: 'summary/tab'; value: SummaryEngine }
+  | { type: 'memory/engine'; value: SummaryEngine }
   | { type: 'workspace/rename'; name: string }
   | { type: 'turn/save'; turn: Turn; insert: boolean; afterId: string | null }
   | { type: 'turn/status'; turnId: string; status: Status; at: string }
@@ -123,6 +134,25 @@ export function applyWorkspaceCommand(
   w: Workspace,
   command: WorkspaceCommand,
 ): Workspace {
+  if (command.type === 'summary/tab')
+    return { ...w, summaryTab: parseSummaryEngine(command.value) };
+  if (command.type === 'memory/engine')
+    return { ...w, memoryEngine: parseSummaryEngine(command.value) };
+  const engine =
+    command.type === 'summary/generated'
+      ? (command.generated.engine ?? command.engine)
+      : command.engine;
+  if (command.type.startsWith('summary/') && engine === 'reme') {
+    const scoped = summaryWorkspace(w, 'reme');
+    const next = applyWorkspaceCommand(scoped, {
+      ...command,
+      engine: 'custom',
+      ...(command.type === 'summary/generated'
+        ? { generated: { ...command.generated, engine: undefined } }
+        : {}),
+    } as WorkspaceCommand);
+    return { ...w, reme: summaryTrack(next) };
+  }
   switch (command.type) {
     case 'workspace/rename':
       return { ...w, name: command.name.trim() || w.name };
@@ -686,6 +716,26 @@ export function normalizeHubState(raw: unknown): HubState {
       item.firstComplete === undefined ||
         typeof item.firstComplete === 'boolean',
     );
+    for (const key of ['summaryEngine', 'summaryTab', 'memoryEngine'])
+      requireShape(
+        item[key] === undefined ||
+          item[key] === 'custom' ||
+          item[key] === 'reme',
+      );
+    if (item.reme !== undefined) {
+      requireShape(record(item.reme));
+      const scoped = {
+        ...item,
+        ...item.reme,
+        reme: undefined,
+        summaryEngine: undefined,
+      };
+      normalizeHubState({
+        schemaVersion: 1,
+        workspaces: [scoped],
+        uploads: [],
+      });
+    }
     const workspace = item as unknown as Workspace;
     if (workspace.firstComplete !== undefined) return workspace;
     changed = true;

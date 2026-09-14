@@ -16,27 +16,19 @@ async function handle(
     ? null
     : accountContext(request, bindings);
   if (account instanceof Response) return account;
-  const connection =
-    action === 'enqueue'
-      ? (
-          await summarySettingsRepository(
-            bindings.DB,
-            account ?? undefined,
-          ).read(bindings)
-        ).env
-      : {};
   return taskHandler(
     request,
     action,
     taskRepository(bindings.DB),
-    { ...bindings, ...connection },
+    bindings,
     accountModelFetcher(bindings),
     account ?? undefined,
-    async (owner) =>
+    async (owner, engine) =>
       (
         await summarySettingsRepository(
           bindings.DB,
           bindings.CONTEXT_HUB_ACCOUNT_MODE === '1' ? owner : undefined,
+          engine,
         ).read(bindings)
       ).env,
   );

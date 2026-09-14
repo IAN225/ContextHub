@@ -1,3 +1,4 @@
+import type { SummaryEngine } from '../engines.ts';
 import { SummaryError } from '../contracts.ts';
 import { digest, randomSecret } from '../../imports/server/auth.ts';
 import {
@@ -21,17 +22,25 @@ export function publicSummarySettings(settings: SavedSummarySettings) {
     editable: true,
   };
 }
-export function summarySettingsRepository(db: D1Database, owner?: string) {
+export function summarySettingsRepository(
+  db: D1Database,
+  owner?: string,
+  engine: SummaryEngine = 'custom',
+) {
+  const isolated = engine === 'reme';
+  const isolatedOwner = owner ? 'account:' + owner : 'local';
   async function read(
     environment: SummaryEnvironment,
   ): Promise<SavedSummarySettings> {
     const row = await db
       .prepare(
-        owner
-          ? 'SELECT value,revision FROM account_summary_settings WHERE user_id=?'
-          : 'SELECT value,revision FROM summary_settings WHERE id=?',
+        isolated
+          ? 'SELECT value,revision FROM summary_engine_settings WHERE owner_id=? AND engine=?'
+          : owner
+            ? 'SELECT value,revision FROM account_summary_settings WHERE user_id=?'
+            : 'SELECT value,revision FROM summary_settings WHERE id=?',
       )
-      .bind(owner ?? 'summary')
+      .bind(...(isolated ? [isolatedOwner, engine] : [owner ?? 'summary']))
       .first<{ value: string; revision: string }>();
     if (row) {
       try {
@@ -47,7 +56,7 @@ export function summarySettingsRepository(db: D1Database, owner?: string) {
       }
     }
     // Only credential-related bindings enter the fingerprint, not DB or runner keys.
-    if (owner) environment = {};
+    if (owner || isolated) environment = {};
     const env: SummaryEnvironment = {
       CONTEXT_HUB_SUMMARY_BASE_URL: environment.CONTEXT_HUB_SUMMARY_BASE_URL,
       CONTEXT_HUB_SUMMARY_MODEL: environment.CONTEXT_HUB_SUMMARY_MODEL,
@@ -124,12 +133,14 @@ export function summarySettingsRepository(db: D1Database, owner?: string) {
       const revision = randomSecret('');
       const result = await db
         .prepare(
-          owner
-            ? 'INSERT INTO account_summary_settings(user_id,value,revision) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE account_summary_settings.revision=?'
-            : 'INSERT INTO summary_settings(id,value,revision) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE summary_settings.revision=?',
+          isolated
+            ? 'INSERT INTO summary_engine_settings(owner_id,engine,value,revision) VALUES(?,?,?,?) ON CONFLICT(owner_id,engine) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE summary_engine_settings.revision=?'
+            : owner
+              ? 'INSERT INTO account_summary_settings(user_id,value,revision) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE account_summary_settings.revision=?'
+              : 'INSERT INTO summary_settings(id,value,revision) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE summary_settings.revision=?',
         )
         .bind(
-          owner ?? 'summary',
+          ...(isolated ? [isolatedOwner, engine] : [owner ?? 'summary']),
           JSON.stringify(env),
           revision,
           current.revision,

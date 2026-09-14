@@ -1,7 +1,7 @@
 // Persisted tasks and MCP mirrors have independent protocol versions.
 export type PayloadKind = 'task-state' | 'task-result' | 'mcp-mirror';
 export function encodePayload(kind: PayloadKind, data: unknown) {
-  return { format: 'contexthub-payload', kind, version: 1, data };
+  return { format: 'contexthub-payload', kind, version: 2, data };
 }
 export function decodePayload<T>(kind: PayloadKind, value: unknown): T {
   if (!value || typeof value !== 'object' || Array.isArray(value))
@@ -12,7 +12,7 @@ export function decodePayload<T>(kind: PayloadKind, value: unknown): T {
   if (
     envelope.format !== 'contexthub-payload' ||
     envelope.kind !== kind ||
-    envelope.version !== 1 ||
+    (envelope.version !== 1 && envelope.version !== 2) ||
     !envelope.data ||
     typeof envelope.data !== 'object' ||
     Array.isArray(envelope.data)

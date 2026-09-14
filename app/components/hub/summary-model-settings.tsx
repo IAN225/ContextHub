@@ -1,4 +1,6 @@
 'use client';
+import { engineLabels } from '@/lib/summary/engines';
+import { remeSections } from '@/lib/summary/reme';
 import { DraftBoundary } from './shared';
 import { cloudMode } from '@/lib/account/client';
 import { useEffect, useRef, useState } from 'react';
@@ -29,7 +31,9 @@ export function ModelSettings({
   onCommit: CommitWorkspaceCommand;
   onClose: () => void;
 }) {
-  const [d, setD, p] = usePersistent<Config>(`model-draft-${w.id}`, {
+  const engine = w.summaryEngine ?? 'custom';
+  const suffix = engine === 'custom' ? w.id : w.id + '-reme';
+  const [d, setD, p] = usePersistent<Config>(`model-draft-${suffix}`, {
     ...w.config,
     provider: w.config.provider ?? 'OpenAI',
     baseUrl: w.config.baseUrl ?? '',
@@ -43,7 +47,7 @@ export function ModelSettings({
     outputField: w.config.outputField ?? '自动',
   });
   const [probes, setProbes, probeState] = usePersistent<SummaryProbe[]>(
-    `model-probes-v2-${w.id}`,
+    `model-probes-v2-${suffix}`,
     [],
   );
   const [tab, setTab] = useState('provider');
@@ -52,7 +56,7 @@ export function ModelSettings({
     error: connectionError,
     refresh,
     accept,
-  } = useSummaryConnection();
+  } = useSummaryConnection(engine);
   // Credentials deliberately never enter usePersistent, drafts or HubState.
   const [apiKey, setApiKey] = useState('');
   const [saving, setSaving] = useState(false);
@@ -83,13 +87,16 @@ export function ModelSettings({
       d.protocol === connection.protocol
     )
       return connection;
-    const saved = await summaryRequest<SummaryConnection>('connection', {
-      baseUrl: d.baseUrl?.trim() || '',
-      model: d.model?.trim() || '',
-      protocol: d.protocol || 'openai',
-      apiKey,
-      revision: connection.revision || '',
-    });
+    const saved = await summaryRequest<SummaryConnection>(
+      'connection?engine=' + engine,
+      {
+        baseUrl: d.baseUrl?.trim() || '',
+        model: d.model?.trim() || '',
+        protocol: d.protocol || 'openai',
+        apiKey,
+        revision: connection.revision || '',
+      },
+    );
     setApiKey('');
     accept(saved);
     return saved;
@@ -134,7 +141,7 @@ export function ModelSettings({
     try {
       await saveConnection();
       const response = await summaryRequest<{ probes: SummaryProbe[] }>(
-        'probe',
+        'probe?engine=' + engine,
         {
           system: 'This is a connection test. Reply only with OK.',
           user: 'Reply OK.',
@@ -156,7 +163,7 @@ export function ModelSettings({
   }
   return (
     <Modal
-      title="摘要模型与提示词"
+      title={engineLabels[engine] + '设置'}
       description={
         cloudMode()
           ? 'API Key 不包含在导出备份中。模型接口需使用公网 HTTPS（443 端口）。'
@@ -176,7 +183,7 @@ export function ModelSettings({
               模型与预算
             </Button>
             <Button primary={tab === 'prompt'} onClick={() => setTab('prompt')}>
-              提示词编排
+              {engine === 'reme' ? '压缩结构' : '提示词编排'}
             </Button>
             <Button
               primary={tab === 'capability'}
@@ -355,13 +362,22 @@ export function ModelSettings({
               </div>
               <p className="callout">
                 {cloudMode()
-                  ? '模型连接由当前账号的工作区共用，其他账号无法使用。保存后立即生效。更换地址或协议时请填写对应'
-                  : '模型连接由本机服务上的所有工作区共用，保存后立即生效。更换地址或协议时请填写对应'}
+                  ? '此连接仅供当前账号的同一压缩方案使用。保存后立即生效。更换地址或协议时请填写对应'
+                  : '此连接仅供本机的同一压缩方案使用，保存后立即生效。更换地址或协议时请填写对应'}
                 Key；进行中的旧任务会在下一批前核对连接。
               </p>
               <p className="inline-note">
                 总预算包括提示词、上一份摘要、本批原文、输出预留和安全余量。使用保守估算，超限时减少完整轮次数，不截断消息。
               </p>
+            </div>
+          ) : tab === 'prompt' && engine === 'reme' ? (
+            <div className="form-stack">
+              <p>实验方案使用固定结构；自定义提示词请切换到“自定义压缩”。</p>
+              <ol>
+                {remeSections.map((section) => (
+                  <li key={section}>{section}</li>
+                ))}
+              </ol>
             </div>
           ) : tab === 'prompt' ? (
             <div className="form-stack">

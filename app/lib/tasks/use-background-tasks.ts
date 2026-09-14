@@ -1,4 +1,5 @@
 'use client';
+import { summaryWorkspace, summaryEngines } from '../summary/engines';
 import { sha256Hex } from '../browser-compat';
 import {
   createContext,
@@ -159,11 +160,16 @@ export function useBackgroundTasks(
           (w) => w.id === task.workspace_id,
         );
         if (
-          workspace?.config.auto &&
+          workspace &&
+          summaryWorkspace(workspace, task.engine ?? 'custom').config.auto &&
           !(await latest.current.commit({
             type: 'workspace',
             workspaceId: workspace.id,
-            command: { type: 'summary/config', patch: { auto: false } },
+            command: {
+              type: 'summary/config',
+              engine: task.engine,
+              patch: { auto: false },
+            },
           }))
         )
           throw new Error('自动运行设置未能保存，请重试后再停止任务。');
@@ -176,8 +182,13 @@ export function useBackgroundTasks(
         await taskRequest('control', {
           id,
           action,
-          expectedHash: await hash(summaryRevision(workspace)),
-          review: workspace.config.review,
+          expectedHash: await hash(
+            summaryRevision(
+              summaryWorkspace(workspace, task.engine ?? 'custom'),
+            ),
+          ),
+          review: summaryWorkspace(workspace, task.engine ?? 'custom').config
+            .review,
         });
       } else await taskControl(id, action);
       blocked.current.delete(id);
@@ -232,7 +243,11 @@ export function useBackgroundTasks(
             (w) => w.id === task.workspace_id,
           );
           if (!w) throw new Error('原工作区已不存在，结果暂未应用。');
-          const expected = summaryRevision(w);
+          if ((result.engine ?? 'custom') !== (task.engine ?? 'custom'))
+            throw new Error('任务摘要方案不匹配。');
+          const expected = summaryRevision(
+            summaryWorkspace(w, result.engine ?? 'custom'),
+          );
           if ((await hash(expected)) !== result.expectedHash) {
             setCandidates((values) => ({ ...values, [task.id]: result }));
             throw new Error(
@@ -245,6 +260,7 @@ export function useBackgroundTasks(
             step,
             workspaceId: w.id,
             generated: {
+              engine: result.engine,
               expected,
               summary: result.summary,
               turnIds: result.turnIds,
@@ -301,7 +317,9 @@ export function useBackgroundTasks(
           await receive(value.tasks);
           if (!value.ready || disposed) return;
           const state = latest.current.data;
-          for (const w of state.workspaces) {
+          for (const w of state.workspaces.flatMap((workspace) =>
+            summaryEngines.map((engine) => summaryWorkspace(workspace, engine)),
+          )) {
             if (
               w.config.auto &&
               w.firstComplete &&
@@ -311,6 +329,7 @@ export function useBackgroundTasks(
               !value.tasks.some(
                 (t) =>
                   t.workspace_id === w.id &&
+                  (t.engine ?? 'custom') === (w.summaryEngine ?? 'custom') &&
                   t.kind === 'summary' &&
                   t.status !== 'cancelled' &&
                   (t.status !== 'completed' || t.step > t.acknowledged),

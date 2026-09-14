@@ -1,10 +1,11 @@
-import type { WorkspaceSnapshotV1 } from '../storage/payload-v1.ts';
+import type { WorkspaceSnapshotV2 } from '../storage/payload-v2.ts';
 import type { Workspace } from '../domain.ts';
 import { attachmentContext } from '../attachments.ts';
 
 // The job needs summary inputs, never browser tokens, Note bodies or binary media.
-export function summaryTaskWorkspace(w: Workspace): WorkspaceSnapshotV1 {
+export function summaryTaskWorkspace(w: Workspace): WorkspaceSnapshotV2 {
   return {
+    summaryEngine: w.summaryEngine,
     id: w.id,
     name: w.name,
     platform: w.platform,

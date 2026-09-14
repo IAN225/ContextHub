@@ -26,7 +26,7 @@ import {
   useBackgroundTasks,
 } from '@/lib/tasks/use-background-tasks';
 import { Transcript } from '@/components/hub/transcript';
-import { SummaryPage } from '@/components/hub/summary';
+import { SummaryPage } from '@/components/hub/summary-page';
 import { NotesPage } from '@/components/hub/notes';
 import { MemoryPage } from '@/components/hub/memory';
 import { InboxPage } from '@/components/hub/inbox';
