@@ -15,7 +15,10 @@ import {
   Plug,
   Check,
   BookOpen,
+  Settings2,
 } from 'lucide-react';
+import { WorkspaceSettings } from './workspace-settings';
+import { mcpRequest } from '@/lib/mcp/client';
 import { ReaderHeader } from './reader-header';
 import { useJournalNavigation } from '@/lib/use-journal-navigation';
 import { JournalHome } from '@/components/hub/home';
@@ -58,9 +61,11 @@ const navigation = [
   { id: 'notes', label: 'Note', icon: StickyNote },
   { id: 'memory', label: '记忆包', icon: PackageOpen },
   { id: 'connect', label: '连接', icon: Plug },
+  { id: 'settings', label: '设置', icon: Settings2 },
 ];
 export function Hub() {
-  const { data, persistence, dispatch, commit, cleanup } = useHub();
+  const { data, persistence, dispatch, commit, cleanup, removeWorkspace } =
+    useHub();
   const [emptyWorkspace] = useState(() => ({
     ...blankWorkspace('尚未创建工作区'),
     id: 'empty-workspace',
@@ -284,7 +289,7 @@ export function Hub() {
         )}
         {(!home || openingId) && (
           <div
-            className={`open-journal${home ? ' workspace-preparing' : ''}`}
+            className={`open-journal tone-${w.appearance?.tone ?? 'sage'}${home ? ' workspace-preparing' : ''}`}
             inert={home}
             aria-hidden={home}
           >
@@ -405,11 +410,37 @@ export function Hub() {
                               onSummary={applySummary}
                             />
                           </>
+                        ) : panel === 'settings' ? (
+                          <WorkspaceSettings
+                            w={w}
+                            onCommit={commitWorkspace}
+                            ready={background.ready && persistence.saved}
+                            onDelete={async () => {
+                              for (const task of background.tasks.filter(
+                                (t) =>
+                                  t.workspace_id === w.id &&
+                                  ![
+                                    'cancelled',
+                                    'completed',
+                                    'failed',
+                                  ].includes(t.status),
+                              ))
+                                await background.control(task.id, 'cancel');
+                              await mcpRequest('remove-workspace', {
+                                workspaceId: w.id,
+                              });
+                              const saved = await removeWorkspace(w.id);
+                              if (saved) {
+                                mcp.refresh();
+                                transition(() => setHome(true));
+                              }
+                              return saved;
+                            }}
+                          />
                         ) : panel === 'connect' ? (
                           <ConnectionsPage
                             w={w}
                             active={!home && page === 'connect'}
-                            onCommand={onWorkspaceCommand}
                             mcp={mcp}
                           />
                         ) : (

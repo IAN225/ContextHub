@@ -117,6 +117,7 @@ export function Transcript({
           />
           <TurnDetail
             current={current}
+            appearance={w.appearance}
             actual={actual}
             previousId={w.turns[actual - 2]?.id ?? null}
             mark={mark(current.id)}
@@ -138,7 +139,7 @@ export function Transcript({
                 ? '从第一段对话开始'
                 : '这里还没有内容'
           }
-          detail="每一次保存、删除和召回，都以完整轮次为单位。"
+          detail=""
         >
           {w.turns.length === 0 && !query && filter === 'normal' && (
             <Button onClick={() => onInsert(null)}>

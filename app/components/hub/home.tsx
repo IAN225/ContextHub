@@ -84,7 +84,7 @@ export function JournalHome({
             const c = coverage(w);
             return (
               <button
-                className={`notebook-item book-tone-${i % 4}${openingId === w.id ? ' opening' : ''}`}
+                className={`notebook-item book-tone-${i % 4}${w.appearance?.tone ? ' tone-' + w.appearance.tone : ''}${openingId === w.id ? ' opening' : ''}`}
                 aria-label={w.name}
                 key={w.id}
                 onClick={() => onOpen(w.id)}
@@ -97,9 +97,6 @@ export function JournalHome({
                     <span>NO. {String(i + 1).padStart(2, '0')}</span>
                   </div>
                   <div className="notebook-title">
-                    <span className="book-emblem">
-                      {i % 3 === 0 ? '✳' : i % 3 === 1 ? '❋' : '✧'}
-                    </span>
                     <h2>{w.name}</h2>
                     <div className="book-title-rule" />
                   </div>

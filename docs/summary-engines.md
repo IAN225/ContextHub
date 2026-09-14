@@ -15,7 +15,7 @@
 
 ## 记忆注入
 
-在摘要页点击“设为记忆注入来源”，或在记忆包页选择来源。默认沿用自定义压缩，选择随账号保存。memory_bootstrap 无参数时使用该选择，可选 engine=custom 或 reme 显式读取另一套；不会自动把两份摘要合并。近期原文与所选方案的处理位置配对。memory_search 默认只检索所选方案的摘要，原文和 Note 仍共用。
+在记忆包页打开“当前活跃摘要”组件，在编辑窗口选择摘要来源。默认沿用自定义压缩，选择随账号保存。memory_bootstrap 无参数时使用该选择，可选 engine=custom 或 reme 显式读取另一套；不会自动把两份摘要合并。近期原文与所选方案的处理位置配对。memory_search 默认只检索所选方案的摘要，原文和 Note 仍共用。
 
 注入结果保留 content，追加 engine、summaryId、strategyVersion、coveredTurnIds、recentTurnIds、omittedTurnIds 和 status。元数据描述所选方案默认摘要与原文窗口的覆盖；用户在记忆包编排中自定义、替换或移除区块时，以 content 实际内容为准。尚无摘要时明确返回 no_summary，不回退另一套方案。
 

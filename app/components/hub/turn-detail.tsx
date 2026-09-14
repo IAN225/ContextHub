@@ -9,11 +9,14 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { Button, Segments, Markdown, formatDate } from './shared';
-import type { Turn, Status } from '@/lib/domain';
+import { messageMedia } from '@/lib/message-media';
+import { ModelAvatar } from './model-avatar';
+import type { Workspace, Turn, Status } from '@/lib/domain';
 import type { TurnCoverageMark } from './transcript-timeline';
 import { AttachmentCard } from './attachment-card';
 export function TurnDetail({
   current,
+  appearance,
   actual,
   previousId,
   mark,
@@ -26,6 +29,7 @@ export function TurnDetail({
   onStatus: status,
 }: {
   current: Turn;
+  appearance?: Workspace['appearance'];
   actual: number;
   previousId: string | null;
   mark: TurnCoverageMark;
@@ -37,18 +41,29 @@ export function TurnDetail({
   onInsert: (after: string | null) => void;
   onStatus: (status: Status) => void;
 }) {
+  const media = messageMedia(current);
   return (
     <div className="turn-detail">
       <div className="detail-top">
         <div className="turn-badge">{String(actual).padStart(3, '0')}</div>
         <div>
-          <h2>{current.title}</h2>
+          <h2>
+            {current.title.includes('[附件引用：')
+              ? media.messages
+                  .find((m) => m.role === 'user')
+                  ?.content.slice(0, 36) || '附件对话'
+              : current.title}
+          </h2>
           <div className="metadata-line">
             <span className="platform-dot" />
             {current.source}
-            <span>·</span>
-            <Clock size={12} />
-            {formatDate(current.time)}
+            {current.time && (
+              <>
+                <span>·</span>
+                <Clock size={12} />
+                {formatDate(current.time)}
+              </>
+            )}
             <span>·</span>
             <span className={mark === 'gap' ? 'amber' : 'mint'}>
               {
@@ -96,13 +111,13 @@ export function TurnDetail({
       </div>
       {tab === 'preview' ? (
         <div className="conversation-text">
-          {current.messages.map((m, i) => (
+          {media.messages.map((m, i) => (
             <div className={`message ${m.role}`} key={i}>
               <div className="message-avatar">
                 {m.role === 'user' ? (
                   '我'
                 ) : m.role === 'assistant' ? (
-                  <span className="ai-glyph">✳</span>
+                  <ModelAvatar value={appearance?.avatar} />
                 ) : (
                   <Code2 size={16} />
                 )}
@@ -124,10 +139,15 @@ export function TurnDetail({
                     {m.content}
                   </p>
                 )}
+                <div className="message-attachments">
+                  {media.byMessage[i].map((a) => (
+                    <AttachmentCard attachment={a} key={a.id} />
+                  ))}
+                </div>
               </div>
             </div>
           ))}
-          {current.attachments?.map((a) => (
+          {media.unassigned.map((a) => (
             <AttachmentCard attachment={a} key={a.id} />
           ))}
         </div>
@@ -149,12 +169,11 @@ export function TurnDetail({
           {Object.entries({
             '轮次 ID': current.id,
             来源: current.source,
-            原始时间: current.time ?? '未知 · 导入源未提供，不推断时间',
+            原始时间: current.time ?? '未提供',
             Token: current.tokens ?? '来源未提供',
             'Cache 命中': current.cache ?? '来源未提供',
             附件: current.attachments?.length ?? 0,
             内容边界: '当前 user 至下一条 user 前',
-            隐藏思考: '不保存',
             删除时间: current.deletedAt ?? '未删除',
           }).map(([k, v]) => (
             <div key={k}>

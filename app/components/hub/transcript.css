@@ -666,3 +666,16 @@
     padding: 20px;
   }
 }
+
+.message-attachments {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+.message-attachments:empty {
+  display: none;
+}
+.message-attachments .attachment-card {
+  margin: 0;
+  max-width: 100%;
+}

@@ -1,3 +1,4 @@
+import type { WorkspaceAppearance } from './workspace-appearance.ts';
 import { summaryWorkspace, type SummaryEngine } from './summary/engines.ts';
 import { attachmentContext } from './attachments.ts';
 import { estimateTextTokens } from './token-budget.ts';
@@ -118,6 +119,7 @@ export type SummaryTrack = Pick<
   | 'firstComplete'
 >;
 export type Workspace = {
+  appearance?: WorkspaceAppearance;
   reme?: SummaryTrack;
   summaryTab?: SummaryEngine;
   memoryEngine?: SummaryEngine;

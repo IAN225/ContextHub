@@ -20,6 +20,7 @@
 @import '../components/hub/inbox.css';
 @import '../components/hub/inbox-pet.css';
 @import '../components/hub/background-tasks.css';
+@import '../components/hub/workspace-settings.css';
 
 .account-loading {
   padding: 48px;

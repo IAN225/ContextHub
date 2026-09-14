@@ -1,4 +1,9 @@
 'use client';
+import {
+  engineLabels,
+  summaryEngines,
+  type SummaryEngine,
+} from '@/lib/summary/engines';
 import { useState } from 'react';
 import { Plus, Minus, Trash2 } from 'lucide-react';
 import { Button, Modal } from './shared';
@@ -16,8 +21,10 @@ export function MemoryBlockEditor({
   onUpdate: update,
   onRemove,
   onClose,
+  onEngineChange,
 }: {
   w: Workspace;
+  onEngineChange: (engine: SummaryEngine) => void;
   block: Block;
   onUpdate: (patch: Partial<Block>) => void;
   onRemove: () => void;
@@ -27,10 +34,36 @@ export function MemoryBlockEditor({
   return (
     <Modal
       title={memoryBlockLabel(block)}
-      description="修改即时保存到此记忆包，不会改动源内容。删除后重新添加可恢复动态引用。"
+
       onClose={onClose}
     >
       <div className="memory-block-editor">
+        {block.type === 'summary' && (
+          <>
+            <label>
+              摘要来源
+              <select
+                value={w.summaryEngine ?? 'custom'}
+                onChange={(e) =>
+                  onEngineChange(e.target.value as SummaryEngine)
+                }
+              >
+                {summaryEngines.map((engine) => (
+                  <option key={engine} value={engine}>
+                    {engineLabels[engine]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {block.custom && (
+              <Button
+                onClick={() => update({ custom: false, text: undefined })}
+              >
+                恢复动态引用
+              </Button>
+            )}
+          </>
+        )}
         {(block.type === 'summary' || block.type === 'text') && (
           <label>
             {block.type === 'summary' ? '摘要内容' : '文本内容'}
@@ -84,8 +117,8 @@ export function MemoryBlockEditor({
             <p className="field-help">
               {!block.custom &&
                 w.retainMode === 'tokens' &&
-                '当前跟随摘要的 token 窗口；修改上方轮数后改为这份记忆包的自选窗口。'}
-              沿用当前处理水位后的起点，只调整这份记忆包携带的完整轮数。
+                '当前窗口按 token 计算。'}
+              从当前摘要的处理位置继续选取完整轮次。
             </p>
             <pre className="memory-editor-preview">
               {memoryText(w, [block])}

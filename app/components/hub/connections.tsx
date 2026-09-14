@@ -19,7 +19,6 @@ import {
 } from './shared';
 import { usePersistent } from '@/lib/store';
 import type { Workspace } from '@/lib/domain';
-import type { SendWorkspaceCommand } from '@/lib/hub-state';
 import type { McpConnection } from '@/lib/mcp/use-mcp';
 import type { PublicMcpToken } from '@/lib/mcp/contracts';
 import { mcpTools } from '@/lib/mcp/catalog';
@@ -30,12 +29,10 @@ const connectionExpiry = (token: PublicMcpToken) =>
 
 export function ConnectionsPage({
   w,
-  onCommand,
   active,
   mcp,
 }: {
   w: Workspace;
-  onCommand: SendWorkspaceCommand;
   active: boolean;
   mcp: McpConnection;
 }) {
@@ -60,7 +57,6 @@ export function ConnectionsPage({
   const [d, setD, p] = usePersistent(`connection-draft-${w.id}`, {
     name: '我的 Chatbox',
     ttl: '7',
-    workspaceName: w.name,
   });
   const tokens = mcp.status.tokens.filter((t) => t.workspace_id === w.id);
   const endpoint = origin ? `${origin}/mcp/${encodeURIComponent(w.id)}` : '';
@@ -406,26 +402,6 @@ export function ConnectionsPage({
               <p>{tool.description}</p>
             </div>
           ))}
-        </section>
-        <section className="surface workspace-settings">
-          <div className="surface-head">
-            <h2>工作区设置</h2>
-          </div>
-          <label className="field">
-            工作区名称
-            <input
-              value={d.workspaceName}
-              onChange={(e) => setD({ ...d, workspaceName: e.target.value })}
-            />
-          </label>
-          <Button
-            disabled={!d.workspaceName.trim()}
-            onClick={() =>
-              onCommand({ type: 'workspace/rename', name: d.workspaceName })
-            }
-          >
-            保存名称
-          </Button>
         </section>
       </>
     </DraftBoundary>

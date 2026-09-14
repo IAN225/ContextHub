@@ -9,10 +9,9 @@ export function useDeliveryInbox(
   ready: boolean,
   receive: (uploads: Upload[]) => Promise<boolean>,
 ) {
-  const [connection, , connectionSave] = usePersistent(
-    DELIVERY_CONNECTION_KEY,
-    { connected: false },
-  );
+  const [, , connectionSave] = usePersistent(DELIVERY_CONNECTION_KEY, {
+    connected: false,
+  });
   const commitConnection = connectionSave.commit;
   const activate = useCallback(
     () => commitConnection({ connected: true }),
@@ -20,12 +19,12 @@ export function useDeliveryInbox(
   );
   const [error, setError] = useState('');
   useEffect(() => {
-    if (!ready || !connection.connected) return;
+    if (!ready) return;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     let running = false;
     async function poll() {
-      if (running || controller.signal.aborted || document.hidden) return;
+      if (running || controller.signal.aborted) return;
       running = true;
       clearTimeout(timer);
       try {
@@ -36,9 +35,7 @@ export function useDeliveryInbox(
         );
         if (uploads.length) {
           if (!(await receive(uploads)))
-            throw new Error(
-              '收件尚未保存到本机，服务端内容已保留，下次会重试。',
-            );
+            throw new Error('收件保存失败，稍后自动重试。');
           await importRequest(
             'ack',
             { ids: uploads.map((u) => u.id) },
@@ -58,7 +55,7 @@ export function useDeliveryInbox(
       }
     }
     function refresh() {
-      if (!document.hidden) void poll();
+      void poll();
     }
     void poll();
     document.addEventListener('visibilitychange', refresh);
@@ -71,6 +68,6 @@ export function useDeliveryInbox(
       window.removeEventListener('focus', refresh);
       window.removeEventListener('context-hub-delivery-refresh', refresh);
     };
-  }, [ready, connection.connected, receive]);
+  }, [ready, receive]);
   return { error, activate };
 }

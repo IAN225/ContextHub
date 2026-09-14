@@ -409,11 +409,7 @@ export function NotesPage({
           {!list.length && <p className="inline-note">当前列表为空。</p>}
           <div className="note-list-help">
             <StickyNote size={16} />
-            <p>
-              标星是优先关注，
-              <br />
-              普通 Note 也可以被找到。
-            </p>
+            <p>模型预览 Note 列表时，标★的文档额外展示一部分正文。</p>
           </div>
         </aside>
         {selected ? (

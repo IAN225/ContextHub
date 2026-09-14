@@ -1,8 +1,7 @@
 'use client';
-import { copyText } from '@/lib/browser-compat';
 import { useEffect, useState } from 'react';
-import { Copy, KeyRound, RefreshCw } from 'lucide-react';
-import { Button, Picker } from '../shared';
+import { Plus, Trash2 } from 'lucide-react';
+import { CopyButton, Picker } from '../shared';
 import { importRequest } from '@/lib/imports/client';
 import { protocols } from '@/lib/imports/protocols';
 
@@ -56,27 +55,25 @@ export function DeliverySettings({
       setEnabled(result.enabled);
       setKey(result.key || '');
       if (!(await onActivate()))
-        setError('Key 已生效，但自动收件设置未保存，请刷新后重新打开此页。');
+        setError('密钥已生效，设置保存失败，请刷新重试。');
       window.dispatchEvent(new Event('context-hub-delivery-refresh'));
-      if (action === 'revoke')
-        setNotice('旧 Key 已失效，已投递的内容仍会接收。');
+      if (action === 'revoke') setNotice('密钥已吊销。');
     } catch (e) {
       setError(e instanceof Error ? e.message : '设置失败，请重试。');
     } finally {
       setBusy(false);
     }
   }
-  async function copy(value: string) {
-    try {
-      await copyText(value);
-      setNotice('已复制');
-    } catch {
-      setError('未能写入剪贴板，请选中内容手动复制。');
-    }
-  }
   const selected = protocols.find((p) => p.id === protocol) ?? protocols[0];
   return (
-    <div className="form-stack">
+    <div className="form-stack delivery-form">
+      <div className="field">
+        <span>Base URL</span>
+        <div className="delivery-code">
+          <code>{origin}/v1</code>
+          <CopyButton text={origin + '/v1'} iconOnly label="复制 Base URL" />
+        </div>
+      </div>
       <label className="field">
         客户端协议
         <Picker
@@ -86,84 +83,63 @@ export function DeliverySettings({
           options={protocols.map((p) => ({ value: p.id, label: p.label }))}
         />
       </label>
-      <div className="delivery-details">
-        <span className="muted-label">Base URL</span>
-        <code className="inline-code">{origin}/v1</code>
-        <Button
-          onClick={() => {
-            void copy(`${origin}/v1`);
-          }}
-        >
-          <Copy size={14} />
-          复制 Base URL
-        </Button>
-        <span className="muted-label">完整投递地址</span>
-        <code className="inline-code">
-          {origin}
-          {selected.path}
-        </code>
-        <p className="inline-note">
-          模型名填写
-          context-hub。客户端向这里发消息时，请求携带的上下文会进入收件箱。此接口只收录对话，返回收件回执。
-        </p>
-        <div className="action-row">
-          <Button
-            disabled={busy}
-            onClick={() => {
-              void configure('rotate');
-            }}
-          >
-            <KeyRound size={14} />
-            {enabled ? '重新生成投递 Key' : '启用并生成投递 Key'}
-          </Button>
-          {enabled && (
-            <Button
+      <div className="field">
+        <span>完整投递地址</span>
+        <div className="delivery-code">
+          <code>
+            {origin}
+            {selected.path}
+          </code>
+          <CopyButton
+            text={origin + selected.path}
+            iconOnly
+            label="复制完整投递地址"
+          />
+        </div>
+      </div>
+      <div className="field">
+        <span>投递密钥</span>
+        <div className="delivery-key-row">
+          {key ? (
+            <div className="delivery-code">
+              <code className="import-secret">{key}</code>
+              <CopyButton text={key} iconOnly label="复制投递密钥" />
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="delivery-key-create"
               disabled={busy}
-              onClick={() => {
-                void configure('revoke');
-              }}
+              aria-label={enabled ? '重新生成投递密钥' : '生成投递密钥'}
+              onClick={() => void configure('rotate')}
             >
-              吊销 Key
-            </Button>
+              <Plus size={20} />
+              {enabled && <span>重新生成</span>}
+            </button>
           )}
+          <button
+            type="button"
+            className="delivery-key-delete"
+            disabled={busy || !enabled}
+            aria-label="吊销投递密钥"
+            title="吊销投递密钥"
+            onClick={() => void configure('revoke')}
+          >
+            <Trash2 size={18} />
+          </button>
         </div>
         {key && (
-          <>
-            <code className="inline-code import-secret" aria-label="投递 Key">
-              {key}
-            </code>
-            <Button
-              onClick={() => {
-                void copy(key);
-              }}
-            >
-              <Copy size={14} />
-              复制 Key
-            </Button>
-            <p className="inline-note">
-              Key 只在本次生成后显示，请保存到客户端；重新生成会使旧 Key 失效。
-            </p>
-          </>
+          <small className="field-help">密钥仅显示一次，请保存到客户端。</small>
         )}
         {enabled && !key && (
-          <p className="inline-note">
-            投递已启用。若忘记 Key，可重新生成后更新客户端配置。
-          </p>
+          <small className="field-help">
+            已有密钥正在使用，重新生成将替换旧密钥。
+          </small>
         )}
       </div>
       <p className="inline-note">
-        客户端使用此服务的访问地址连接。服务运行期间，即使页面关闭也会保留待接收内容；再次打开工作区后自动收取。
+        模型名：<code>context-hub</code>
       </p>
-      <Button
-        disabled={!origin}
-        onClick={() => {
-          window.dispatchEvent(new Event('context-hub-delivery-refresh'));
-          setNotice('已请求检查新收件');
-        }}
-      >
-        <RefreshCw size={14} />
-        检查新收件
-      </Button>
       {error && (
         <p className="error-text" role="alert">
           {error}

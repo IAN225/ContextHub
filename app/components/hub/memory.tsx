@@ -1,9 +1,5 @@
 'use client';
-import {
-  summaryWorkspace,
-  summaryEngines,
-  engineLabels,
-} from '@/lib/summary/engines';
+import { summaryWorkspace } from '@/lib/summary/engines';
 import { useState } from 'react';
 import { ArrowUpRight, RotateCcw, StickyNote } from 'lucide-react';
 import { Button, PageTitle, Markdown, CopyButton, Modal } from './shared';
@@ -48,28 +44,13 @@ export function MemoryPage({
           恢复默认
         </Button>
       </div>
-      <label className="field">
-        摘要来源
-        <select
-          value={engine}
-          onChange={(e) =>
-            onCommand({
-              type: 'memory/engine',
-              value: e.target.value as typeof engine,
-            })
-          }
-        >
-          {summaryEngines.map((value) => (
-            <option key={value} value={value}>
-              {engineLabels[value]}
-            </option>
-          ))}
-        </select>
-      </label>
       <div className="split-view memory-layout memory-layout-editable">
         <section aria-label="记忆包编排" className="memory-composer-pane">
           <MemoryComposer
             w={scoped}
+            onEngineChange={(value) =>
+              onCommand({ type: 'memory/engine', value })
+            }
             onChange={(blocks) => onCommand({ type: 'memory/set', blocks })}
           />
           <p className="field-help memory-composer-help">
@@ -80,10 +61,10 @@ export function MemoryPage({
           <div className="memory-preview-header">
             <h2>实时预览</h2>
             <small>{text.length.toLocaleString()} 字符</small>
-            <CopyButton text={text} />
+            <CopyButton text={text} iconOnly label="复制记忆包" />
           </div>
           <div className="memory-preview-scroll">
-            <pre>{text || '添加组件，开始编排这份记忆包。'}</pre>
+            <pre>{text}</pre>
           </div>
         </section>
       </div>

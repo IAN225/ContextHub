@@ -5,6 +5,7 @@ import { useAccountManagement } from '@/lib/account/use-management';
 export function AdminSettings() {
   const {
     state,
+    loading,
     self,
     busy,
     error,
@@ -18,12 +19,19 @@ export function AdminSettings() {
     <main className="admin-page">
       <nav>
         <a href="/">← 返回工作区</a>
-        <a href="/server">HTTPS 与证书设置 →</a>
+        {state && (
+          <button
+            className="button"
+            disabled={busy}
+            onClick={() => void load()}
+          >
+            刷新列表
+          </button>
+        )}
       </nav>
       <header>
-        <span className="login-eyebrow">CONTEXT HUB · ADMIN</span>
-        <h1>管理员设置</h1>
-        <p>管理用户与注册审批，以及服务器的 HTTPS 证书。</p>
+        <span className="login-eyebrow">CONTEXT HUB</span>
+        <h1>设置</h1>
       </header>
       {error && (
         <p role="alert" className="admin-error">
@@ -31,10 +39,13 @@ export function AdminSettings() {
         </p>
       )}
       {message && <output>{message}</output>}
-      <button className="button" disabled={busy} onClick={() => void load()}>
-        刷新列表
-      </button>
-      {!state && !error && <output>正在读取用户…</output>}
+      <section
+        className="admin-card preferences-placeholder"
+        aria-label="偏好设置"
+      >
+        <h2>偏好</h2>
+      </section>
+      {loading && !error && <output>正在读取设置…</output>}
       {passwordSetupPending && <AdminPasswordSetup />}
       {state && (
         <>

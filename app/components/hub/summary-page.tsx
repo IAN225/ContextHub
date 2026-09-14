@@ -1,6 +1,5 @@
 'use client';
 import { SummaryEnginePage } from './summary';
-import { Button } from './shared';
 import {
   summaryWorkspace,
   summaryEngines,
@@ -48,22 +47,6 @@ export function SummaryPage(props: Parameters<typeof SummaryEnginePage>[0]) {
             {engineLabels[value]}
           </button>
         ))}
-      </div>
-      <div className="summary-engine-context">
-        <p>
-          {engine === 'reme'
-            ? '结构化记忆检查点 · 参考 ReMeLight 的独立实现，未运行官方引擎。'
-            : '原有分批压缩与自定义提示词。'}
-        </p>
-        {(w.memoryEngine ?? 'custom') === engine ? (
-          <span className="pill">当前记忆注入来源</span>
-        ) : (
-          <Button
-            onClick={() => onCommand({ type: 'memory/engine', value: engine })}
-          >
-            设为记忆注入来源
-          </Button>
-        )}
       </div>
       <section
         id="summary-engine-panel"

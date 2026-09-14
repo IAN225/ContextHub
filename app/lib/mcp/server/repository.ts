@@ -17,7 +17,7 @@ function chunks(value: Mirror) {
       413,
     );
   const parts: string[] = [];
-  for (let start = 0; start < body.length; ) {
+  for (let start = 0; start < body.length;) {
     let end = Math.min(start + 100000, body.length);
     if (end < body.length && /[\uD800-\uDBFF]/.test(body[end - 1])) end--;
     parts.push(body.slice(start, end));
@@ -131,6 +131,31 @@ export function mcpRepository(db: D1Database) {
         owner,
         wid,
       ).run();
+    },
+    async removeWorkspace(owner: string, wid: string) {
+      await db.batch([
+        sql(
+          'UPDATE mcp_tokens SET revoked_at=COALESCE(revoked_at,?) WHERE owner_id=? AND workspace_id=?',
+          Date.now(),
+          owner,
+          wid,
+        ),
+        sql(
+          'DELETE FROM mcp_receipts WHERE token_id IN (SELECT id FROM mcp_tokens WHERE owner_id=? AND workspace_id=?)',
+          owner,
+          wid,
+        ),
+        sql(
+          'DELETE FROM mcp_chunks WHERE owner_id=? AND workspace_id=?',
+          owner,
+          wid,
+        ),
+        sql(
+          'DELETE FROM mcp_workspaces WHERE owner_id=? AND workspace_id=?',
+          owner,
+          wid,
+        ),
+      ]);
     },
     async reset(owner: string) {
       await db.batch([

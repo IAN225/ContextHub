@@ -8,3 +8,55 @@
   user-select: text;
   overflow-wrap: anywhere;
 }
+
+.delivery-code {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #dce4d2;
+  border-radius: 7px;
+  background: #f5f7f0;
+}
+.delivery-code code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+  line-height: 1.7;
+  font-size: 12px;
+}
+.delivery-code .copy-icon-button {
+  position: static;
+  flex: 0 0 30px;
+}
+.delivery-key-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 10px;
+  align-items: start;
+}
+.delivery-key-create {
+  min-height: 44px;
+  border: 1px dashed #a9b79a;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.delivery-key-delete {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: #a95656;
+  background: #fae8e6;
+  border-radius: 7px;
+}
+.delivery-key-delete:disabled,
+.delivery-key-create:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
