@@ -18,6 +18,10 @@ Docker 部署使用 docker compose ps 与 docker compose logs --tail 100。内�
 
 ## 更新
 
+开发与部署按同一条发布链路验证：先在开发电脑（包括 Windows）修改代码，在 `app/` 运行 `pnpm typecheck`、`pnpm lint`、`pnpm test` 和 `pnpm build`；提交并推送 GitHub 后，服务器从仓库拉取同一版本，再运行下方标准部署命令。交互验收访问实际部署域名，开发电脑不必另外启动网站。不要绕过 GitHub 将本机修改直接覆盖到运行目录。
+
+本地构建检查不能代替服务器部署检查；部署脚本仍负责备份、迁移、健康检查和失败恢复。源码安装脚本面向 Ubuntu/Debian，应用的开发、测试和构建不限定在 Ubuntu 上进行。
+
 在检出的 GitHub 仓库根目录拉取新版本，然后执行对应的部署命令。源码目录应与 `/opt/contexthub/app` 运行目录分开。
 
 ```bash

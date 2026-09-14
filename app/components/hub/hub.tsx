@@ -150,7 +150,11 @@ export function Hub() {
   function removeUpload(id: string) {
     dispatch({ type: 'upload/remove', uploadId: id });
   }
-  async function importUpload(u: Upload, target: string) {
+  async function importUpload(
+    u: Upload,
+    target: string,
+    excludedTriggerId?: string,
+  ) {
     const origin = currentView.current;
     const fresh =
       target === 'new'
@@ -161,6 +165,7 @@ export function Hub() {
       uploadId: u.id,
       target: fresh ?? target,
       batchId: uid(),
+      excludedTriggerId,
     });
     if (!saved) {
       notify('归档失败，待归档内容已保留。');
@@ -329,7 +334,11 @@ export function Hub() {
                     </Button>
                   </div>
                 )}
-                <main className="page-content" key={w.id} ref={main}>
+                <main
+                  className={`page-content${page === 'inbox' ? ' page-content-inbox' : ''}`}
+                  key={w.id}
+                  ref={main}
+                >
                   {visitedPages
                     .filter(
                       (panel) =>
@@ -339,7 +348,7 @@ export function Hub() {
                     .map((panel) => (
                       <div
                         key={panel}
-                        className="chapter-panel"
+                        className={`chapter-panel${panel === 'inbox' ? ' inbox-chapter' : ''}`}
                         hidden={page !== panel}
                       >
                         {panel === 'archive' ? (

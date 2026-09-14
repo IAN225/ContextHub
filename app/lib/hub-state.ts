@@ -21,6 +21,7 @@ import {
 } from './summary/planning.ts';
 import type { McpEvent } from './mcp/contracts.ts';
 import { receiveMcpNote } from './mcp/receive.ts';
+import { deliveryTriggerTurn } from './imports/delivery-review.ts';
 
 export type NoteNotification = {
   id: string;
@@ -107,6 +108,7 @@ export type HubCommand =
       uploadId: string;
       target: string | Workspace;
       batchId: string;
+      excludedTriggerId?: string;
     }
   | {
       type: 'upload/summary';
@@ -476,7 +478,17 @@ export function applyHubCommand(
           ? state.workspaces.find((w) => w.id === target)
           : target;
       if (!current) throw new Error('归档目标已不存在，收件已保留。');
-      const turns = upload.turns.map((t, i) => ({
+      if (
+        command.excludedTriggerId &&
+        deliveryTriggerTurn(upload)?.id !== command.excludedTriggerId
+      )
+        throw new Error('投递末尾消息已变化，请重新检查预览后归档。');
+      const includedTurns = upload.turns.filter(
+        (t) => t.id !== command.excludedTriggerId,
+      );
+      if (!includedTurns.length)
+        throw new Error('没有可归档的轮次，收件已保留。');
+      const turns = includedTurns.map((t, i) => ({
         ...t,
         id: `${command.batchId}-${i}`,
       }));

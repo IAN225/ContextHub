@@ -6,6 +6,7 @@ import { TextEditor } from './editors';
 import { RestoreDialog } from './summary-restore-dialog';
 import { UploadTurnPreview } from './upload-turn-preview';
 import { UploadArchiveActions } from './upload-archive-actions';
+import { deliveryTriggerTurn } from '@/lib/imports/delivery-review';
 import { now, type Workspace, type Upload, type Summary } from '@/lib/domain';
 export type UploadReviewProps = {
   uploads: Upload[];
@@ -13,7 +14,11 @@ export type UploadReviewProps = {
   currentId: string;
   onUpdate: (u: Upload) => void;
   onRemove: (id: string) => void;
-  onImport: (u: Upload, target: string) => Promise<boolean>;
+  onImport: (
+    u: Upload,
+    target: string,
+    excludedTriggerId?: string,
+  ) => Promise<boolean>;
   onSummary: (
     u: Upload,
     w: Workspace,
@@ -38,7 +43,15 @@ export function UploadReview({
     [checked, setChecked] = useState<string[]>([]),
     [restore, setRestore] = useState(false),
     [remove, setRemove] = useState(false);
+  const [includedTriggers, setIncludedTriggers] = useState<string[]>([]);
   const u = uploads.find((x) => x.id === selected) ?? uploads[0];
+  const trigger = u && deliveryTriggerTurn(u);
+  const triggerKey = `${u?.id}:${trigger?.id}`;
+  const includeTrigger = includedTriggers.includes(triggerKey);
+  const preview =
+    u && trigger && !includeTrigger
+      ? { ...u, turns: u.turns.filter((turn) => turn.id !== trigger.id) }
+      : u;
   const w = workspaces.find(
     (w) => w.id === (u?.kind === 'summary' ? u.workspaceId : target),
   );
@@ -89,7 +102,7 @@ export function UploadReview({
               </button>
             ))}
           </aside>
-          {u && (
+          {u && preview && (
             <article className="inbox-paper">
               <div className="inbox-paper-top">
                 <div>
@@ -116,35 +129,82 @@ export function UploadReview({
                   <Trash2 size={16} />
                 </button>
               </div>
-              {u.warning && <p className="callout warning">{u.warning}</p>}
-              {u.kind === 'summary' ? (
-                <TextEditor
-                  label="候选摘要 · 可直接修改"
-                  value={u.summaryText ?? ''}
-                  onChange={(summaryText) => edit({ summaryText })}
-                  minHeight={320}
-                />
-              ) : (
-                <UploadTurnPreview
-                  turns={u.turns}
-                  checked={checked}
-                  onCheckedChange={setChecked}
-                  onRemoveChecked={() => {
-                    edit({
-                      turns: u.turns.filter((t) => !checked.includes(t.id)),
-                    });
-                    setChecked([]);
-                  }}
-                />
-              )}
+              <section
+                className="inbox-paper-body"
+                key={u.id}
+                aria-label="收件内容"
+              >
+                {u.warning && <p className="callout warning">{u.warning}</p>}
+                {trigger && (
+                  <div className="delivery-trigger-option">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={includeTrigger}
+                        onChange={(event) => {
+                          setIncludedTriggers((values) =>
+                            event.target.checked
+                              ? [...values, triggerKey]
+                              : values.filter((value) => value !== triggerKey),
+                          );
+                          setChecked((values) =>
+                            values.filter((id) => id !== trigger.id),
+                          );
+                        }}
+                      />
+                      保留最后一条用户消息
+                    </label>
+                    <p>
+                      末尾尚无回复的消息通常用于触发投递，默认不归档；如果它属于原对话，可以勾选保留。
+                    </p>
+                    <details>
+                      <summary>查看这条消息</summary>
+                      <p>{trigger.messages[0].content}</p>
+                    </details>
+                  </div>
+                )}
+                {preview &&
+                  !preview.turns.length &&
+                  u.kind === 'conversation' && (
+                    <p className="inline-note">
+                      没有可归档的历史轮次。可保留上方消息，或删除这份测试收件。
+                    </p>
+                  )}
+                {u.kind === 'summary' ? (
+                  <TextEditor
+                    label="候选摘要 · 可直接修改"
+                    value={u.summaryText ?? ''}
+                    onChange={(summaryText) => edit({ summaryText })}
+                    minHeight={320}
+                  />
+                ) : (
+                  <UploadTurnPreview
+                    turns={preview.turns}
+                    checked={checked}
+                    onCheckedChange={setChecked}
+                    onRemoveChecked={() => {
+                      edit({
+                        turns: u.turns.filter((t) => !checked.includes(t.id)),
+                      });
+                      setChecked([]);
+                    }}
+                  />
+                )}
+              </section>
               <UploadArchiveActions
-                u={u}
+                u={preview}
                 w={w}
                 workspaces={workspaces}
                 target={target}
                 onTargetChange={setTarget}
                 onRestore={() => setRestore(true)}
-                onImport={onImport}
+                onImport={(upload, destination) =>
+                  onImport(
+                    upload,
+                    destination,
+                    trigger && !includeTrigger ? trigger.id : undefined,
+                  )
+                }
               />
             </article>
           )}
