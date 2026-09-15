@@ -1,0 +1,128 @@
+/* Workspace semantic colors. Large surfaces use neutral paper; accents mark interaction. */
+.workspace-theme.tone-sage {
+  --ui-accent: #50683e;
+  --ui-hover: #3f5530;
+  --ui-soft: #eef2e9;
+  --ui-border-accent: #9fae92;
+  --ui-canvas: #f2f1ed;
+  --ui-surface: #fffefa;
+  --ui-subtle: #f5f5f0;
+  --ui-text: #3f423b;
+  --ui-heading: #2f352a;
+  --ui-muted: #62685b;
+  --ui-border: #d9dcd2;
+}
+.workspace-theme.tone-blue {
+  --ui-accent: #34647e;
+  --ui-hover: #244d64;
+  --ui-soft: #eaf1f5;
+  --ui-border-accent: #97afbe;
+  --ui-canvas: #f0f1f2;
+  --ui-surface: #fdfdfb;
+  --ui-subtle: #f3f5f5;
+  --ui-text: #394249;
+  --ui-heading: #2c353c;
+  --ui-muted: #5e6971;
+  --ui-border: #d6dde0;
+}
+.workspace-theme.tone-rose {
+  --ui-accent: #885264;
+  --ui-hover: #703e4f;
+  --ui-soft: #f6edf0;
+  --ui-border-accent: #c1a0ac;
+  --ui-canvas: #f3f0ee;
+  --ui-surface: #fffdfa;
+  --ui-subtle: #f7f3f2;
+  --ui-text: #473e41;
+  --ui-heading: #3c2e32;
+  --ui-muted: #716169;
+  --ui-border: #e1d7d9;
+}
+.workspace-theme.tone-sand {
+  --ui-accent: #7a6035;
+  --ui-hover: #604a26;
+  --ui-soft: #f4eee3;
+  --ui-border-accent: #bca888;
+  --ui-canvas: #f3f0e9;
+  --ui-surface: #fffdf8;
+  --ui-subtle: #f7f4ed;
+  --ui-text: #454138;
+  --ui-heading: #373127;
+  --ui-muted: #6b6457;
+  --ui-border: #dfd9cd;
+}
+.workspace-theme {
+  --ui-on-accent: #fffefa;
+  --ui-shadow: #292b30;
+  --workspace-accent: var(--ui-accent);
+  --workspace-soft: var(--ui-soft);
+  --paper-canvas: var(--ui-canvas);
+  --paper-surface: var(--ui-surface);
+  --paper-input: var(--ui-surface);
+  --ink-strong: var(--ui-heading);
+  --ink-body: var(--ui-text);
+  --ink-muted: var(--ui-muted);
+  --line-input: var(--ui-border);
+  --line-soft: var(--ui-border);
+  --accent-olive: var(--ui-accent);
+  --focus-ring: var(--ui-accent);
+  --scroll-thumb: color-mix(in srgb, var(--ui-muted) 35%, transparent);
+  --scroll-thumb-hover: color-mix(in srgb, var(--ui-accent) 55%, transparent);
+  --background: var(--ui-canvas);
+  --foreground: var(--ui-text);
+  --card: var(--ui-surface);
+  --card-foreground: var(--ui-text);
+  --popover: var(--ui-surface);
+  --popover-foreground: var(--ui-text);
+  --primary: var(--ui-accent);
+  --primary-foreground: var(--ui-on-accent);
+  --secondary: var(--ui-subtle);
+  --secondary-foreground: var(--ui-text);
+  --muted: var(--ui-subtle);
+  --muted-foreground: var(--ui-muted);
+  --accent: var(--ui-soft);
+  --accent-foreground: var(--ui-accent);
+  --border: var(--ui-border);
+  --input: var(--ui-border);
+  --ring: var(--ui-accent);
+  color: var(--ui-text);
+}
+.workspace-theme a {
+  color: var(--ui-accent);
+}
+.workspace-theme :is(input, textarea)::placeholder {
+  color: var(--ui-muted);
+  opacity: 0.8;
+}
+.workspace-theme ::selection {
+  background: var(--ui-soft);
+  color: var(--ui-heading);
+}
+.workspace-theme .journal-sheet {
+  background: var(--ui-surface);
+}
+.workspace-theme .journal-reader-header {
+  background: var(--ui-canvas);
+}
+.workspace-theme :is(input[type='checkbox'], input[type='radio']) {
+  accent-color: var(--ui-accent);
+}
+
+.workspace-theme .journal-tabs button.selected::after {
+  background: var(--ui-accent);
+}
+.workspace-theme .turn-detail {
+  background: var(--ui-surface);
+}
+.workspace-theme :is(.markdown pre, .tool-text, .memory-preview, .inline-code) {
+  background: var(--ui-subtle);
+  color: var(--ui-text);
+}
+.workspace-theme .message-avatar {
+  border-color: var(--ui-border);
+}
+
+.workspace-theme .open-journal {
+  --workspace-accent: var(--ui-accent);
+  --workspace-soft: var(--ui-soft);
+}

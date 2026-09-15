@@ -1,4 +1,5 @@
 'use client';
+import { WorkspaceThemeRoot } from './workspace-theme';
 import {
   useState,
   useRef,
@@ -261,7 +262,9 @@ export function Hub() {
     );
   return (
     <BackgroundTasksContext.Provider value={background}>
-      <div className="journal-app">
+      <WorkspaceThemeRoot
+        tone={!home ? (w.appearance?.tone ?? 'sage') : undefined}
+      >
         {home && (
           <JournalHome
             saved={persistence.saved && !persistence.busy}
@@ -550,7 +553,7 @@ export function Hub() {
             {notice || mcp.received}
           </output>
         )}
-      </div>
+      </WorkspaceThemeRoot>
     </BackgroundTasksContext.Provider>
   );
 }

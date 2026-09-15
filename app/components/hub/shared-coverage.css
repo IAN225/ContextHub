@@ -13,10 +13,10 @@
   border-radius: 1px;
 }
 .covered {
-  background: #4c7062;
+  background: var(--ui-border-accent, #4c7062);
 }
 .recent {
-  background: #b3dac9;
+  background: var(--ui-accent, #b3dac9);
 }
 .pending {
   background: #586873;
@@ -52,16 +52,16 @@
   }
 }
 .chain-track {
-  background: #e5eadb;
+  background: var(--ui-subtle, #e5eadb);
   height: 6px;
 }
 .chain-track .covered,
 .chain-labels .covered {
-  background: #a2b18a;
+  background: var(--ui-border-accent, #a2b18a);
 }
 .chain-track .recent,
 .chain-labels .recent {
-  background: #657f54;
+  background: var(--ui-accent, #657f54);
 }
 .chain-track .pending,
 .chain-labels .pending {
@@ -72,10 +72,10 @@
   background: repeating-linear-gradient(120deg, #d3ab71 0 2px, #f2e3c9 2px 5px);
 }
 .chain-labels {
-  color: #909e7c;
+  color: var(--ui-muted, #909e7c);
 }
 .chain-labels span:last-child {
-  color: #83966d;
+  color: var(--ui-muted, #83966d);
 }
 .chain-labels {
   font-size: 12px;
@@ -112,5 +112,9 @@
 .chain-track .deprecated,
 .chain-track .trash,
 .chain-labels .inactive {
-  background: repeating-linear-gradient(120deg, #c7c6bb 0 2px, #e8e7df 2px 5px);
+  background: repeating-linear-gradient(
+    120deg,
+    var(--ui-border, #c7c6bb) 0 2px,
+    var(--ui-subtle, #e8e7df) 2px 5px
+  );
 }

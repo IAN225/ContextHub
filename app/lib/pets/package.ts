@@ -80,6 +80,8 @@ export function importPetPack(zip: Uint8Array): PetPack {
         height: info.height,
       };
     });
+    if (options.durationsMs && options.durationsMs.length !== frames.length)
+      throw Error('动画帧时长数量不匹配。');
     result[state] = { ...options, frames };
   }
   return {
@@ -100,6 +102,12 @@ export function normalizePetPreferences(raw: unknown): PetPreferences {
     return value as PetPreferences;
   }
   const pack = object(value.custom);
+  if (
+    pack.source !== undefined &&
+    pack.source !== 'codex-v1' &&
+    pack.source !== 'codex-v2'
+  )
+    throw Error('角色包来源格式无效。');
   if (pack.schemaVersion !== 1) throw Error('角色包版本无效。');
   const animations = object(pack.animations);
   if (!animations.idle) throw Error('默认动画缺失。');
@@ -118,6 +126,11 @@ export function normalizePetPreferences(raw: unknown): PetPreferences {
       (count += animation.frames.length) > petLimits.frames
     )
       throw Error('动画帧数量无效。');
+    if (
+      options.durationsMs &&
+      options.durationsMs.length !== animation.frames.length
+    )
+      throw Error('动画帧时长数量不匹配。');
     result[state] = {
       ...options,
       frames: animation.frames.map((raw) => {
@@ -145,6 +158,7 @@ export function normalizePetPreferences(raw: unknown): PetPreferences {
     custom: {
       schemaVersion: 1,
       name: packName(pack.name),
+      ...(pack.source ? { source: pack.source as PetPack['source'] } : {}),
       animations: result as PetPack['animations'],
     },
   };

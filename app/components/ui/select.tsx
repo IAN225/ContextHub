@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useWorkspaceThemeClass } from '@/components/hub/workspace-theme';
 import { Select as SelectPrimitive } from '@base-ui/react/select';
 
 import { cn } from '@/lib/utils';
@@ -70,6 +71,7 @@ function SelectContent({
     SelectPrimitive.Positioner.Props,
     'align' | 'alignOffset' | 'side' | 'sideOffset' | 'alignItemWithTrigger'
   >) {
+  const themeClass = useWorkspaceThemeClass();
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Positioner
@@ -78,7 +80,7 @@ function SelectContent({
         align={align}
         alignOffset={alignOffset}
         alignItemWithTrigger={alignItemWithTrigger}
-        className="isolate z-50"
+        className={cn('isolate z-50', themeClass)}
       >
         <SelectPrimitive.Popup
           data-slot="select-content"

@@ -1,9 +1,10 @@
-import { petLimits, type PetPack } from './contracts';
+import { type PetPack } from './contracts';
+const compatibleZipBytes = 24 * 1024 * 1024;
 export async function readPetFile(
   file: File,
   signal: AbortSignal,
 ): Promise<PetPack> {
-  if (file.size > petLimits.zipBytes) throw Error('ZIP 不能超过 12 MB。');
+  if (file.size > compatibleZipBytes) throw Error('ZIP 不能超过 24 MB。');
   if (signal.aborted) throw new DOMException('已取消', 'AbortError');
   const bytes = await file.arrayBuffer();
   if (signal.aborted) throw new DOMException('已取消', 'AbortError');

@@ -4,9 +4,9 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  border-bottom: 1px solid #b9caa2;
+  border-bottom: 1px solid var(--ui-border, #b9caa2);
   padding: 10px 0 15px;
-  color: #9db783;
+  color: var(--ui-text, #9db783);
   margin-bottom: 23px;
 }
 .journal-search-input input {
@@ -15,12 +15,12 @@
   padding: 0;
   font-size: 18px;
   flex: 1;
-  color: #7d9563;
+  color: var(--ui-text, #7d9563);
   font-family: 'SimSun', serif;
   outline: none;
 }
 .journal-search-input input::placeholder {
-  color: #b1c09d;
+  color: var(--ui-text, #b1c09d);
 }
 .search-options {
   display: flex;
@@ -37,12 +37,12 @@
   gap: 17px;
   width: 100%;
   padding: 23px 0;
-  border-bottom: 1px solid #e1e9d4;
-  color: #a1b48c;
+  border-bottom: 1px solid var(--ui-border, #e1e9d4);
+  color: var(--ui-muted, #a1b48c);
   text-align: left;
 }
 .search-results > button:hover {
-  background: #f7faef;
+  background: var(--ui-subtle, #f7faef);
 }
 .search-results > button > div {
   flex: 1;
@@ -52,18 +52,18 @@
   padding-top: 19px;
 }
 .search-results small {
-  color: #99b082;
+  color: var(--ui-muted, #99b082);
 }
 .search-results h3 {
   font-size: 17px;
   font-family: 'SimSun', serif;
   font-weight: 400;
-  color: #7d9666;
+  color: var(--ui-heading, #7d9666);
   line-height: 1.8;
   margin: 9px 0;
 }
 .search-results p {
-  color: #98ad80;
+  color: var(--ui-muted, #98ad80);
   line-height: 1.9;
   margin: 0;
   white-space: pre-line;

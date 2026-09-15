@@ -29,9 +29,9 @@ function crc32(bytes: Uint8Array) {
   }
   return (crc ^ 0xffffffff) >>> 0;
 }
-export function readPetZip(bytes: Uint8Array) {
-  if (bytes.length > petLimits.zipBytes || bytes.length < 22)
-    throw Error('ZIP 不能超过 12 MB。');
+export function readPetZip(bytes: Uint8Array, limits = petLimits) {
+  if (bytes.length > limits.zipBytes || bytes.length < 22)
+    throw Error('ZIP 文件大小无效。');
   const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let end = bytes.length - 22;
   while (
@@ -99,10 +99,10 @@ export function readPetZip(bytes: Uint8Array) {
     if (names.has(folded)) throw Error('ZIP 内有重名文件。');
     names.add(folded);
     if (
-      expanded > (name.endsWith('pet.json') ? 16384 : petLimits.imageBytes) ||
-      (total += expanded) > petLimits.expandedBytes
+      expanded > (name.endsWith('pet.json') ? 16384 : limits.imageBytes) ||
+      (total += expanded) > limits.expandedBytes
     )
-      throw Error('解压后素材过大，合计不能超过 16 MB。');
+      throw Error('解压后素材过大。');
     if (
       v.getUint32(local, true) !== 0x04034b50 ||
       v.getUint16(local + 8, true) !== method ||

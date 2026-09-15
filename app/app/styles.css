@@ -22,6 +22,7 @@
 @import '../components/pets/pets.css';
 @import '../components/hub/background-tasks.css';
 @import '../components/hub/workspace-settings.css';
+@import '../components/hub/workspace-theme.css';
 
 .account-loading {
   padding: 48px;

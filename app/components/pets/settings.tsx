@@ -111,7 +111,15 @@ export function PetSettings() {
           download="contexthub-pet-template.zip"
         >
           <Download size={15} />
-          下载模板
+          目录帧模板
+        </a>
+        <a
+          className="button"
+          href="/pets/codex-template.zip"
+          download="contexthub-codex-pet.zip"
+        >
+          <Download size={15} />
+          Codex 模板
         </a>
         <Button
           disabled={busy || !saved.ready}
@@ -138,11 +146,12 @@ export function PetSettings() {
           重试读取
         </Button>
       )}
-      <p className="pet-format-hint">
-        PNG / WebP · ZIP ≤ 12 MB · 单帧 ≤ 512 × 512
-      </p>
+      <p className="pet-format-hint">目录帧 / Codex 图集 · PNG / WebP</p>
       <div className="pet-pack-heading">
         <strong>{preview.name}</strong>
+        {preview.source && (
+          <span>Codex {preview.source === 'codex-v1' ? 'v1' : 'v2'}</span>
+        )}
         {preview === builtinPet && <span>内置</span>}
       </div>
       <div className="pet-state-previews">

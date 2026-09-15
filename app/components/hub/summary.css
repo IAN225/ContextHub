@@ -6,14 +6,14 @@
 }
 
 .summary-overview {
-  border-bottom: 1px solid #dee6d1;
+  border-bottom: 1px solid var(--ui-border, #dee6d1);
 }
 .summary-controls {
   display: flex;
   align-items: center;
   gap: 14px 20px;
   flex-wrap: wrap;
-  color: #8ea07b;
+  color: var(--ui-muted, #8ea07b);
 }
 .summary-limit {
   border: 0;
@@ -30,8 +30,8 @@
   padding: 4px;
   text-align: center;
   font-family: Georgia, serif;
-  background: #fafcf4;
-  border-color: #dfe7d2;
+  background: var(--ui-surface, #fafcf4);
+  border-color: var(--ui-border, #dfe7d2);
 }
 .summary-controls .token-limit-input {
   width: 76px;
@@ -54,7 +54,7 @@
   height: 12px;
 }
 .summary-limit-hint {
-  color: #a9b49a;
+  color: var(--ui-muted, #a9b49a);
   font-size: 11px;
   margin-left: 2px;
 }
@@ -68,7 +68,11 @@
   content: '';
   width: 1px;
   height: 34px;
-  background: linear-gradient(transparent, #cddabb 50%, transparent);
+  background: linear-gradient(
+    transparent,
+    var(--ui-subtle, #cddabb) 50%,
+    transparent
+  );
 }
 .summary-switches {
   display: flex;
@@ -78,7 +82,7 @@
   margin: 22px 0 0;
 }
 .summary-switches > span {
-  color: #94a27f;
+  color: var(--ui-muted, #94a27f);
 }
 .summary-overview .callout {
   margin-top: 17px;
@@ -116,16 +120,16 @@
   padding: 18px 8px;
   margin-top: 10px;
   flex-shrink: 0;
-  color: #91a67b;
-  border: 1px dashed #c8d6b5;
+  color: var(--ui-muted, #91a67b);
+  border: 1px dashed var(--ui-border, #c8d6b5);
   border-radius: 4px;
   background: transparent;
 }
 .checkpoint-create:hover,
 .checkpoint-create.selected {
-  border-color: #a8bc90;
-  color: #788f61;
-  background: #f5f8ee;
+  border-color: var(--ui-border-accent, #a8bc90);
+  color: var(--ui-accent, #788f61);
+  background: var(--ui-soft, #f5f8ee);
 }
 .summary-custom-editor {
   display: grid;
@@ -151,10 +155,10 @@
   width: 100%;
   min-height: 112px;
   border-radius: 4px;
-  color: #8eaa72;
+  color: var(--ui-muted, #8eaa72);
 }
 .checkpoint-scroll > button.selected {
-  background: #f0f6e7;
+  background: var(--ui-soft, #f0f6e7);
 }
 .checkpoint-scroll > button > div:nth-child(2) {
   flex: 1;
@@ -162,7 +166,7 @@
 }
 .checkpoint-scroll > button > svg {
   align-self: center;
-  color: #adbd91;
+  color: var(--ui-muted, #adbd91);
 }
 .checkpoint-marker {
   position: relative;
@@ -176,7 +180,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #adbf92;
+  background: var(--ui-subtle, #adbf92);
   z-index: 1;
 }
 .checkpoint-marker > i {
@@ -184,7 +188,7 @@
   left: 7px;
   top: 10px;
   width: 1px;
-  background: #e0e8d2;
+  background: var(--ui-subtle, #e0e8d2);
 }
 .checkpoint-title {
   line-height: 1.8;
@@ -192,17 +196,17 @@
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  color: #81996a;
+  color: var(--ui-muted, #81996a);
 }
 .checkpoint-title .pill {
   padding: 0 5px;
 }
 .checkpoint-list p {
-  color: #91a37c;
+  color: var(--ui-muted, #91a37c);
   margin: 5px 0;
 }
 .checkpoint-list small {
-  color: #a1b184;
+  color: var(--ui-muted, #a1b184);
 }
 .checkpoint-help {
   margin: 22px 6px !important;
@@ -211,29 +215,34 @@
 .summary-paper {
   padding: 27px 31px 19px;
   background:
-    linear-gradient(90deg, #f7f9ef55, transparent 8%), var(--paper-input);
-  border: 1px solid #e1e7d6;
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--ui-surface, #f7f9ef) 33.33%, transparent),
+      transparent 8%
+    ),
+    var(--paper-input);
+  border: 1px solid var(--ui-border, #e1e7d6);
   border-radius: 3px;
   position: relative;
 }
 .summary-paper-head {
   display: flex;
   justify-content: space-between;
-  border-bottom: 1px solid #e1e7d6;
+  border-bottom: 1px solid var(--ui-border, #e1e7d6);
   padding-bottom: 20px;
   margin-bottom: 21px;
-  color: #a6b58c;
+  color: var(--ui-muted, #a6b58c);
 }
 .summary-paper-head h2 {
   font-family: 'SimSun', serif;
-  color: #7e9468;
+  color: var(--ui-heading, #7e9468);
   font-size: 20px;
   font-weight: 400;
   margin: 0 0 9px;
 }
 .summary-paper-head p {
   font-size: 10px;
-  color: #93a37d;
+  color: var(--ui-muted, #93a37d);
   margin: 0;
 }
 .summary-paper-head .eyebrow {
@@ -249,7 +258,7 @@
   justify-content: space-between;
   padding-top: 21px;
   margin-top: 27px;
-  border-top: 1px solid #e1e8d4;
+  border-top: 1px solid var(--ui-border, #e1e8d4);
   gap: 10px;
 }
 .summary-paper-footer > span {
@@ -257,7 +266,7 @@
   gap: 6px;
   align-items: center;
   font-size: 9px;
-  color: #97a87f;
+  color: var(--ui-muted, #97a87f);
 }
 .summary-execution-note {
   margin-top: 25px;
@@ -266,7 +275,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #8b9e75;
+  color: var(--ui-accent, #8b9e75);
   font-size: 14px;
 }
 .selected-summary > span:nth-child(2) {
@@ -276,17 +285,17 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  border-bottom: 1px solid #e0e8d3;
+  border-bottom: 1px solid var(--ui-border, #e0e8d3);
   padding: 15px 0;
   font-size: 12px;
 }
 .probe-row code {
-  color: #8fa575;
+  color: var(--ui-muted, #8fa575);
 }
 .probe-row p {
   grid-column: span 2;
   font-size: 11px;
-  color: #91a17f;
+  color: var(--ui-muted, #91a17f);
   line-height: 1.8;
   margin: 0;
 }
@@ -315,7 +324,7 @@
   .checkpoint-list {
     position: static;
     height: 290px;
-    border-bottom: 1px solid #e0e8d4;
+    border-bottom: 1px solid var(--ui-border, #e0e8d4);
     padding-bottom: 10px;
   }
 
@@ -467,24 +476,24 @@
   display: flex;
   gap: 8px;
   margin-bottom: 14px;
-  border-bottom: 1px solid #dee6d1;
+  border-bottom: 1px solid var(--ui-border, #dee6d1);
 }
 .summary-engine-tabs button {
   padding: 12px 18px;
   background: transparent;
   border: 0;
   border-bottom: 3px solid transparent;
-  color: #61734e;
+  color: var(--ui-text, #61734e);
   cursor: pointer;
   font: inherit;
 }
 .summary-engine-tabs button[aria-selected='true'] {
-  border-bottom-color: #6f8358;
-  background: #eef2e7;
+  border-bottom-color: var(--ui-border-accent, #6f8358);
+  background: var(--ui-soft, #eef2e7);
   font-weight: 600;
 }
 .summary-engine-tabs button:focus-visible {
-  outline: 2px solid #6f8358;
+  outline: 2px solid var(--ui-border-accent, #6f8358);
   outline-offset: 2px;
 }
 .summary-engine-context {
@@ -498,7 +507,7 @@
 .summary-engine-context p {
   margin: 0;
   font-size: 13px;
-  color: #748068;
+  color: var(--ui-muted, #748068);
 }
 @media (max-width: 600px) {
   .summary-engine-tabs button {
@@ -518,14 +527,14 @@
   gap: 10px;
   min-width: 0;
   padding: 12px 14px;
-  border: 1px solid #dce4d2;
+  border: 1px solid var(--ui-border, #dce4d2);
   border-radius: 8px;
-  background: #f8faf4;
+  background: var(--ui-subtle, #f8faf4);
 }
 .summary-limit legend {
   padding: 0 5px;
   font-size: 12px;
-  color: #61734f;
+  color: var(--ui-text, #61734f);
 }
 .summary-controls .summary-limit input {
   min-height: 36px;
@@ -534,11 +543,11 @@
 }
 .summary-controls .summary-limit .summary-limit-hint {
   flex-basis: 100%;
-  border-top: 1px solid #e1e7d9;
+  border-top: 1px solid var(--ui-border, #e1e7d9);
   padding-top: 8px;
   margin: 0;
   font-size: 11px;
-  color: #88937d;
+  color: var(--ui-muted, #88937d);
 }
 
 .summary-controls .summary-limit {
@@ -548,6 +557,6 @@
 .summary-limit .hub-select {
   min-height: 36px !important;
   padding: 6px 10px;
-  border: 1px solid #dce4d2;
+  border: 1px solid var(--ui-border, #dce4d2);
   border-radius: 6px;
 }

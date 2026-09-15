@@ -15,9 +15,9 @@
   gap: 12px;
   min-width: 0;
   padding: 12px 14px;
-  border: 1px solid #dce4d2;
+  border: 1px solid var(--ui-border, #dce4d2);
   border-radius: 7px;
-  background: #f5f7f0;
+  background: var(--ui-subtle, #f5f7f0);
 }
 .delivery-code code {
   flex: 1;
@@ -39,7 +39,7 @@
 }
 .delivery-key-create {
   min-height: 44px;
-  border: 1px dashed #a9b79a;
+  border: 1px dashed var(--ui-border, #a9b79a);
   border-radius: 7px;
   display: flex;
   align-items: center;
