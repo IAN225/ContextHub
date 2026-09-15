@@ -9,6 +9,7 @@
 @import '../components/hub/shell.css';
 @import '../components/hub/home.css';
 @import '../components/hub/transcript.css';
+@import '../components/hub/transcript-timeline.css';
 @import '../components/hub/summary.css';
 @import '../components/hub/notes.css';
 @import '../components/hub/note-actions.css';

@@ -33,7 +33,7 @@ export function useTranscriptNavigation({
     selectedIndex.current = currentIndex;
   }, [currentIndex]);
   const setIndex = useCallback(
-    (next: number) => {
+    (next: number, behavior: ScrollBehavior = 'smooth') => {
       const bounded = Math.max(0, Math.min(turnCount - 1, next));
       // Discrete input owns a target, even while the rail is between ticks.
       // Updating the ref synchronously also preserves rapid wheel/key input.
@@ -44,7 +44,7 @@ export function useTranscriptNavigation({
         left: bounded * 104,
         behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
           ? 'instant'
-          : 'smooth',
+          : behavior,
       });
     },
     [turnCount],
@@ -126,7 +126,7 @@ export function useTranscriptNavigation({
         ),
       );
       wheelDistance = 0;
-      setIndex(next);
+      setIndex(next, 'instant');
     }
     el.addEventListener('wheel', scroll, { passive: false });
     el.addEventListener('touchstart', touchStart, { passive: true });
@@ -164,7 +164,7 @@ export function useTranscriptNavigation({
           selectedIndex.current + (e.key === 'ArrowLeft' ? -1 : 1),
         ),
       );
-      setIndex(next);
+      setIndex(next, 'instant');
       const point = lane.current?.querySelector<HTMLButtonElement>(
         `[data-turn-index="${next}"]`,
       );
