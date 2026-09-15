@@ -52,10 +52,9 @@ export function TranscriptTimeline({
           min={1}
           max={list.length}
           value={currentIndex + 1}
-          onChange={(e) => setIndex(Number(e.target.value) - 1)}
+          onChange={(e) => setIndex(Number(e.target.value) - 1, 'instant')}
         />
         <div className="timeline-rail" />
-        <div className="timeline-ticks" />
         <div className="timeline-center">
           <span>当前轮次</span>
         </div>

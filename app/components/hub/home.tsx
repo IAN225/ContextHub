@@ -10,7 +10,9 @@ import {
   Database,
   ListTodo,
 } from 'lucide-react';
-import { coverage, type Workspace } from '@/lib/domain';
+import type { Workspace } from '@/lib/domain';
+import { ChainMap } from './coverage-map';
+import { workspaceThemeClass } from '@/lib/workspace-theme';
 
 export function JournalHome({
   saved,
@@ -85,7 +87,6 @@ export function JournalHome({
         </div>
         <div className="notebook-grid">
           {workspaces.map((w, i) => {
-            const c = coverage(w);
             return (
               <button
                 className={`notebook-item book-tone-${i % 4}${w.appearance?.tone ? ' tone-' + w.appearance.tone : ''}${openingId === w.id ? ' opening' : ''}`}
@@ -121,12 +122,13 @@ export function JournalHome({
                     <ArrowRight size={13} />
                   </span>
                 </div>
-                <div className="book-progress">
-                  <span
-                    style={{
-                      width: `${w.turns.length ? (c.covered.length / w.turns.length) * 100 : 0}%`,
-                    }}
-                  />
+                <div
+                  className={
+                    'book-progress ' +
+                    workspaceThemeClass(w.appearance?.tone ?? 'sage')
+                  }
+                >
+                  <ChainMap w={w} compact />
                 </div>
               </button>
             );

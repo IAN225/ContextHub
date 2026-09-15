@@ -302,15 +302,7 @@
   transform: translateX(0);
 }
 .book-progress {
-  height: 2px;
-  background: #dfe2d4;
   margin: 0 2px;
-  overflow: hidden;
-}
-.book-progress span {
-  height: 100%;
-  background: #9cac89;
-  display: block;
 }
 .notebook-footnote {
   line-height: 1.9;
