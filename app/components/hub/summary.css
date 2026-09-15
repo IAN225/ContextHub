@@ -521,12 +521,12 @@
   gap: 16px;
 }
 .summary-controls .summary-limit {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: max-content max-content;
   align-items: center;
   gap: 10px;
   min-width: 0;
-  padding: 12px 14px;
+  padding: 8px 10px;
   border: 1px solid var(--ui-border, #dce4d2);
   border-radius: 8px;
   background: var(--ui-subtle, #f8faf4);
@@ -542,7 +542,7 @@
   font-size: 14px;
 }
 .summary-controls .summary-limit .summary-limit-hint {
-  flex-basis: 100%;
+  grid-column: 1 / -1;
   border-top: 1px solid var(--ui-border, #e1e7d9);
   padding-top: 8px;
   margin: 0;
@@ -551,7 +551,9 @@
 }
 
 .summary-controls .summary-limit {
-  flex: 0 1 260px;
+  flex: 0 1 auto;
+  width: max-content;
+  max-width: 100%;
   white-space: normal;
 }
 .summary-limit .hub-select {

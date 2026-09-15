@@ -95,9 +95,20 @@ test('Codex defaults and wrapped directories work, while unsupported versions an
     importCompatiblePetPack(v2, async () => []),
     /拆帧/,
   );
-  const directory = read('../public/pets/template.zip');
-  const old = await importCompatiblePetPack(directory, unexpected);
-  assert.equal(old.animations.idle.frames.length, 6);
+  const directory = zipSync({
+    'pet.json': strToU8(
+      JSON.stringify({
+        schemaVersion: 1,
+        name: 'old',
+        animations: { idle: { directory: 'idle', fps: 6, loop: true } },
+      }),
+    ),
+    'idle/001.png': frame,
+  });
+  await assert.rejects(
+    importCompatiblePetPack(directory, unexpected),
+    /Codex 图集模板/,
+  );
   assert.equal(called, false);
 });
 

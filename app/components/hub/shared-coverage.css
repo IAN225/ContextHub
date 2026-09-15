@@ -13,7 +13,7 @@
   border-radius: 1px;
 }
 .covered {
-  background: var(--ui-border-accent, #4c7062);
+  background: #929698;
 }
 .recent {
   background: var(--ui-accent, #b3dac9);
@@ -57,7 +57,7 @@
 }
 .chain-track .covered,
 .chain-labels .covered {
-  background: var(--ui-border-accent, #a2b18a);
+  background: #929698;
 }
 .chain-track .recent,
 .chain-labels .recent {

@@ -107,19 +107,19 @@ export function PetSettings() {
       <div className="pet-settings-actions">
         <a
           className="button"
-          href="/pets/template.zip"
-          download="contexthub-pet-template.zip"
-        >
-          <Download size={15} />
-          目录帧模板
-        </a>
-        <a
-          className="button"
           href="/pets/codex-template.zip"
           download="contexthub-codex-pet.zip"
         >
           <Download size={15} />
           Codex 模板
+        </a>
+        <a
+          className="button"
+          href="https://github.com/IAN225/ContextHub/blob/main/docs/pet-packs.md"
+          target="_blank"
+          rel="noreferrer"
+        >
+          制作说明
         </a>
         <Button
           disabled={busy || !saved.ready}
@@ -146,7 +146,7 @@ export function PetSettings() {
           重试读取
         </Button>
       )}
-      <p className="pet-format-hint">目录帧 / Codex 图集 · PNG / WebP</p>
+      <p className="pet-format-hint">Codex 图集 v1 / v2 · PNG / WebP</p>
       <div className="pet-pack-heading">
         <strong>{preview.name}</strong>
         {preview.source && (

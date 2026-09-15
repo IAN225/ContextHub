@@ -315,19 +315,20 @@
   }
 }
 .timeline-rail {
-  background: var(--ui-subtle, #c9d3b9);
+  background: var(--ui-muted, #62685b);
 }
 .timeline-ticks {
   background: repeating-linear-gradient(
     90deg,
     transparent 0 25px,
-    var(--ui-subtle, #e2e8d8) 25px 26px
+    color-mix(in srgb, var(--ui-muted, #62685b) 80%, var(--ui-surface, #fffefa))
+      25px 26px
   );
 }
 .timeline-center {
   background: linear-gradient(
-    color-mix(in srgb, var(--ui-subtle, #9aad7b) 46.67%, transparent),
-    color-mix(in srgb, var(--ui-subtle, #9aad7b) 33.33%, transparent),
+    color-mix(in srgb, var(--ui-accent, #50683e) 46.67%, transparent),
+    color-mix(in srgb, var(--ui-accent, #50683e) 33.33%, transparent),
     transparent
   );
 }
@@ -341,7 +342,7 @@
   background: transparent !important;
 }
 .point-stem {
-  background: var(--ui-subtle, #b4c39c);
+  background: var(--ui-muted, #62685b);
 }
 .point-dot {
   background: var(--ui-accent, #a9ba8e);

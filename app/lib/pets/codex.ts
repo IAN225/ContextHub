@@ -7,7 +7,7 @@ import {
 } from './contracts.ts';
 import { imageInfo, imageDataUrl } from './images.ts';
 import { readPetZip, safePetPath } from './zip.ts';
-import { importPetPack, normalizePetPreferences } from './package.ts';
+import { normalizePetPreferences } from './package.ts';
 
 // Layout metadata verified against Codex desktop 26.908.9136.0 (v1/v2).
 export const codexLayouts = {
@@ -53,7 +53,7 @@ export async function importCompatiblePetPack(
       ),
     );
   if (config.schemaVersion !== undefined || config.animations !== undefined)
-    return importPetPack(zip);
+    throw Error('请使用 Codex 图集模板：pet.json 和 spritesheet.png / webp。');
   const version = config.spriteVersionNumber ?? 1;
   if (version !== 1 && version !== 2)
     throw Error('仅支持 Codex spriteVersionNumber 1 或 2。');

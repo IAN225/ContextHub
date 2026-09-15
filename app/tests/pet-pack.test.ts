@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { zipSync, strToU8 } from 'fflate';
-import { importPetPack, normalizePetPreferences } from '../lib/pets/package.ts';
+import { normalizePetPreferences } from '../lib/pets/package.ts';
 import { imageDataUrl, imageInfo } from '../lib/pets/images.ts';
 import {
   petAnimation,
@@ -15,6 +15,7 @@ import {
   defaultPetPreferences,
   PET_PREFERENCES_KEY,
   type PetPreferences,
+  type PetPack,
 } from '../lib/pets/contracts.ts';
 import { readPetZip } from '../lib/pets/zip.ts';
 import { createPersistentSession } from '../lib/persistent-session.ts';
@@ -25,7 +26,23 @@ const asset = (path: string) =>
   );
 const png = asset('post-cat/idle/001.png'),
   png2 = asset('post-cat/idle/003.png');
-const options = { directory: 'idle', fps: 6, loop: true };
+const options = { fps: 6, loop: true };
+function storedPack(): PetPack {
+  return {
+    schemaVersion: 1,
+    name: '测试猫',
+    animations: {
+      idle: {
+        ...options,
+        frames: [png, png2].map((bytes) => ({
+          src: imageDataUrl(bytes, 'image/png'),
+          width: 96,
+          height: 96,
+        })),
+      },
+    },
+  };
+}
 const manifest = {
   schemaVersion: 1,
   name: '测试猫',
@@ -53,43 +70,24 @@ function central(bytes: Uint8Array) {
   ).getUint32(bytes.length - 6, true);
 }
 
-test('shipped template imports all states and survives account JSON round trips without rewriting on read', () => {
-  const pack = importPetPack(asset('template.zip'));
-  assert.equal(pack.name, '邮差小猫');
-  assert.equal(pack.animations.idle.frames.length, 6);
-  assert.equal(pack.animations.drag?.frames.length, 2);
-  assert.equal(pack.animations.mail?.frames.length, 4);
+test('previously saved frames remain readable without rewriting, and absent states fall back to idle', () => {
+  const pack = storedPack();
   const saved = JSON.parse(
     JSON.stringify({ schemaVersion: 1, active: 'custom', custom: pack }),
   );
   assert.strictEqual(normalizePetPreferences(saved), saved);
-  for (const animation of Object.values(pack.animations))
-    for (const frame of animation.frames) {
-      assert.equal(frame.width, 96);
-      assert.equal(frame.height, 96);
-    }
-});
-
-test('numeric ordering, containing directory, single frames and absent state folders are supported', () => {
-  const config = {
-    ...manifest,
-    animations: { idle: options, drag: { ...options, directory: 'absent' } },
-  };
-  const pack = importPetPack(
-    archive(config, { 'idle/10.png': png2, 'idle/2.png': png }, 'my-cat/'),
-  );
-  assert.equal(
-    pack.animations.idle.frames[0].src,
-    imageDataUrl(png, 'image/png'),
-  );
-  assert.equal(
-    pack.animations.idle.frames[1].src,
-    imageDataUrl(png2, 'image/png'),
-  );
   assert.strictEqual(petAnimation(pack, 'drag'), pack.animations.idle);
   assert.strictEqual(petAnimation(pack, 'mail'), pack.animations.idle);
-  const single = importPetPack(archive());
-  assert.equal(frameIndex(single.animations.idle, 100000), 0);
+  assert.equal(
+    frameIndex(
+      {
+        ...pack.animations.idle,
+        frames: pack.animations.idle.frames.slice(0, 1),
+      },
+      100000,
+    ),
+    0,
+  );
 });
 
 test('press/drag wins over mail, release resumes mail, and animation timing respects fps and loop', () => {
@@ -98,51 +96,39 @@ test('press/drag wins over mail, release resumes mail, and animation timing resp
   assert.equal(petState(true, false, 2), 'drag');
   assert.equal(petState(false, true, 2), 'drag');
   assert.equal(petState(false, false, 2), 'mail');
-  const animation = importPetPack(
-    archive(manifest, { 'idle/1.png': png, 'idle/2.png': png2 }),
-  ).animations.idle;
+  const animation = storedPack().animations.idle;
   assert.equal(frameIndex(animation, 160), 0);
   assert.equal(frameIndex(animation, 170), 1);
   assert.equal(frameIndex(animation, 340), 0);
   assert.equal(frameIndex({ ...animation, loop: false }, 10000), 1);
 });
 
-test('invalid schemas, required defaults, options, frame types and dimensions are rejected', () => {
-  for (const config of [
-    { ...manifest, schemaVersion: 2 },
-    { ...manifest, name: '' },
-    { ...manifest, animations: {} },
-    { ...manifest, animations: { idle: { ...options, fps: 31 } } },
-    { ...manifest, animations: { idle: { ...options, loop: 'true' } } },
-    { ...manifest, animations: { idle: { ...options, directory: '../idle' } } },
-  ])
-    assert.throws(() => importPetPack(archive(config)));
-  assert.throws(() => importPetPack(archive(manifest, {})), /idle/);
-  assert.throws(() =>
-    importPetPack(archive(manifest, { 'idle/1.png': strToU8('<svg/>') })),
-  );
-  assert.throws(
-    () => importPetPack(archive(manifest, { 'idle/1.webp': png })),
-    /扩展名/,
-  );
+test('stored schemas, options, frame dimensions and remote image URLs are validated', () => {
+  const valid = { schemaVersion: 1, active: 'custom', custom: storedPack() };
+  for (const mutate of [
+    (v: typeof valid) => {
+      v.schemaVersion = 2;
+    },
+    (v: typeof valid) => {
+      v.custom.name = '';
+    },
+    (v: typeof valid) => {
+      v.custom.animations.idle.fps = 31;
+    },
+    (v: typeof valid) => {
+      v.custom.animations.idle.frames = [];
+    },
+    (v: typeof valid) => {
+      v.custom.animations.idle.frames[0].src = 'https://example.com/pet.png';
+    },
+  ]) {
+    const bad = structuredClone(valid);
+    mutate(bad);
+    assert.throws(() => normalizePetPreferences(bad));
+  }
   const huge = png.slice();
   new DataView(huge.buffer).setUint32(16, 513);
   assert.throws(() => imageInfo(huge), /512/);
-  const images = Object.fromEntries(
-    Array.from({ length: 241 }, (_, i) => ['idle/' + i + '.png', png]),
-  );
-  assert.throws(() => importPetPack(archive(manifest, images)), /240/);
-  const remote = importPetPack(archive());
-  remote.animations.idle.frames[0].src = 'https://example.com/pet.png';
-  assert.throws(
-    () =>
-      normalizePetPreferences({
-        schemaVersion: 1,
-        active: 'custom',
-        custom: remote,
-      }),
-    /图片/,
-  );
 });
 
 test('ZIP paths, duplicate names, damaged CRC, encryption and oversized expansion are rejected before image decoding', () => {
@@ -171,16 +157,6 @@ test('ZIP paths, duplicate names, damaged CRC, encryption and oversized expansio
   o.setUint32(central(oversized) + 24, 32 * 1024 * 1024, true);
   assert.throws(() => readPetZip(oversized), /过大/);
   assert.throws(() => readPetZip(archive().subarray(0, 50)));
-  assert.throws(
-    () =>
-      importPetPack(
-        zipSync({
-          'pet.json': strToU8(JSON.stringify(manifest)),
-          'another/pet.json': strToU8(JSON.stringify(manifest)),
-        }),
-      ),
-    /一个/,
-  );
 });
 
 test('account session saves selection and frames, restores builtin without deleting custom, and preserves active pet on failed writes', async () => {
@@ -207,7 +183,7 @@ test('account session saves selection and frames, restores builtin without delet
     );
   const current = session();
   await current.load();
-  const pack = importPetPack(archive());
+  const pack = storedPack();
   assert.equal(
     await current.commit({ schemaVersion: 1, active: 'custom', custom: pack }),
     true,
@@ -268,7 +244,7 @@ test('personal JSON export and restore preserve pet assets through the productio
   const pet = {
     schemaVersion: 1,
     active: 'custom',
-    custom: importPetPack(archive()),
+    custom: storedPack(),
   };
   await repository.write([
     { key: 'hub-state-v1', value: createEmptyHubState() },
@@ -298,7 +274,27 @@ test('static lossy and lossless WebP frames import with their original bytes', (
     'UklGRuoAAABXRUJQVlA4TN0AAAAvB8ABEDfBoJEkRXOo8qSfBX7+JRsMGklSdIwSzr82fmYcBW0kKbv35+L9W3hbzMgqtm0lzxUvREqGIATQDg4J+HKXAIEJAlijGw0PrJaB/A+8x3gM/O+5Uvnf29eAaTqDvNfj9xwgeFv2EX0bAYT48DkG3/AV0cvc9S/PpAmcwXuemK93mD9reDWkY2IF+91izswUOLhez6Zk5iffevOsfwl2UzCQJMnQ2bZ91///7fRNRP8D80mKkkt78RewjDplAeZBKEocvev5ToVhjS072TFuTZbWLzjdhvl8AAA=',
   ]) {
     const bytes = new Uint8Array(Buffer.from(base64, 'base64'));
-    const pack = importPetPack(archive(manifest, { 'idle/1.webp': bytes }));
+    const info = imageInfo(bytes);
+    const pack = normalizePetPreferences({
+      schemaVersion: 1,
+      active: 'custom',
+      custom: {
+        schemaVersion: 1,
+        name: 'WebP',
+        animations: {
+          idle: {
+            ...options,
+            frames: [
+              {
+                src: imageDataUrl(bytes, info.mime),
+                width: info.width,
+                height: info.height,
+              },
+            ],
+          },
+        },
+      },
+    }).custom!;
     assert.equal(
       pack.animations.idle.frames[0].src,
       imageDataUrl(bytes, 'image/webp'),
