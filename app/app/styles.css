@@ -19,6 +19,7 @@
 @import '../components/hub/imports/imports.css';
 @import '../components/hub/inbox.css';
 @import '../components/hub/inbox-pet.css';
+@import '../components/pets/pets.css';
 @import '../components/hub/background-tasks.css';
 @import '../components/hub/workspace-settings.css';
 
