@@ -1,4 +1,8 @@
 'use client';
+import { PetFramePlayer } from '@/components/pets/frame-player';
+import { usePetPreferences } from '@/lib/pets/use-preferences';
+import { builtinPet } from '@/lib/pets/builtin';
+import { petState } from '@/lib/pets/contracts';
 import { accountRepository } from '@/lib/repository';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -25,6 +29,12 @@ export function InboxPet({
   count: number;
   onClick: () => void;
 }) {
+  const [preferences] = usePetPreferences();
+  const pack =
+    preferences.active === 'custom' && preferences.custom
+      ? preferences.custom
+      : builtinPet;
+  const [pressed, setPressed] = useState(false);
   const [point, setPoint] = useState<FloatingPoint | null>(null);
   const [dragging, setDragging] = useState(false);
   const position = useRef<FloatingPoint | null>(null);
@@ -95,6 +105,7 @@ export function InboxPet({
       style={point ? { left: point.x, top: point.y } : undefined}
       onPointerDown={(event) => {
         if (!event.isPrimary || event.button !== 0) return;
+        setPressed(true);
         const box = event.currentTarget.getBoundingClientRect();
         const origin = position.current ?? { x: box.x, y: box.y };
         suppressClick.current = false;
@@ -123,6 +134,7 @@ export function InboxPet({
         if (drag.current.moved) remember();
         drag.current = null;
         setDragging(false);
+        setPressed(false);
         if (event.currentTarget.hasPointerCapture(event.pointerId))
           event.currentTarget.releasePointerCapture(event.pointerId);
       }}
@@ -131,6 +143,7 @@ export function InboxPet({
         drag.current = null;
         suppressClick.current = true;
         setDragging(false);
+        setPressed(false);
       }}
       onLostPointerCapture={() => {
         if (!drag.current) return;
@@ -138,6 +151,7 @@ export function InboxPet({
         drag.current = null;
         suppressClick.current = true;
         setDragging(false);
+        setPressed(false);
       }}
       onKeyDown={(event) => {
         if (event.key === 'Escape' && drag.current) {
@@ -145,6 +159,7 @@ export function InboxPet({
           drag.current = null;
           suppressClick.current = true;
           setDragging(false);
+          setPressed(false);
           return;
         }
         const steps: Record<string, FloatingPoint> = {
@@ -173,33 +188,7 @@ export function InboxPet({
       aria-label={label}
       title={`${label} · 拖动移动，点击打开；方向键也可移动`}
     >
-      <svg
-        className="inbox-pet"
-        viewBox="0 0 24 24"
-        shapeRendering="crispEdges"
-        aria-hidden="true"
-        data-mail={waiting ? 'waiting' : 'empty'}
-      >
-        <path
-          fill="#697257"
-          d="M4 3h5v3h6V3h5v13h-2v5H6v-5H4zM2 14h2v5H2zM4 19h3v2H4z"
-        />
-        <path fill="#d9d0ab" d="M6 5h2v4h8V5h2v10h-2v4H8v-4H6z" />
-        <path fill="#b69b7d" d="M6 5h2v3H6zM16 5h2v3h-2z" />
-        {waiting ? (
-          <>
-            <path fill="#4c5744" d="M8 10h2v2H8zM14 10h2v2h-2zM11 12h2v1h-2z" />
-            <path fill="#f8f1d8" d="M5 15h14v7H5z" />
-            <path
-              fill="#ba965b"
-              d="M5 15h14v1H5zM5 21h14v1H5zM5 16h1v5H5zM18 16h1v5h-1zM6 16h2v1H6zM8 17h2v1H8zM10 18h4v1h-4zM14 17h2v1h-2zM16 16h2v1h-2z"
-            />
-            <path fill="#ba965b" d="M20 2h2v4h-2zM20 7h2v2h-2z" />
-          </>
-        ) : (
-          <path fill="#4c5744" d="M8 11h3v1H8zM13 11h3v1h-3zM11 13h2v1h-2z" />
-        )}
-      </svg>
+      <PetFramePlayer pack={pack} state={petState(pressed, dragging, count)} />
       <span className="inbox-pet-label">收件箱</span>
       {waiting && (
         <span className="inbox-pet-count" aria-hidden="true">

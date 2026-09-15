@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "name": "邮差小猫",
+  "animations": {
+    "idle": {
+      "directory": "idle",
+      "fps": 3,
+      "loop": true
+    },
+    "drag": {
+      "directory": "drag",
+      "fps": 6,
+      "loop": true
+    },
+    "mail": {
+      "directory": "mail",
+      "fps": 4,
+      "loop": true
+    }
+  }
+}

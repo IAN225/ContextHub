@@ -1,0 +1,90 @@
+.pet-animation {
+  display: block;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+  pointer-events: none;
+  user-select: none;
+}
+.pet-settings {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #e0e6d8;
+}
+.pet-settings-heading,
+.pet-pack-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pet-settings-heading h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.pet-settings-heading > span,
+.pet-pack-heading > span {
+  font-size: 12px;
+  color: #7e8e70;
+}
+.pet-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+.pet-settings-actions .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.pet-format-hint {
+  font-size: 12px !important;
+  margin: 8px 0 18px !important;
+}
+.pet-state-previews {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.pet-state-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 6px;
+  border: 1px solid #e0e6d8;
+  border-radius: 8px;
+  font-size: 12px;
+  text-align: center;
+}
+.pet-preview-stage {
+  height: 108px;
+  display: grid;
+  place-items: center;
+}
+.pet-preview-stage .pet-animation {
+  width: 96px;
+  height: 96px;
+}
+.pet-state-preview small {
+  font-size: 10px;
+  color: #7e8e70;
+}
+@media (max-width: 480px) {
+  .pet-state-previews {
+    gap: 6px;
+  }
+  .pet-preview-stage {
+    height: 76px;
+  }
+  .pet-preview-stage .pet-animation {
+    width: 64px;
+    height: 64px;
+  }
+  .pet-state-preview {
+    padding: 8px 3px;
+  }
+}

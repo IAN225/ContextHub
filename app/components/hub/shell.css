@@ -387,6 +387,39 @@
     height: 48px;
     flex: 0 0 48px;
     padding: 0 12px;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  .reader-actions {
+    gap: 2px;
+    flex-wrap: nowrap;
+  }
+  .journal-reader-header .back-to-shelf,
+  .reader-actions > .icon-button,
+  .reader-actions .admin-entry-button {
+    width: 32px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+  .reader-actions .admin-entry-button {
+    border: 0;
+    background: transparent;
+    color: #8b9380;
+  }
+  .reader-actions .admin-entry-button:hover {
+    background: #e9eddf;
+    color: #536947;
+  }
+  .reader-actions .admin-entry-button > span {
+    display: none;
+  }
+  .reader-actions .admin-entry-error {
+    position: fixed;
+    top: 48px;
+    left: 8px;
+    right: 8px;
+    width: auto;
   }
   .journal-reader {
     padding: 0;
@@ -405,7 +438,7 @@
   }
   .journal-tabs {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     padding: 0 6px;
     gap: 0;
     flex-shrink: 0;
@@ -522,20 +555,17 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 480px) {
   .journal-reader-header {
-    height: auto;
-    min-height: 76px;
-    flex-wrap: wrap;
-    padding-block: 10px;
-    gap: 10px;
+    padding-inline: 8px;
+    gap: 4px;
   }
-  .reader-actions {
-    width: 100%;
-    justify-content: flex-end;
-    flex-wrap: wrap;
+  .reader-actions .reader-import {
+    width: 32px;
+    height: 36px;
+    padding: 0;
   }
-  .reader-actions .admin-entry {
-    margin-right: auto;
+  .reader-import > span {
+    display: none;
   }
 }

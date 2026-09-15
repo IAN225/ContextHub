@@ -19,7 +19,7 @@
   cursor: grab;
 }
 .inbox-pet-button:hover {
-  background: #e7ecdd70;
+  background: transparent;
 }
 .inbox-pet-button.is-dragging {
   cursor: grabbing;
@@ -27,14 +27,6 @@
 .inbox-pet-button[style] {
   right: auto;
   bottom: auto;
-}
-.inbox-pet {
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
-  filter: drop-shadow(0 3px 2px #545d4130);
-  animation: inbox-pet-float 4s ease-in-out infinite;
-  pointer-events: none;
 }
 .inbox-pet-label {
   font-size: 11px;
@@ -56,20 +48,16 @@
   line-height: 16px;
   text-align: center;
 }
-.inbox-pet-button.is-dragging .inbox-pet {
-  animation-play-state: paused;
+
+.inbox-pet-button,
+.inbox-pet-button:is(:hover, :focus, :focus-visible, :active) {
+  background: transparent !important;
+  -webkit-tap-highlight-color: transparent;
 }
-@keyframes inbox-pet-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-2px);
-  }
+.inbox-pet-button:focus-visible {
+  outline: 2px solid #8b987c;
+  outline-offset: 3px;
 }
-@media (prefers-reduced-motion: reduce) {
-  .inbox-pet {
-    animation: none;
-  }
+.inbox-pet-button .pet-animation {
+  filter: drop-shadow(0 3px 2px #545d4130);
 }

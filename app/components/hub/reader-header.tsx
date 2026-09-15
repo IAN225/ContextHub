@@ -7,7 +7,6 @@ import {
   Search,
   Plus,
 } from 'lucide-react';
-import { Button } from './shared';
 import { AdminLink } from './admin-link';
 type Props = {
   workspaceName: string;
@@ -67,10 +66,16 @@ export function ReaderHeader({
         >
           <Search size={17} />
         </button>
-        <Button onClick={onImport}>
+        <button
+          type="button"
+          className="button reader-import"
+          aria-label="收录对话"
+          title="收录对话"
+          onClick={onImport}
+        >
           <Plus size={14} />
-          收录对话
-        </Button>
+          <span>收录对话</span>
+        </button>
       </div>
     </header>
   );

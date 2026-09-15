@@ -1,5 +1,6 @@
 'use client';
 /* oxlint-disable nextjs/no-html-link-for-pages -- Admin navigation rechecks the current account. */
+import { PetSettings } from '@/components/pets/settings';
 import { AdminPasswordSetup } from './password-setup';
 import { useAccountManagement } from '@/lib/account/use-management';
 export function AdminSettings() {
@@ -44,6 +45,7 @@ export function AdminSettings() {
         aria-label="偏好设置"
       >
         <h2>偏好</h2>
+        <PetSettings />
       </section>
       {loading && !error && <output>正在读取设置…</output>}
       {passwordSetupPending && <AdminPasswordSetup />}

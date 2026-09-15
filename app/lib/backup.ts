@@ -1,3 +1,5 @@
+import { PET_PREFERENCES_KEY } from './pets/contracts.ts';
+import { normalizePetPreferences } from './pets/package.ts';
 import { normalizeHubState, type HubState } from './hub-state.ts';
 import type { DataRepository, StorageEntry } from './repository.ts';
 import { dataUrlBytes, MAX_ATTACHMENT_TEXT } from './attachments.ts';
@@ -168,6 +170,7 @@ export function validateBackup(raw: unknown): HubBackup {
     check(
       entry.key === HUB_KEY ||
         entry.key === 'delivery-connection-v1' ||
+        entry.key === PET_PREFERENCES_KEY ||
         entry.key === 'search-draft' ||
         entry.key === 'context-hub-inbox-pet-position' ||
         /^(turn-draft-|note-draft-|new-note-|model-draft-|model-probes-|workbench-|connection-draft-|import-draft|new-workspace-draft)/.test(
@@ -175,6 +178,8 @@ export function validateBackup(raw: unknown): HubBackup {
         ),
     );
     check(object(entry.value) || Array.isArray(entry.value));
+    if (entry.key === PET_PREFERENCES_KEY)
+      return { key: entry.key, value: normalizePetPreferences(entry.value) };
     if (entry.key !== HUB_KEY) draft(entry.key, entry.value);
     return { key: entry.key, value: entry.value };
   });
