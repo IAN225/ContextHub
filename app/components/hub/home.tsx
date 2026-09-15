@@ -59,7 +59,11 @@ export function JournalHome({
             <Database size={17} />
             <span>数据管理</span>
           </button>
-          <button className="journal-header-action" onClick={onSearch}>
+          <button
+            className="journal-header-action"
+            aria-label="搜索"
+            onClick={onSearch}
+          >
             <Search size={17} />
             <span>搜索</span>
           </button>

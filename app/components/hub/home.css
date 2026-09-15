@@ -780,7 +780,7 @@
   }
 }
 
-/* The admin entry keeps its text on narrow screens. */
+/* Global settings entry, shared by the shelf and reader headers. */
 .admin-entry {
   position: relative;
   flex-shrink: 0;
@@ -813,17 +813,61 @@
 }
 @media (max-width: 760px) {
   .journal-home-header {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding-block: 12px;
+  }
+  .journal-wordmark {
+    min-width: 0;
+    white-space: nowrap;
   }
   .journal-home-header > div {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    margin-left: auto;
     justify-content: flex-end;
-    gap: 14px;
+    gap: 2px;
+  }
+  .journal-home-header .journal-header-action,
+  .journal-home-header .admin-entry-button {
+    width: 32px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #7e8676;
+  }
+  .journal-home-header .journal-header-action:hover,
+  .journal-home-header .admin-entry-button:hover {
+    background: #e9eddf;
+    color: #425c34;
+  }
+  .journal-home-header .journal-header-action > span,
+  .journal-home-header .admin-entry-button > span {
+    display: none;
+  }
+  .journal-home-header .admin-entry-error {
+    position: fixed;
+    top: 60px;
+    left: 8px;
+    right: 8px;
+    width: auto;
   }
 }
 @media (max-width: 480px) {
-  .journal-home-header > div {
-    width: 100%;
-    justify-content: space-between;
+  .journal-home-header {
+    margin-inline: 8px;
+    gap: 4px;
+  }
+  .journal-wordmark {
+    gap: 5px;
+  }
+  .journal-home-header .journal-header-action,
+  .journal-home-header .admin-entry-button,
+  .journal-home-header .journal-avatar {
+    width: 28px;
+    flex-shrink: 0;
   }
 }

@@ -6,7 +6,6 @@ import {
   Database,
   Search,
   Plus,
-  Settings,
 } from 'lucide-react';
 import { AdminLink } from './admin-link';
 type Props = {
@@ -18,9 +17,6 @@ type Props = {
   onData: () => void;
   onSearch: () => void;
   onImport: () => void;
-  onWorkspaceSettings: () => void;
-  workspaceSettingsActive: boolean;
-  hasWorkspace: boolean;
 };
 export function ReaderHeader({
   workspaceName,
@@ -31,9 +27,6 @@ export function ReaderHeader({
   onData,
   onSearch,
   onImport,
-  onWorkspaceSettings,
-  workspaceSettingsActive,
-  hasWorkspace,
 }: Props) {
   return (
     <header className="journal-reader-header">
@@ -51,16 +44,6 @@ export function ReaderHeader({
         <span>{chapter}</span>
       </div>
       <div className="reader-actions">
-        <button
-          className="icon-button workspace-settings-button"
-          aria-label="工作区设置"
-          title="工作区设置"
-          aria-current={workspaceSettingsActive ? 'page' : undefined}
-          disabled={!hasWorkspace}
-          onClick={onWorkspaceSettings}
-        >
-          <Settings size={17} />
-        </button>
         <AdminLink saved={persistence.saved && !persistence.error} />
         <button className="icon-button" aria-label="后台任务" onClick={onTasks}>
           <ListTodo size={17} />

@@ -305,9 +305,6 @@ export function Hub() {
               onData={() => setModal('data')}
               onSearch={() => navigate('search')}
               onImport={() => setModal('import')}
-              onWorkspaceSettings={() => navigate('settings')}
-              workspaceSettingsActive={page === 'settings'}
-              hasWorkspace={data.workspaces.length > 0}
             />
             <div className="journal-reader">
               <aside className="journal-margin">
@@ -321,7 +318,7 @@ export function Hub() {
                     <button
                       key={n.id}
                       disabled={!data.workspaces.length}
-                      className={`${page === n.id ? 'selected' : ''}${n.id === 'settings' ? ' workspace-settings-tab' : ''}`}
+                      className={page === n.id ? 'selected' : ''}
                       aria-current={page === n.id ? 'page' : undefined}
                       onClick={() => navigate(n.id)}
                     >
