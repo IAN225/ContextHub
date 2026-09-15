@@ -263,7 +263,7 @@ test('MCP default and explicit overrides pair the correct summary and raw window
   assert.ok(!current.content.includes('自定义结果'));
   assert.deepEqual(
     current.recentTurnIds,
-    w.turns.slice(1, 3).map((t) => t.id),
+    w.turns.slice(-2).map((t) => t.id),
   );
   const custom = (await callMcpTool(repo, token, 'memory_bootstrap', {
     engine: 'custom',
@@ -271,7 +271,7 @@ test('MCP default and explicit overrides pair the correct summary and raw window
   assert.equal(custom.engine, 'custom');
   assert.ok(custom.content.includes('自定义结果'));
   assert.ok(!custom.content.includes(text));
-  assert.deepEqual(custom.recentTurnIds, [w.turns[2].id]);
+  assert.deepEqual(custom.recentTurnIds, [w.turns.at(-1)!.id]);
   assert.ok(memoryText(w).includes(text));
   const result = createMemorySearch()([w], {
     query: '自定义结果',

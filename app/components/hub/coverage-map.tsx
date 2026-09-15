@@ -81,7 +81,7 @@ export function ChainMap({
           {c.queued.length > 0 && (
             <span>
               <i className="coverage-pending" />
-              窗口之后 {c.queued.length} 轮
+              待压缩 {c.queued.length} 轮
             </span>
           )}
           {inactiveCount > 0 && (

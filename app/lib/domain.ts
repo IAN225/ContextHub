@@ -255,20 +255,15 @@ export function estimateTurnTokens(turn: Turn) {
       : 0)
   );
 }
-export function selectRetentionWindow(
-  w: Workspace,
-  turns: Turn[],
-  fromEnd = false,
-) {
+// A recent window is always a chronological suffix, independent of batch progress.
+export function selectRetentionWindow(w: Workspace, turns: Turn[]) {
   if (w.retainMode !== 'tokens')
-    return fromEnd
-      ? turns.slice(Math.max(0, turns.length - w.retain))
-      : turns.slice(0, w.retain);
+    return turns.slice(Math.max(0, turns.length - w.retain));
   const limit = w.retainTokens ?? 8000;
   const result: Turn[] = [];
   let used = 0;
   for (let offset = 0; offset < turns.length; offset++) {
-    const turn = turns[fromEnd ? turns.length - offset - 1 : offset];
+    const turn = turns[turns.length - offset - 1];
     const tokens = estimateTurnTokens(turn);
     // Stop at the first whole turn that does not fit. Never truncate it or jump
     // over it to pick a smaller, more distant turn.
@@ -276,7 +271,7 @@ export function selectRetentionWindow(
     used += tokens;
     result.push(turn);
   }
-  return fromEnd ? result.reverse() : result;
+  return result.reverse();
 }
 export function coverage(w: Workspace) {
   const active = w.summaries.find((s) => s.id === w.activeId);
@@ -288,7 +283,7 @@ export function coverage(w: Workspace) {
     w.turns.filter((t, i) => t.status === 'normal' && i > at),
   );
   const retainedAtEnd = new Set(
-    selectRetentionWindow(w, normal, true).map((t) => t.id),
+    selectRetentionWindow(w, normal).map((t) => t.id),
   );
   const recentIds = new Set(recent.map((t) => t.id));
   const covered = w.turns.filter(
