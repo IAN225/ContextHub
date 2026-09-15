@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #dfe7d2;
+  border-bottom: 1px solid var(--ui-border, #dfe7d2);
   gap: 12px;
 }
 .notes-layout {
@@ -17,11 +17,11 @@
   width: 100%;
   text-align: left;
   padding: 18px 17px;
-  border-bottom: 1px solid #e4e9dc;
+  border-bottom: 1px solid var(--ui-border, #e4e9dc);
   transition: background 0.2s;
 }
 .note-list > button.selected {
-  border-left: 2px solid #b3c493;
+  border-left: 2px solid var(--ui-border-accent, #b3c493);
   padding-left: 15px;
 }
 .note-list > button > div {
@@ -33,14 +33,14 @@
 .note-list h3 {
   font-family: 'SimSun', serif;
   font-weight: 400;
-  color: #819267;
+  color: var(--ui-heading, #819267);
   line-height: 1.7;
   flex: 1;
   margin: 0;
 }
 .note-list p {
   line-height: 1.9;
-  color: #92a079;
+  color: var(--ui-muted, #92a079);
   margin: 11px 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -51,23 +51,23 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  color: #a1ad8c;
+  color: var(--ui-muted, #a1ad8c);
 }
 .note-list-help {
   display: flex;
   gap: 11px;
   align-items: center;
   padding: 27px 17px;
-  color: #9aad84;
+  color: var(--ui-muted, #9aad84);
 }
 .note-list-help p {
   margin: 0;
-  color: #9daa85;
+  color: var(--ui-muted, #9daa85);
   line-height: 1.9;
 }
 .note-paper {
   min-width: 0;
-  border: 1px solid #e1e7d7;
+  border: 1px solid var(--ui-border, #e1e7d7);
   border-radius: 3px;
   padding: 19px 25px;
   background: var(--paper-input);
@@ -80,7 +80,7 @@
 }
 .note-created {
   font-family: Georgia, serif;
-  color: #a4b38e;
+  color: var(--ui-muted, #a4b38e);
 }
 .note-empty-paper {
   min-height: 340px;
@@ -104,14 +104,14 @@
   background: transparent;
 }
 .note-paper-top .icon-button {
-  color: #94a479;
+  color: var(--ui-muted, #94a479);
 }
 .note-paper-top .starred {
   color: #b9a26c;
 }
 .note-title-input {
   font-family: 'SimSun', serif;
-  color: #748c5d;
+  color: var(--ui-text, #748c5d);
   background: transparent;
   border: 0;
   width: 100%;
@@ -120,7 +120,7 @@
   border-radius: 0;
 }
 .note-metadata {
-  color: #97a684;
+  color: var(--ui-muted, #97a684);
   display: flex;
   align-items: center;
   gap: 7px;
@@ -131,11 +131,11 @@
   border: 0;
   background: repeating-linear-gradient(
     transparent 0 31px,
-    #e9eede66 31px 32px
+    color-mix(in srgb, var(--ui-surface, #e9eede) 40%, transparent) 31px 32px
   );
 }
 .note-paper .editor-toolbar {
-  background: #f4f8eb;
+  background: var(--ui-surface, #f4f8eb);
   border: 0;
   border-radius: 4px;
   padding: 7px 9px;
@@ -150,12 +150,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-top: 1px solid #e1e9d6;
+  border-top: 1px solid var(--ui-border, #e1e9d6);
   padding-top: 18px;
   margin-top: 12px;
 }
 .note-paper-footer > span {
-  color: #93a67a;
+  color: var(--ui-muted, #93a67a);
 }
 .note-paper > .inline-note {
   margin-top: 17px;
@@ -164,25 +164,25 @@
   display: flex;
   align-items: center;
   gap: 20px;
-  border-bottom: 1px solid #e2e9d5;
+  border-bottom: 1px solid var(--ui-border, #e2e9d5);
   padding: 15px 0;
 }
 .version-row > div {
   flex: 1;
 }
 .version-row h3 {
-  color: #81986a;
+  color: var(--ui-heading, #81986a);
   font-size: 14px;
   margin: 0 0 6px;
 }
 .version-row small {
-  color: #97a680;
+  color: var(--ui-muted, #97a680);
   font-size: 10px;
 }
 .version-row p {
   font-size: 12px;
   line-height: 1.9;
-  color: #8b9d73;
+  color: var(--ui-muted, #8b9d73);
   margin: 10px 0;
   white-space: pre-wrap;
 }
@@ -204,12 +204,12 @@
   }
   .note-list > button {
     flex-shrink: 0;
-    border: 1px solid #e2e8d5;
+    border: 1px solid var(--ui-border, #e2e8d5);
     border-radius: 4px;
     padding: 14px;
   }
   .note-list > button.selected {
-    border-left: 2px solid #b3c493;
+    border-left: 2px solid var(--ui-border-accent, #b3c493);
     padding-left: 13px;
   }
   .note-list-help {
@@ -253,7 +253,7 @@
   padding-bottom: 21px;
 }
 .note-list > button.selected {
-  background: #edf1e3;
+  background: var(--ui-soft, #edf1e3);
 }
 @media (max-width: 800px) {
   .notes-layout {

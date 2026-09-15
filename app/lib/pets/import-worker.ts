@@ -1,8 +1,12 @@
-import { importPetPack } from './package';
+import { importCompatiblePetPack } from './codex';
+import { cropPetFrames } from './crop-frames';
 import { readImageDataUrl } from './images';
 self.onmessage = async (event: MessageEvent<ArrayBuffer>) => {
   try {
-    const pack = importPetPack(new Uint8Array(event.data));
+    const pack = await importCompatiblePetPack(
+      new Uint8Array(event.data),
+      cropPetFrames,
+    );
     for (const animation of Object.values(pack.animations))
       for (const frame of animation.frames) {
         const { bytes, mime } = readImageDataUrl(frame.src);

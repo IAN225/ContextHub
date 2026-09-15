@@ -1,4 +1,5 @@
 'use client';
+import { useWorkspaceThemeClass } from './workspace-theme';
 import { engineLabels, type SummaryEngine } from '@/lib/summary/engines';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -22,6 +23,7 @@ export function MemoryComposer({
   onEngineChange: (engine: SummaryEngine) => void;
   onChange: (blocks: Block[]) => void;
 }) {
+  const themeClass = useWorkspaceThemeClass();
   const [editing, setEditing] = useState<string | null>(null);
   const { list, drag, dragPoint, move, startDrag } = useBlockReorder(
     w.blocks,
@@ -76,7 +78,7 @@ export function MemoryComposer({
         dragged &&
         createPortal(
           <div
-            className="memory-drag-ghost"
+            className={'memory-drag-ghost ' + themeClass}
             style={{
               left: dragPoint.x - drag.offsetX,
               top: dragPoint.y - drag.offsetY,

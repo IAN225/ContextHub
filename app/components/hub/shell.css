@@ -29,29 +29,29 @@
   justify-content: space-between;
   padding: 0 5%;
   gap: 18px;
-  border-bottom: 1px solid #dcded1;
-  background: #f3f1e9d9;
+  border-bottom: 1px solid var(--ui-border, #dcded1);
+  background: color-mix(in srgb, var(--ui-subtle, #f3f1e9) 85.1%, transparent);
 }
 .back-to-shelf {
   display: flex;
   align-items: center;
   gap: 9px;
-  color: #77886a;
+  color: var(--ui-accent, #77886a);
   white-space: nowrap;
 }
 .back-to-shelf:hover {
-  color: #425b34;
+  color: var(--ui-accent, #425b34);
 }
 .reader-breadcrumb {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #90977f;
+  color: var(--ui-muted, #90977f);
   flex: 1;
   margin-left: 22px;
 }
 .reader-breadcrumb > span:last-child {
-  color: #a1aa8d;
+  color: var(--ui-muted, #a1aa8d);
 }
 .reader-actions {
   display: flex;
@@ -59,7 +59,7 @@
   gap: 13px;
 }
 .reader-actions .save-state {
-  color: #8d9d76;
+  color: var(--ui-muted, #8d9d76);
   margin-right: 15px;
 }
 .journal-reader {
@@ -80,7 +80,7 @@
   gap: 25px;
   padding-top: 58px;
   flex-shrink: 0;
-  color: #a0a78d;
+  color: var(--ui-muted, #a0a78d);
 }
 .journal-margin > span {
   writing-mode: vertical-rl;
@@ -93,7 +93,7 @@
 .journal-margin i {
   width: 1px;
   height: 70px;
-  background: #cdd3bf;
+  background: var(--ui-subtle, #cdd3bf);
 }
 .journal-sheet {
   min-width: 0;
@@ -103,11 +103,11 @@
   flex: 1;
   position: relative;
   background: var(--paper-surface);
-  border: 1px solid #e0e1d4;
+  border: 1px solid var(--ui-border, #e0e1d4);
   box-shadow:
-    3px 4px 0 #f9f8ef,
-    4px 5px 0 #dedfd0,
-    8px 11px 25px #7677530a;
+    3px 4px 0 var(--ui-surface, #f9f8ef),
+    4px 5px 0 var(--ui-border, #dedfd0),
+    8px 11px 25px color-mix(in srgb, var(--ui-shadow, #767753) 4%, transparent);
   border-radius: 3px 8px 8px 3px;
 }
 .journal-sheet::before {
@@ -117,7 +117,11 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background: #e4e4d77a;
+  background: color-mix(
+    in srgb,
+    var(--ui-surface, #e4e4d7) 47.84%,
+    transparent
+  );
   pointer-events: none;
 }
 .journal-tabs {
@@ -126,26 +130,26 @@
   align-items: stretch;
   gap: 4px;
   padding: 0 37px;
-  border-bottom: 1px solid #e2e5d6;
-  background: #fafaf2;
+  border-bottom: 1px solid var(--ui-border, #e2e5d6);
+  background: var(--ui-subtle, #fafaf2);
 }
 .journal-tabs button {
   display: flex;
   align-items: center;
   gap: 9px;
   padding: 17px 20px 15px;
-  color: #929b81;
+  color: var(--ui-muted, #929b81);
   border-bottom: 2px solid transparent;
   position: relative;
 }
 .journal-tabs button:hover {
-  color: #627950;
-  background: #f1f3e8;
+  color: var(--ui-accent, #627950);
+  background: var(--ui-subtle, #f1f3e8);
 }
 .journal-tabs button.selected {
-  color: #5d744c;
-  border-bottom-color: #8fa477;
-  background: #eaf0df55;
+  color: var(--ui-accent, #5d744c);
+  border-bottom-color: var(--ui-border-accent, #8fa477);
+  background: color-mix(in srgb, var(--ui-soft, #eaf0df) 33.33%, transparent);
 }
 .journal-tabs button.selected::after {
   content: '';
@@ -154,7 +158,7 @@
   right: 15px;
   height: 10px;
   width: 6px;
-  background: #b2bc91;
+  background: var(--ui-soft, #b2bc91);
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 75%, 0 100%);
 }
 .journal-tabs button > span {
@@ -162,7 +166,7 @@
 }
 .journal-tabs small {
   display: block;
-  color: #9ea98a;
+  color: var(--ui-muted, #9ea98a);
   margin-top: 4px;
   letter-spacing: 0.8px;
 }
@@ -186,10 +190,11 @@
   max-width: 90vw;
   z-index: var(--z-toast);
   padding: 13px 21px;
-  border: 1px solid #bdccaa;
-  background: #f7fbed;
-  color: #7b9263;
-  box-shadow: 0 7px 28px #77845d20;
+  border: 1px solid var(--ui-border, #bdccaa);
+  background: var(--ui-subtle, #f7fbed);
+  color: var(--ui-muted, #7b9263);
+  box-shadow: 0 7px 28px
+    color-mix(in srgb, var(--ui-shadow, #77845d) 12.55%, transparent);
   border-radius: 7px;
   display: flex;
   align-items: center;
@@ -405,11 +410,11 @@
   .reader-actions .admin-entry-button {
     border: 0;
     background: transparent;
-    color: #8b9380;
+    color: var(--ui-muted, #8b9380);
   }
   .reader-actions .admin-entry-button:hover {
-    background: #e9eddf;
-    color: #536947;
+    background: var(--ui-subtle, #e9eddf);
+    color: var(--ui-accent, #536947);
   }
   .reader-actions .admin-entry-button > span {
     display: none;
@@ -460,7 +465,7 @@
     display: none;
   }
   .journal-tabs button.selected {
-    background: #e8efdf;
+    background: var(--ui-soft, #e8efdf);
   }
   .page-content {
     margin: 0;

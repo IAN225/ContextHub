@@ -32,7 +32,7 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: #536348;
+  color: var(--ui-text, #536348);
 }
 .note-compose-mask {
   position: absolute;
@@ -50,7 +50,7 @@
   top: 11px;
   width: 1px;
   height: 14px;
-  background: #a4b193;
+  background: var(--ui-subtle, #a4b193);
 }
 .note-actions[data-search-open='true'] .note-compose-mask {
   clip-path: inset(0 100% 0 0);
@@ -94,7 +94,7 @@
   box-shadow: none;
   background: transparent;
   font-size: 16px;
-  color: #45563d;
+  color: var(--ui-text, #45563d);
   -webkit-appearance: none;
   appearance: none;
 }
@@ -108,7 +108,7 @@
   width: 28px;
   height: 36px;
   border-radius: 50%;
-  color: #7d8971;
+  color: var(--ui-muted, #7d8971);
 }
 @media (max-width: 800px) {
   .note-actions {

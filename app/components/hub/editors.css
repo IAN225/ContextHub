@@ -13,7 +13,7 @@
   border-radius: 7px;
 }
 .rich-editor {
-  border: 1px solid #dfe6d2;
+  border: 1px solid var(--ui-border, #dfe6d2);
   border-radius: 6px;
   overflow: hidden;
   background: var(--paper-input);
@@ -23,9 +23,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 11px;
-  border-bottom: 1px solid #e4ead9;
-  background: #f8fbf1;
-  color: #8fa678;
+  border-bottom: 1px solid var(--ui-border, #e4ead9);
+  background: var(--ui-surface, #f8fbf1);
+  color: var(--ui-muted, #8fa678);
   gap: 10px;
 }
 .editor-toolbar > div {
@@ -35,12 +35,12 @@
 }
 .editor-toolbar button {
   padding: 5px;
-  color: #8ea676;
+  color: var(--ui-muted, #8ea676);
   border-radius: 3px;
 }
 .editor-toolbar button:hover {
-  background: #eaf1df;
-  color: #738f58;
+  background: var(--ui-subtle, #eaf1df);
+  color: var(--ui-accent, #738f58);
 }
 .rich-editor textarea {
   border: 0;
@@ -48,7 +48,7 @@
   background: transparent;
   display: block;
   padding: 17px;
-  color: #798868;
+  color: var(--ui-text, #798868);
   line-height: 2;
 }
 .editor-preview {
@@ -64,11 +64,11 @@
   align-items: center;
   gap: 8px;
   padding: 6px 9px;
-  border: 1px solid #dce5cc;
-  background: #f5f8ee;
+  border: 1px solid var(--ui-border, #dce5cc);
+  background: var(--ui-subtle, #f5f8ee);
   border-radius: 5px;
   font-size: 10px;
-  color: #8aa170;
+  color: var(--ui-muted, #8aa170);
 }
 .attachment-strip img {
   width: 38px;

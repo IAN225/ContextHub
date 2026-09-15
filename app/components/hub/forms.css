@@ -36,7 +36,7 @@
 }
 .callout {
   line-height: 1.8;
-  border: 1px solid #354b41;
+  border: 1px solid var(--ui-border, #354b41);
   padding: 13px var(--space-4);
   border-radius: 6px;
   margin: 0;
@@ -76,7 +76,7 @@
   gap: 9px;
 }
 .checks input {
-  accent-color: #9fd3ba;
+  accent-color: var(--ui-accent, #9fd3ba);
 }
 .muted-label {
   font-size: 11px;
@@ -150,30 +150,31 @@
   }
 }
 .hub-dialog {
-  background: #fffdf7 !important;
-  border-color: #d7dfc7 !important;
-  box-shadow: 0 20px 90px #454e3330;
+  background: var(--ui-surface, #fffdf7) !important;
+  border-color: var(--ui-border, #d7dfc7) !important;
+  box-shadow: 0 20px 90px
+    color-mix(in srgb, var(--ui-shadow, #454e33) 18.82%, transparent);
   border-radius: 9px !important;
 }
 .dialog-heading {
-  border-bottom-color: #e2e7d8;
+  border-bottom-color: var(--ui-border, #e2e7d8);
 }
 .dialog-title {
   font-family: 'SimSun', serif;
-  color: #5e714c;
+  color: var(--ui-text, #5e714c);
   font-weight: 400 !important;
   letter-spacing: 1px;
 }
 .dialog-heading [data-slot='dialog-description'] {
-  color: #929f7f;
+  color: var(--ui-muted, #929f7f);
 }
 .field {
-  color: #7f8d6c;
+  color: var(--ui-muted, #7f8d6c);
 }
 .callout {
-  background: #f0f5e7;
-  color: #819366;
-  border-color: #dce7cc;
+  background: var(--ui-subtle, #f0f5e7);
+  color: var(--ui-muted, #819366);
+  border-color: var(--ui-border, #dce7cc);
 }
 .callout.warning {
   background: #fbf4e7;
@@ -186,11 +187,11 @@
   margin-right: 7px;
 }
 .form-actions .save-caption {
-  color: #8ea074;
+  color: var(--ui-muted, #8ea074);
 }
 .field-help,
 .inline-note {
-  color: #8e9f75;
+  color: var(--ui-muted, #8e9f75);
 }
 .inline-note > svg {
   display: inline;
@@ -198,45 +199,45 @@
   margin-right: 5px;
 }
 .checks {
-  color: #859976;
+  color: var(--ui-muted, #859976);
 }
 .error-text {
   color: #b58166;
 }
 .muted-label {
-  color: #8ea275;
+  color: var(--ui-muted, #8ea275);
 }
 .inline-code {
-  background: #f5f8ef;
-  border-color: #dce5cf;
-  color: #7b925f;
+  background: var(--ui-subtle, #f5f8ef);
+  border-color: var(--ui-border, #dce5cf);
+  color: var(--ui-muted, #7b925f);
 }
 .radio-choice {
-  border-color: #dfe7d3;
+  border-color: var(--ui-border, #dfe7d3);
 }
 .radio-choice.selected {
-  background: #eff5e5;
-  border-color: #b0c492;
+  background: var(--ui-soft, #eff5e5);
+  border-color: var(--ui-border-accent, #b0c492);
 }
 .radio-choice input {
-  accent-color: #8da66d;
+  accent-color: var(--ui-accent, #8da66d);
 }
 .radio-choice strong {
-  color: #798c60;
+  color: var(--ui-heading, #798c60);
 }
 .radio-choice p {
-  color: #8c9e76;
+  color: var(--ui-muted, #8c9e76);
 }
 .info-list {
-  color: #8ba071;
+  color: var(--ui-muted, #8ba071);
 }
 .hub-select {
   width: 100% !important;
   min-height: 39px !important;
-  background: #fffefa !important;
-  border-color: #d9e1cb !important;
+  background: var(--ui-subtle, #fffefa) !important;
+  border-color: var(--ui-border, #d9e1cb) !important;
   border-radius: 5px !important;
-  color: #7f906b !important;
+  color: var(--ui-muted, #7f906b) !important;
 }
 @media (max-width: 800px) {
   .form-grid,

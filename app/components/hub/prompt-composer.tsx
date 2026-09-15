@@ -1,4 +1,5 @@
 'use client';
+import { useWorkspaceThemeClass } from './workspace-theme';
 import { createPortal } from 'react-dom';
 import {
   GripVertical,
@@ -32,6 +33,7 @@ export function Composer({
   blocks: Block[];
   onChange: (b: Block[]) => void;
 }) {
+  const themeClass = useWorkspaceThemeClass();
   const { list, drag, dragPoint, move, startDrag } = useBlockReorder(
     blocks,
     onChange,
@@ -112,7 +114,7 @@ export function Composer({
         dragged &&
         createPortal(
           <div
-            className="compose-drag-ghost"
+            className={'compose-drag-ghost ' + themeClass}
             style={{
               left: dragPoint.x - drag.offsetX,
               top: dragPoint.y - drag.offsetY,

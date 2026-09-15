@@ -37,23 +37,23 @@
 }
 .raw-text,
 .markdown {
-  color: #737b65;
+  color: var(--ui-text, #737b65);
   line-height: 2;
 }
 .markdown strong {
-  color: #5b6a4a;
+  color: var(--ui-heading, #5b6a4a);
   font-weight: 550;
 }
 .markdown h3 {
-  color: #5e7050;
+  color: var(--ui-heading, #5e7050);
 }
 .markdown pre,
 .tool-text {
-  background: #f2f5ec;
-  color: #748865;
+  background: var(--ui-subtle, #f2f5ec);
+  color: var(--ui-text, #748865);
 }
 .list-line::before {
-  color: #93a675;
+  color: var(--ui-muted, #93a675);
 }
 .raw-text,
 .markdown {

@@ -2,9 +2,11 @@ import { petLimits } from './contracts.ts';
 function word(data: Uint8Array, offset: number, length: number) {
   return String.fromCharCode(...data.subarray(offset, offset + length));
 }
-export function imageInfo(bytes: Uint8Array) {
-  if (bytes.length > petLimits.imageBytes)
-    throw Error('单张图片不能超过 2 MB。');
+export function imageInfo(
+  bytes: Uint8Array,
+  limits = { bytes: petLimits.imageBytes, dimension: petLimits.dimension },
+) {
+  if (bytes.length > limits.bytes) throw Error('单张图片不能超过 2 MB。');
   const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   let width = 0,
     height = 0,
@@ -69,8 +71,8 @@ export function imageInfo(bytes: Uint8Array) {
     !mime ||
     width < 1 ||
     height < 1 ||
-    width > petLimits.dimension ||
-    height > petLimits.dimension
+    width > limits.dimension ||
+    height > limits.dimension
   )
     throw Error('图片需为静态 PNG / WebP，尺寸不超过 512 × 512。');
   return { width, height, mime };

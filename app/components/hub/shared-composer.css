@@ -12,8 +12,8 @@
   position: relative;
 }
 .compose-block.is-placeholder {
-  border: 1px dashed #8b9c70;
-  background: #eaf0df;
+  border: 1px dashed var(--ui-border, #8b9c70);
+  background: var(--ui-subtle, #eaf0df);
 }
 .compose-block.is-placeholder > * {
   opacity: 0.2;
@@ -25,7 +25,7 @@
   min-height: 32px;
   touch-action: none;
   cursor: grab;
-  color: #a7b88f;
+  color: var(--ui-muted, #a7b88f);
 }
 .compose-drag-handle:active {
   cursor: grabbing;
@@ -38,11 +38,12 @@
   align-items: center;
   gap: 10px;
   padding: 14px;
-  border: 1px solid #a9b88e;
+  border: 1px solid var(--ui-border, #a9b88e);
   border-radius: 7px;
-  background: #f8fbf1;
-  color: #536044;
-  box-shadow: 0 10px 25px #3e502930;
+  background: var(--ui-subtle, #f8fbf1);
+  color: var(--ui-text, #536044);
+  box-shadow: 0 10px 25px
+    color-mix(in srgb, var(--ui-shadow, #3e5029) 18.82%, transparent);
   font-size: 13px;
 }
 .compose-block {
@@ -84,7 +85,7 @@
   align-items: center;
   gap: 4px;
   padding: 7px 8px;
-  border: 1px dashed #3d5350;
+  border: 1px dashed var(--ui-border, #3d5350);
   border-radius: 5px;
 }
 @media (max-width: 767px) {
@@ -99,33 +100,33 @@
   }
 }
 .composer-guide {
-  color: #8e9e78;
+  color: var(--ui-muted, #8e9e78);
 }
 .composer-guide span {
-  color: #9aa984;
+  color: var(--ui-muted, #9aa984);
 }
 .compose-block {
-  background: #fbfcf7;
-  border-color: #dfe6d3;
+  background: var(--ui-subtle, #fbfcf7);
+  border-color: var(--ui-border, #dfe6d3);
   border-radius: 5px;
 }
 .compose-block.summary {
-  border-color: #d4dfc5;
-  background: #eef4e5;
+  border-color: var(--ui-border, #d4dfc5);
+  background: var(--ui-subtle, #eef4e5);
 }
 .compose-block.recent {
   border-color: #d6e2e5;
-  background: #f0f5f6;
+  background: var(--ui-subtle, #f0f5f6);
 }
 .compose-block.stars {
   border-color: #e8dfc8;
-  background: #faf5e9;
+  background: var(--ui-subtle, #faf5e9);
 }
 .block-head {
-  color: #819669;
+  color: var(--ui-muted, #819669);
 }
 .block-head small {
-  color: #92a17e;
+  color: var(--ui-muted, #92a17e);
 }
 .compose-block.recent .block-head {
   color: #839ba4;
@@ -134,22 +135,22 @@
   color: #aa986e;
 }
 .compose-block p {
-  color: #96a580;
+  color: var(--ui-muted, #96a580);
 }
 .compose-block textarea {
-  background: #fffefa;
-  border-top-color: #e1e7d6;
-  color: #7d8a6b;
+  background: var(--ui-surface, #fffefa);
+  border-top-color: var(--ui-border, #e1e7d6);
+  color: var(--ui-text, #7d8a6b);
 }
 .drag-handle {
-  color: #a7b88f;
+  color: var(--ui-muted, #a7b88f);
 }
 .composer-add button {
-  border-color: #d6e2c7;
-  color: #89a16d;
+  border-color: var(--ui-border, #d6e2c7);
+  color: var(--ui-muted, #89a16d);
 }
 .composer-add button:hover {
-  background: #edf5e4;
+  background: var(--ui-subtle, #edf5e4);
 }
 @media (max-width: 480px) {
   .block-head {

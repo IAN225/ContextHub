@@ -1,6 +1,6 @@
 .inbox-description {
   margin: 0 0 18px;
-  color: #7b866d;
+  color: var(--ui-muted, #7b866d);
   font-size: 13px;
   line-height: 1.7;
 }
@@ -68,10 +68,10 @@
 }
 .delivery-trigger-option {
   padding: 12px 14px;
-  border: 1px solid #e1e8d3;
+  border: 1px solid var(--ui-border, #e1e8d3);
   border-radius: 6px;
-  background: #f6f8ef;
-  color: #7b866d;
+  background: var(--ui-subtle, #f6f8ef);
+  color: var(--ui-muted, #7b866d);
   font-size: 13px;
   line-height: 1.7;
 }
@@ -114,8 +114,8 @@
   align-items: flex-start;
   gap: 14px;
   padding: 18px 0;
-  border-bottom: 1px solid #dfe6d4;
-  color: #758863;
+  border-bottom: 1px solid var(--ui-border, #dfe6d4);
+  color: var(--ui-muted, #758863);
 }
 .note-notification-content {
   flex: 1;
@@ -133,7 +133,7 @@
 }
 .note-notification small {
   font-size: 12px;
-  color: #7b866d;
+  color: var(--ui-muted, #7b866d);
 }
 .note-notification.is-read h3 {
   font-weight: 400;
