@@ -6,8 +6,8 @@ import {
   Database,
   Search,
   Plus,
+  Settings,
 } from 'lucide-react';
-import { Button } from './shared';
 import { AdminLink } from './admin-link';
 type Props = {
   workspaceName: string;
@@ -18,6 +18,9 @@ type Props = {
   onData: () => void;
   onSearch: () => void;
   onImport: () => void;
+  onWorkspaceSettings: () => void;
+  workspaceSettingsActive: boolean;
+  hasWorkspace: boolean;
 };
 export function ReaderHeader({
   workspaceName,
@@ -28,6 +31,9 @@ export function ReaderHeader({
   onData,
   onSearch,
   onImport,
+  onWorkspaceSettings,
+  workspaceSettingsActive,
+  hasWorkspace,
 }: Props) {
   return (
     <header className="journal-reader-header">
@@ -45,6 +51,16 @@ export function ReaderHeader({
         <span>{chapter}</span>
       </div>
       <div className="reader-actions">
+        <button
+          className="icon-button workspace-settings-button"
+          aria-label="工作区设置"
+          title="工作区设置"
+          aria-current={workspaceSettingsActive ? 'page' : undefined}
+          disabled={!hasWorkspace}
+          onClick={onWorkspaceSettings}
+        >
+          <Settings size={17} />
+        </button>
         <AdminLink saved={persistence.saved && !persistence.error} />
         <button className="icon-button" aria-label="后台任务" onClick={onTasks}>
           <ListTodo size={17} />
@@ -67,10 +83,16 @@ export function ReaderHeader({
         >
           <Search size={17} />
         </button>
-        <Button onClick={onImport}>
+        <button
+          type="button"
+          className="button reader-import"
+          aria-label="收录对话"
+          title="收录对话"
+          onClick={onImport}
+        >
           <Plus size={14} />
-          收录对话
-        </Button>
+          <span>收录对话</span>
+        </button>
       </div>
     </header>
   );

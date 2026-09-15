@@ -13,6 +13,9 @@ export function AdminLink({ saved }: { saved: boolean }) {
     <div className="admin-entry">
       <button
         className="admin-entry-button"
+        aria-label={busy ? '正在打开全局设置…' : '全局设置'}
+        title="全局设置"
+        aria-busy={busy}
         disabled={busy || !saved}
         onClick={async () => {
           setBusy(true);
