@@ -1,12 +1,12 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { blankWorkspace, groupTurns, type Upload } from '../lib/domain.ts';
-import {
-  applyHubCommand,
-  createEmptyHubState,
-  type HubState,
-} from '../lib/hub-state.ts';
+import { test } from 'node:test';
+import { type Upload } from '../lib/core/model.ts';
 import { deliveryTriggerTurn } from '../lib/imports/delivery-review.ts';
+import { type HubState } from '../lib/state/contracts.ts';
+import { createEmptyHubState } from '../lib/state/empty.ts';
+import { applyHubCommand } from '../lib/state/hub-reducer.ts';
+import { groupTurns } from '../lib/transcript/turns.ts';
+import { blankWorkspace } from '../lib/workspaces/create.ts';
 
 function fixture() {
   const upload: Upload = {

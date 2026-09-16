@@ -1,22 +1,19 @@
 'use client';
 import {
   useCallback,
-  useState,
-  useRef,
-  useLayoutEffect,
   useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
 } from 'react';
-import { removeWorkspaceData } from './workspace-lifecycle';
 import { purgeTrash, trashCounts } from './recycle-bin';
-import { usePersistent } from './store';
-import {
-  applyHubCommand,
-  normalizeHubState,
-  createEmptyHubState,
-  type HubCommand,
-  type WorkspaceCommand,
-} from './hub-state';
 import type { StorageEntry } from './repository';
+import { type HubCommand, type WorkspaceCommand } from './state/contracts.ts';
+import { createEmptyHubState } from './state/empty.ts';
+import { applyHubCommand } from './state/hub-reducer.ts';
+import { normalizeHubState } from './state/validation.ts';
+import { usePersistent } from './store';
+import { removeWorkspaceData } from './workspace-lifecycle';
 export type CommitWorkspaceCommand = (
   command: WorkspaceCommand,
   companion?: StorageEntry,

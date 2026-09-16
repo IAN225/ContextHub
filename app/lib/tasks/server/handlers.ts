@@ -1,181 +1,45 @@
+import { attachmentStatus } from '../../attachments.ts';
+import { type Attachment } from '../../core/model.ts';
+import {
+  digest,
+  randomSecret,
+  requireManagementRequest,
+} from '../../imports/server/auth.ts';
+import { discardRequestBody } from '../../imports/server/share-service.ts';
+import { normalizeHubState } from '../../state/validation.ts';
+import { coverage } from '../../summary/coverage.ts';
 import {
   engineLabels,
   parseSummaryEngine,
   type SummaryEngine,
 } from '../../summary/engines.ts';
 import {
-  coverage,
-  now,
-  uid,
-  type Attachment,
-  type Workspace,
-} from '../../domain.ts';
-import { normalizeHubState } from '../../hub-state.ts';
-import {
-  attachmentRevision,
-  attachmentStatus,
-  fingerprintAttachment,
-} from '../../attachments.ts';
-import {
-  digest,
-  randomSecret,
-  requireManagementRequest,
-} from '../../imports/server/auth.ts';
-import {
-  discardRequestBody,
-  readLimitedBody,
-} from '../../imports/server/share-service.ts';
-import {
-  applyGeneratedCheckpoint,
-  checkpointFromResult,
   planCompression,
   planWorkbench,
   summaryRevision,
 } from '../../summary/planning.ts';
+import { type SummaryEnvironment } from '../../summary/server/config.ts';
 import {
-  resolveSummaryConnection,
-  type SummaryEnvironment,
-} from '../../summary/server/config.ts';
-import { generateSummary } from '../../summary/server/service.ts';
-import { summaryTaskWorkspace } from '../snapshot.ts';
-import {
-  MAX_TASK_BYTES,
   publicTask,
   TaskError,
   type AttachmentTaskState,
   type SummaryTaskState,
-  type WorkbenchTaskState,
   type TaskRecord,
+  type WorkbenchTaskState,
 } from '../contracts.ts';
+import { summaryTaskWorkspace } from '../snapshot.ts';
+import {
+  body,
+  connectionHash,
+  COOKIE,
+  headers,
+  object,
+  owner,
+  runtimeReady,
+  type TaskEnvironment,
+} from './http.ts';
 import type { TaskRepository } from './repository.ts';
-
-export type TaskEnvironment = SummaryEnvironment & {
-  CONTEXT_HUB_TASK_RUNNER_KEY?: string;
-};
-const headers = { 'Cache-Control': 'no-store' };
-const COOKIE = 'context_hub_tasks';
-const object = (v: unknown): Record<string, unknown> =>
-  v && typeof v === 'object' && !Array.isArray(v)
-    ? (v as Record<string, unknown>)
-    : {};
-async function body(request: Request, limit = MAX_TASK_BYTES) {
-  if (!request.headers.get('content-type')?.includes('application/json'))
-    throw new TaskError('JSON_REQUIRED', '请使用 JSON 请求。', 415);
-  try {
-    return object(JSON.parse(await readLimitedBody(request, limit)));
-  } catch (error) {
-    if (error instanceof Error && 'status' in error) throw error;
-    throw new TaskError('INVALID_JSON', '任务数据格式无效。');
-  }
-}
-async function owner(request: Request, repo: TaskRepository) {
-  const secret = request.headers
-    .get('cookie')
-    ?.split(';')
-    .map((s) => s.trim())
-    .find((s) => s.startsWith(`${COOKIE}=`))
-    ?.slice(COOKIE.length + 1);
-  return secret && /^[a-f0-9]{64}$/.test(secret)
-    ? repo.session(await digest(secret))
-    : undefined;
-}
-async function connectionHash(w: Workspace, env: TaskEnvironment) {
-  const c = resolveSummaryConnection(w.config, env);
-  return digest(JSON.stringify(c));
-}
-function runtimeReady(env: TaskEnvironment) {
-  return Boolean(env.CONTEXT_HUB_TASK_RUNNER_KEY);
-}
-async function requireRunner(request: Request, env: TaskEnvironment) {
-  const key = request.headers.get('x-context-hub-runner') ?? '';
-  if (
-    !env.CONTEXT_HUB_TASK_RUNNER_KEY ||
-    !key ||
-    (await digest(key)) !== (await digest(env.CONTEXT_HUB_TASK_RUNNER_KEY))
-  )
-    throw new TaskError('FORBIDDEN', '任务执行器未授权。', 403);
-}
-async function runSummary(
-  task: TaskRecord,
-  repo: TaskRepository,
-  env: TaskEnvironment,
-  fetcher?: typeof fetch,
-) {
-  try {
-    const state = await repo.read<SummaryTaskState>(task.id, 'state');
-    if (!state)
-      throw new TaskError('MISSING_TASK_DATA', '任务输入已经不可用。');
-    const w = state.workspace;
-    if ((await connectionHash(w, env)) !== task.connection_hash)
-      throw new TaskError(
-        'CONNECTION_CHANGED',
-        '本地模型连接已变化。请取消旧任务，再按当前连接开始压缩。',
-      );
-    if (task.kind === 'workbench') {
-      const input = state as WorkbenchTaskState;
-      const plan = planWorkbench(
-        w,
-        w.turns.filter(
-          (t) => input.turnIds.includes(t.id) && t.status === 'normal',
-        ),
-        w.summaries.find((s) => s.id === input.summaryId),
-        input.instruction,
-      );
-      const result = await generateSummary(plan.input, env, undefined, fetcher);
-      await repo.progress(
-        task,
-        state,
-        {
-          kind: 'workbench',
-          upload: {
-            id: `candidate-${task.id}`,
-            title: '工作台候选摘要',
-            kind: 'summary',
-            channel: 'workbench',
-            source: `摘要工作台 · ${result.model}`,
-            turns: [],
-            workspaceId: w.id,
-            covered: plan.covered,
-            summaryText: result.text,
-            createdAt: now(),
-          },
-        },
-        'completed',
-      );
-      return;
-    }
-    const plan = planCompression(w);
-    if (!plan)
-      throw new TaskError('NO_PENDING_TURNS', '任务已没有待压缩轮次。');
-    // This request is owned by the local runner, never a browser tab lifecycle.
-    const response = await generateSummary(plan.input, env, undefined, fetcher);
-    const generated = checkpointFromResult(plan, response, uid(), now());
-    const next = applyGeneratedCheckpoint(w, generated);
-    await repo.progress(
-      task,
-      { workspace: next },
-      {
-        kind: 'summary',
-        engine: w.summaryEngine ?? 'custom',
-        expectedHash: await digest(summaryRevision(w)),
-        summary: generated.summary,
-        turnIds: generated.turnIds,
-      },
-      !coverage(next).pending.length
-        ? 'completed'
-        : w.config.review
-          ? 'paused'
-          : 'queued',
-    );
-  } catch (error) {
-    await repo.fail(
-      task,
-      error instanceof Error && 'code' in error
-        ? error.message
-        : '摘要任务未完成，已暂停。请检查本地服务后手动重试。',
-    );
-  }
-}
+import { handleRunner } from './runner.ts';
 export async function taskHandler(
   request: Request,
   action: string,
@@ -189,96 +53,15 @@ export async function taskHandler(
   ) => Promise<SummaryEnvironment>,
 ) {
   try {
-    if (action.startsWith('runner-')) {
-      await requireRunner(request, env);
-      if (request.method !== 'POST')
-        throw new TaskError('METHOD', '请求方法不支持。', 405);
-      if (action === 'runner-claim') {
-        const task = await repo.claim();
-        if (!task) return Response.json({ task: null }, { headers });
-        const state =
-          task.kind === 'attachments'
-            ? await repo.read<AttachmentTaskState>(task.id, 'state')
-            : null;
-        return Response.json(
-          {
-            task: {
-              id: task.id,
-              lease: task.lease,
-              kind: task.kind,
-              attachment: state?.attachments[task.step],
-            },
-          },
-          { headers },
-        );
-      }
-      const data = await body(request, 8 * 1024 * 1024);
-      const task = typeof data.id === 'string' ? await repo.get(data.id) : null;
-      if (
-        !task ||
-        task.lease !== data.lease ||
-        !['running', 'pausing'].includes(task.status)
-      )
-        return Response.json({ accepted: false }, { headers });
-      if (
-        action === 'runner-summary' &&
-        ['summary', 'workbench'].includes(task.kind)
-      ) {
-        await runSummary(
-          task,
-          repo,
-          connectionForOwner
-            ? {
-                ...env,
-                ...(await connectionForOwner(
-                  task.owner_id,
-                  task.engine ?? 'custom',
-                )),
-              }
-            : env,
-          fetcher,
-        );
-        return Response.json({ accepted: true }, { headers });
-      }
-      if (action === 'runner-attachment' && task.kind === 'attachments') {
-        const state = await repo.read<AttachmentTaskState>(task.id, 'state');
-        const original = state?.attachments[task.step];
-        if (!state || !original)
-          throw new TaskError('MISSING_TASK_DATA', '附件任务输入缺失。');
-        let attachment: Attachment;
-        try {
-          if (typeof data.url !== 'string')
-            throw new Error(
-              typeof data.error === 'string'
-                ? data.error.slice(0, 300)
-                : '附件未能获取。',
-            );
-          attachment = await fingerprintAttachment({
-            ...original,
-            url: data.url,
-            sourceUrl: original.sourceUrl || original.url,
-          });
-        } catch (error) {
-          attachment = {
-            ...original,
-            status: 'failed',
-            error: error instanceof Error ? error.message : '附件获取失败。',
-          };
-        }
-        await repo.progress(
-          task,
-          state,
-          {
-            kind: 'attachments',
-            expected: attachmentRevision(original),
-            attachment,
-          },
-          task.step + 1 === state.attachments.length ? 'completed' : 'queued',
-        );
-        return Response.json({ accepted: true }, { headers });
-      }
-      throw new TaskError('NOT_FOUND', '未知执行器操作。', 404);
-    }
+    if (action.startsWith('runner-'))
+      return await handleRunner(
+        request,
+        action,
+        repo,
+        env,
+        fetcher,
+        connectionForOwner,
+      );
     requireManagementRequest(request);
     let session = accountId
       ? await repo.accountSession(accountId)

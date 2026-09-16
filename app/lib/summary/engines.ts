@@ -1,4 +1,4 @@
-import type { Workspace, SummaryTrack } from '../domain.ts';
+import { type SummaryTrack, type Workspace } from '../core/model.ts';
 export type SummaryEngine = 'custom' | 'reme';
 export const summaryEngines: SummaryEngine[] = ['custom', 'reme'];
 export const engineLabels = {

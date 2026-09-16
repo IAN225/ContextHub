@@ -1,20 +1,20 @@
-import { removeWorkspaceData } from '../lib/workspace-lifecycle.ts';
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import { readFileSync, readdirSync } from 'node:fs';
-import { blankWorkspace, groupTurns, type Attachment } from '../lib/domain.ts';
-import { messageMedia } from '../lib/message-media.ts';
+import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
+import { test } from 'node:test';
 import { attachmentMarker } from '../lib/attachments.ts';
-import {
-  applyWorkspaceCommand,
-  applyHubCommand,
-  normalizeHubState,
-  type HubState,
-} from '../lib/hub-state.ts';
-import { splitHub, joinHub } from '../lib/storage/records.ts';
+import { type Attachment } from '../lib/core/model.ts';
+import { manageMcp } from '../lib/mcp/server/management.ts';
 import { mcpRepository } from '../lib/mcp/server/repository.ts';
-import { manageMcp } from '../lib/mcp/server/handlers.ts';
+import { messageMedia } from '../lib/message-media.ts';
+import { type HubState } from '../lib/state/contracts.ts';
+import { applyHubCommand } from '../lib/state/hub-reducer.ts';
+import { normalizeHubState } from '../lib/state/validation.ts';
+import { applyWorkspaceCommand } from '../lib/state/workspace-reducer.ts';
+import { joinHub, splitHub } from '../lib/storage/records.ts';
+import { groupTurns } from '../lib/transcript/turns.ts';
+import { removeWorkspaceData } from '../lib/workspace-lifecycle.ts';
+import { blankWorkspace } from '../lib/workspaces/create.ts';
 function sqliteD1(db: DatabaseSync) {
   return {
     prepare(sql: string) {

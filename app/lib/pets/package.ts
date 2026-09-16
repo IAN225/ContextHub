@@ -3,9 +3,9 @@ import {
   object,
   petLimits,
   petStates,
+  type PetAnimation,
   type PetPack,
   type PetPreferences,
-  type PetAnimation,
 } from './contracts.ts';
 import { readImageDataUrl } from './images.ts';
 function packName(raw: unknown) {

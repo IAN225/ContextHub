@@ -1,6 +1,6 @@
 import {
-  SummaryError,
   MAX_SUMMARY_TEXT,
+  SummaryError,
   type SummaryInput,
   type SummaryProtocol,
   type ThinkingEvidence,

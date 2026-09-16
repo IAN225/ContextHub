@@ -1,39 +1,36 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import { readFileSync, readdirSync } from 'node:fs';
+import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
+import { test } from 'node:test';
+import { type Workspace } from '../lib/core/model.ts';
+import type { McpRepository } from '../lib/mcp/server/repository.ts';
+import { callMcpTool } from '../lib/mcp/server/tools.ts';
+import { mcpWorkspace } from '../lib/mcp/snapshot.ts';
+import { createMemorySearch } from '../lib/memory-search.ts';
+import { memoryText } from '../lib/memory/compose.ts';
+import { normalizeHubState } from '../lib/state/validation.ts';
+import { applyWorkspaceCommand } from '../lib/state/workspace-reducer.ts';
+import { decodePayload, encodePayload } from '../lib/storage/payload.ts';
+import { joinHub, splitHub } from '../lib/storage/records.ts';
 import {
-  blankWorkspace,
-  groupTurns,
-  memoryText,
-  type Workspace,
-} from '../lib/domain.ts';
-import { applyWorkspaceCommand, normalizeHubState } from '../lib/hub-state.ts';
-import {
-  summaryWorkspace,
-  summaryTrack,
   emptyRemeTrack,
+  summaryTrack,
+  summaryWorkspace,
 } from '../lib/summary/engines.ts';
 import {
-  planCompression,
   checkpointFromResult,
+  planCompression,
   summaryRevision,
 } from '../lib/summary/planning.ts';
 import { remeSections, validateRemeSummary } from '../lib/summary/reme.ts';
-import { splitHub, joinHub } from '../lib/storage/records.ts';
-import { encodePayload, decodePayload } from '../lib/storage/payload.ts';
-import { summaryTaskWorkspace } from '../lib/tasks/snapshot.ts';
-import { taskRepository } from '../lib/tasks/server/repository.ts';
-import {
-  taskHandler,
-  type TaskEnvironment,
-} from '../lib/tasks/server/handlers.ts';
-import type { SummaryTaskResult, TaskRecord } from '../lib/tasks/contracts.ts';
 import { summarySettingsRepository } from '../lib/summary/server/settings.ts';
-import { mcpWorkspace } from '../lib/mcp/snapshot.ts';
-import { callMcpTool } from '../lib/mcp/server/tools.ts';
-import type { McpRepository } from '../lib/mcp/server/repository.ts';
-import { createMemorySearch } from '../lib/memory-search.ts';
+import type { SummaryTaskResult, TaskRecord } from '../lib/tasks/contracts.ts';
+import { taskHandler } from '../lib/tasks/server/handlers.ts';
+import type { TaskEnvironment } from '../lib/tasks/server/http.ts';
+import { taskRepository } from '../lib/tasks/server/repository.ts';
+import { summaryTaskWorkspace } from '../lib/tasks/snapshot.ts';
+import { groupTurns } from '../lib/transcript/turns.ts';
+import { blankWorkspace } from '../lib/workspaces/create.ts';
 
 function fixture() {
   const w = blankWorkspace('两种摘要');

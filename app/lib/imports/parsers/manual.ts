@@ -1,4 +1,4 @@
-import type { Message } from '../../domain.ts';
+import { type Message } from '../../core/model.ts';
 import { ImportError, type ParserPlugin } from '../contracts.ts';
 
 const roleMarker =

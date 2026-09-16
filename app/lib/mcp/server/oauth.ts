@@ -1,12 +1,12 @@
-import { uid } from '../../domain.ts';
+import { uid } from '../../core/identity.ts';
 import { digest, randomSecret } from '../../imports/server/auth.ts';
 import {
-  readLimitedBody,
   discardRequestBody,
+  readLimitedBody,
 } from '../../imports/server/share-service.ts';
 import { McpError, object } from '../contracts.ts';
-import type { OAuthRepository, OAuthRequest } from './oauth-repository.ts';
 import { oauthClientName } from '../oauth-clients.ts';
+import type { OAuthRepository, OAuthRequest } from './oauth-repository.ts';
 
 export const OAUTH_SCOPE = 'context:tools';
 const baseHeaders = {

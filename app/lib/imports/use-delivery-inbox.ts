@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import type { Upload } from '../domain';
+import { type Upload } from '../core/model.ts';
 import { usePersistent } from '../store';
 import { importRequest } from './client';
 

@@ -1,0 +1,60 @@
+.hub-dialog {
+  max-width: min(850px, calc(100vw - 32px)) !important;
+  width: 850px !important;
+  padding: 26px !important;
+  border: 1px solid #3a484b !important;
+  max-height: 90dvh !important;
+  overflow: auto;
+  gap: 20px !important;
+  background: var(--ui-surface, #fffdf7) !important;
+  border-color: var(--ui-border, #d7dfc7) !important;
+  box-shadow: 0 20px 90px
+    color-mix(in srgb, var(--ui-shadow, #454e33) 18.82%, transparent);
+  border-radius: 9px !important;
+}
+.dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #354145;
+  padding-bottom: 18px;
+  border-bottom-color: var(--ui-border, #e2e7d8);
+}
+.dialog-title {
+  font-size: 20px !important;
+  line-height: 1.4 !important;
+  margin-bottom: 9px !important;
+  font-family: 'SimSun', serif;
+  color: var(--ui-text, #5e714c);
+  font-weight: 400 !important;
+  letter-spacing: 1px;
+}
+.dialog-heading [data-slot='dialog-description'] {
+  line-height: 1.7;
+  color: var(--ui-muted, #929f7f);
+  font-size: 12px;
+}
+@media (max-width: 767px) {
+  .hub-dialog {
+    padding: 20px !important;
+    max-width: calc(100vw - 20px) !important;
+    max-height: 94dvh !important;
+  }
+  .dialog-title {
+    font-size: 18px !important;
+  }
+}
+@media (max-width: 480px) {
+  .hub-dialog {
+    padding: 20px !important;
+  }
+  .dialog-title {
+    font-size: 18px !important;
+  }
+}
+@media (max-width: 480px) {
+  .dialog-heading [data-slot='dialog-description'] {
+    font-size: 12px;
+  }
+}

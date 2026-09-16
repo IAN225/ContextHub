@@ -1,6 +1,6 @@
+import type { ParsedConversation } from './contracts.ts';
 import { parseChatGPTShare } from './parsers/chatgpt-share.ts';
 import { parseClaudeShare } from './parsers/claude-share.ts';
-import type { ParsedConversation } from './contracts.ts';
 
 export type ShareProvider = {
   id: string;

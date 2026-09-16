@@ -1,4 +1,4 @@
-import type { Workspace } from '../domain.ts';
+import { type Workspace } from '../core/model.ts';
 import type { McpEvent } from './contracts.ts';
 import { noteSignature } from './snapshot.ts';
 

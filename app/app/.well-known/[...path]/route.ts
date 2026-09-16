@@ -1,9 +1,9 @@
-import { env } from 'cloudflare:workers';
+import { oauthMetadata } from '@/lib/mcp/server/oauth';
 import {
   gatewayRequest,
   type PublicMcpConfig,
 } from '@/lib/mcp/server/public-config';
-import { oauthMetadata } from '@/lib/mcp/server/oauth';
+import { env } from 'cloudflare:workers';
 export async function GET(
   request: Request,
   context: { params: Promise<{ path: string[] }> },

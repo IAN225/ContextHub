@@ -13,7 +13,7 @@ jobs:
       - run: npm install --global pnpm@11.19.0
       - run: pnpm install --frozen-lockfile
         working-directory: app
-      - run: pnpm typecheck && pnpm lint && pnpm test && pnpm build
+      - run: pnpm check:architecture && pnpm typecheck && pnpm lint && pnpm test && pnpm build
         working-directory: app
       - run: python3 -m py_compile deploy/backup.py deploy/upgrade.py && shellcheck deploy/install.sh deploy/docker.sh
       - run: docker compose config --quiet && docker build -t contexthub:check .

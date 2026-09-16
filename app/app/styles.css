@@ -1,59 +1,36 @@
 /* Single, eager style entry. Keep shared primitives before their consumers.
    Do not import these again from lazily mounted chapters. */
-@import '../components/hub/shared.css';
-@import '../components/hub/forms.css';
-@import '../components/hub/shared-content.css';
-@import '../components/hub/shared-coverage.css';
-@import '../components/hub/shared-composer.css';
-@import '../components/hub/editors.css';
-@import '../components/hub/shell.css';
-@import '../components/hub/home.css';
-@import '../components/hub/transcript.css';
-@import '../components/hub/transcript-timeline.css';
-@import '../components/hub/summary.css';
-@import '../components/hub/notes.css';
-@import '../components/hub/note-actions.css';
-@import '../components/hub/memory.css';
-@import '../components/hub/connections.css';
-@import '../components/hub/search.css';
-@import '../components/hub/inbox-content.css';
-@import '../components/hub/imports/imports.css';
-@import '../components/hub/inbox.css';
-@import '../components/hub/inbox-pet.css';
-@import '../components/pets/pets.css';
-@import '../components/hub/background-tasks.css';
-@import '../components/hub/workspace-settings.css';
-@import '../components/hub/workspace-theme.css';
+@import '../components/shared/button.css';
+@import '../components/shared/layout.css';
+@import '../components/shared/persistence-status.css';
+@import '../components/shared/page-title.css';
+@import '../components/shared/segments.css';
+@import '../components/shared/empty.css';
+@import '../components/shared/forms.css';
+@import '../components/shared/modal.css';
+@import '../components/shared/settings-link.css';
+@import '../components/shared/content.css';
+@import '../components/shared/coverage.css';
+@import '../components/shared/composer.css';
+@import '../components/shared/editors.css';
+@import '../features/workspace/shell.css';
+@import '../features/workspace/home.css';
+@import '../features/workspace/card.css';
+@import '../features/transcript/styles.css';
+@import '../features/transcript/timeline.css';
+@import '../features/summary/styles.css';
+@import '../features/notes/styles.css';
+@import '../features/notes/actions.css';
+@import '../features/memory/styles.css';
+@import '../features/connections/styles.css';
+@import '../features/search/styles.css';
+@import '../features/inbox/content.css';
+@import '../features/imports/styles.css';
+@import '../features/inbox/styles.css';
+@import '../features/inbox/pet.css';
+@import '../features/pets/styles.css';
+@import '../features/tasks/styles.css';
+@import '../features/workspace/settings.css';
+@import '../components/theme/workspace-theme.css';
 
-.account-loading {
-  padding: 48px;
-  color: #65745b;
-}
-.account-panel {
-  display: grid;
-  gap: 16px;
-}
-.account-panel form {
-  display: grid;
-  gap: 14px;
-}
-.account-panel label {
-  display: grid;
-  gap: 6px;
-}
-.account-panel input {
-  padding: 10px;
-  border: 1px solid #d5ddca;
-  border-radius: 8px;
-  background: #fff;
-  font: inherit;
-  color: inherit;
-}
-.account-session-alert {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-  padding: 16px;
-  background: #fff0d6;
-  color: #714523;
-}
+@import '../features/settings/account.css';

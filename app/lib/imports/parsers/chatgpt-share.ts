@@ -1,15 +1,15 @@
 import {
+  attachmentFromReference,
+  attachmentMarker,
+  parseMediaBlock,
+} from '../../attachments.ts';
+import { type Attachment, type Message } from '../../core/model.ts';
+import {
   ImportError,
   record,
   string,
   type ParsedConversation,
 } from '../contracts.ts';
-import type { Message, Attachment } from '../../domain.ts';
-import {
-  attachmentFromReference,
-  attachmentMarker,
-  parseMediaBlock,
-} from '../../attachments.ts';
 
 // React Router's table is data, never JavaScript. No eval or page execution.
 export function decodeRouterTable(text: string): unknown {

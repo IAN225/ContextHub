@@ -1,7 +1,7 @@
 import { SummaryError, type SummaryProtocol } from '../contracts.ts';
-import { openaiSummary, responsesSummary } from './openai.ts';
 import { anthropicSummary } from './anthropic.ts';
 import { geminiSummary } from './gemini.ts';
+import { openaiSummary, responsesSummary } from './openai.ts';
 import type { SummaryProvider } from './shared.ts';
 const providers: Record<SummaryProtocol, SummaryProvider> = {
   openai: openaiSummary,

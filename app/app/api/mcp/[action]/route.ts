@@ -1,12 +1,12 @@
-import { env } from 'cloudflare:workers';
-import { mcpRepository } from '@/lib/mcp/server/repository';
-import { manageMcp } from '@/lib/mcp/server/handlers';
+import { accountContext, type AccountEnvironment } from '@/lib/account/server';
+import { manageMcp } from '@/lib/mcp/server/management';
 import { oauthRepository } from '@/lib/mcp/server/oauth-repository';
 import {
   publicOrigin,
   type PublicMcpConfig,
 } from '@/lib/mcp/server/public-config';
-import { accountContext, type AccountEnvironment } from '@/lib/account/server';
+import { mcpRepository } from '@/lib/mcp/server/repository';
+import { env } from 'cloudflare:workers';
 async function handle(
   request: Request,
   context: { params: Promise<{ action: string }> },

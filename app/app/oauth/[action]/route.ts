@@ -1,10 +1,10 @@
-import { env } from 'cloudflare:workers';
+import { oauthHandler } from '@/lib/mcp/server/oauth';
+import { oauthRepository } from '@/lib/mcp/server/oauth-repository';
 import {
   gatewayRequest,
   type PublicMcpConfig,
 } from '@/lib/mcp/server/public-config';
-import { oauthHandler } from '@/lib/mcp/server/oauth';
-import { oauthRepository } from '@/lib/mcp/server/oauth-repository';
+import { env } from 'cloudflare:workers';
 async function handle(
   request: Request,
   context: { params: Promise<{ action: string }> },

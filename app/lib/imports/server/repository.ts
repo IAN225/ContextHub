@@ -1,4 +1,4 @@
-import type { Upload } from '../../domain.ts';
+import { type Upload } from '../../core/model.ts';
 import { ImportError } from '../contracts.ts';
 
 export type Owner = { id: string; key_hash: string | null };

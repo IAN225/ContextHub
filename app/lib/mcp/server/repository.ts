@@ -1,11 +1,11 @@
-import { encodePayload, decodePayload } from '../../storage/payload.ts';
-import { uid } from '../../domain.ts';
+import { uid } from '../../core/identity.ts';
+import { decodePayload, encodePayload } from '../../storage/payload.ts';
 import {
   MAX_MCP_BYTES,
   McpError,
+  type McpToken,
   type Mirror,
   type MirrorSnapshot,
-  type McpToken,
 } from '../contracts.ts';
 
 function chunks(value: Mirror) {

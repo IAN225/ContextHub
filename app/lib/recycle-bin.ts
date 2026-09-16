@@ -1,6 +1,6 @@
-import type { HubState } from './hub-state.ts';
+import { type Block } from './core/model.ts';
 import type { StorageEntry } from './repository.ts';
-import type { Block } from './domain.ts';
+import { type HubState } from './state/contracts.ts';
 
 export const TRASH_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 type Deleted = { status: string; deletedAt?: string };

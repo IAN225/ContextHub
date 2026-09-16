@@ -1,4 +1,4 @@
-import type { WorkspaceSnapshotV1, Config, Summary } from './payload-v1.ts';
+import type { Config, Summary, WorkspaceSnapshotV1 } from './payload-v1.ts';
 // v1 stays frozen; v2 adds isolated strategies and their state.
 type TrackV2 = Pick<
   WorkspaceSnapshotV1,

@@ -1,5 +1,10 @@
+import {
+  type Note,
+  type Summary,
+  type Turn,
+  type Workspace,
+} from './core/model.ts';
 import { summaryWorkspace } from './summary/engines.ts';
-import type { Workspace, Turn, Summary, Note } from './domain.ts';
 
 type SearchDocument = {
   id: string;

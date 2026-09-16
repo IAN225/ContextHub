@@ -1,11 +1,11 @@
 import type { DataRepository, StorageEntry } from '../repository.ts';
 import {
   HUB_KEY,
-  RECORD_PREFIX,
-  splitHub,
   joinHub,
   logicalEntries,
   physicalEntries,
+  RECORD_PREFIX,
+  splitHub,
 } from './records.ts';
 // UI and personal backups retain their aggregate view. Writes compare only changed records.
 export function createEntityRepository(store: DataRepository): DataRepository {

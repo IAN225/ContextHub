@@ -1,0 +1,30 @@
+.admin-entry {
+  position: relative;
+  flex-shrink: 0;
+}
+.admin-entry-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid #cbd4bd;
+  border-radius: 7px;
+  color: #4e6540;
+  background: #eef1e5;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.admin-entry-button:hover {
+  background: #e2e9d7;
+}
+.admin-entry-error {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  right: 0;
+  width: 260px;
+  padding: 12px;
+  background: #fff8ef;
+  border: 1px solid #be9b85;
+  color: #8b4435;
+}

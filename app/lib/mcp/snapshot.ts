@@ -1,7 +1,7 @@
-import { summaryWorkspace, summaryTrack } from '../summary/engines.ts';
-import type { WorkspaceSnapshotV2 } from '../storage/payload-v2.ts';
 import { attachmentContext } from '../attachments.ts';
-import type { Note, Workspace } from '../domain.ts';
+import { type Note, type Workspace } from '../core/model.ts';
+import type { WorkspaceSnapshotV2 } from '../storage/payload-v2.ts';
+import { summaryTrack, summaryWorkspace } from '../summary/engines.ts';
 
 // This local service copy is deliberately not an account/device sync format.
 // Only memory inputs and Note history are exposed: no credentials or file bytes.

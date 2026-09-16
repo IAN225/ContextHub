@@ -1,10 +1,10 @@
-import { parseRequestMessages } from './parsers/request-messages.ts';
 import {
   ImportError,
   record,
   type ParserPlugin,
   type Protocol,
 } from './contracts.ts';
+import { parseRequestMessages } from './parsers/request-messages.ts';
 
 function requestParser(id: Protocol, label: string): ParserPlugin<unknown> {
   return {

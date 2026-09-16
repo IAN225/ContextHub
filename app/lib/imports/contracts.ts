@@ -1,4 +1,6 @@
-import { groupTurns, now, uid, type Message, type Upload } from '../domain.ts';
+import { now, uid } from '../core/identity.ts';
+import { type Message, type Upload } from '../core/model.ts';
+import { groupTurns } from '../transcript/turns.ts';
 
 export type Protocol = 'chat' | 'responses' | 'messages';
 export type ImportIssue = { code: string; message: string };

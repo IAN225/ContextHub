@@ -10,9 +10,10 @@
     "start": "node ./scripts/start-server.mjs",
     "server": "node ./scripts/start-server.mjs",
     "db:init": "node --import ./scripts/local-runtime.mjs ./node_modules/wrangler/bin/wrangler.js d1 migrations apply DB --local --config dist/server/wrangler.json --persist-to .wrangler/state",
-    "lint": "oxlint app components lib scripts vite.config.ts next.config.ts",
+    "lint": "oxlint app components features lib scripts vite.config.ts next.config.ts",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/*.test.ts"
+    "test": "node --experimental-strip-types --test tests/*.test.ts tests/*.test.mjs",
+    "check:architecture": "node scripts/check-architecture.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",
@@ -41,6 +42,7 @@
     "oxfmt": "0.61.0",
     "oxlint": "1.76.0",
     "oxlint-tsgolint": "7.0.2001",
+    "postcss": "8.5.28",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
     "vite": "8.0.13",

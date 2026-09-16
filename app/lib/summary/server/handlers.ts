@@ -6,13 +6,13 @@ import {
   type SummaryProbe,
 } from '../contracts.ts';
 import { object, outputField } from '../providers/shared.ts';
+import { thinkingProbe } from '../thinking-probe.ts';
 import {
   readSummaryConnection,
   summaryConnectionStatus,
   type SummaryEnvironment,
 } from './config.ts';
 import { generateSummary, readSummaryBody } from './service.ts';
-import { thinkingProbe } from '../thinking-probe.ts';
 import {
   publicSummarySettings,
   type SummarySettingsRepository,

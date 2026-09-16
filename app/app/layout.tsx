@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { InputModality } from '@/components/hub/input-modality';
+import { InputModality } from '../components/shared/input-modality.tsx';
 import './globals.css';
 import './styles.css';
 

@@ -1,13 +1,5 @@
-import { REME_STRATEGY_VERSION, validateRemeSummary } from './reme.ts';
-import type { SummaryEngine } from './engines.ts';
-import {
-  coverage,
-  type Summary,
-  type Turn,
-  type Workspace,
-} from '../domain.ts';
-import { composeSummaryInput } from './prompts.ts';
 import { attachmentContext } from '../attachments.ts';
+import { type Summary, type Turn, type Workspace } from '../core/model.ts';
 import {
   estimateInput,
   fitsBudget,
@@ -16,6 +8,10 @@ import {
   type SummaryInput,
   type SummaryResult,
 } from './contracts.ts';
+import { coverage } from './coverage.ts';
+import type { SummaryEngine } from './engines.ts';
+import { composeSummaryInput } from './prompts.ts';
+import { REME_STRATEGY_VERSION, validateRemeSummary } from './reme.ts';
 
 export type SummaryPlan = {
   engine?: SummaryEngine;

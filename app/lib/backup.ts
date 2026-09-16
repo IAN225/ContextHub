@@ -1,8 +1,9 @@
+import { dataUrlBytes, MAX_ATTACHMENT_TEXT } from './attachments.ts';
 import { PET_PREFERENCES_KEY } from './pets/contracts.ts';
 import { normalizePetPreferences } from './pets/package.ts';
-import { normalizeHubState, type HubState } from './hub-state.ts';
 import type { DataRepository, StorageEntry } from './repository.ts';
-import { dataUrlBytes, MAX_ATTACHMENT_TEXT } from './attachments.ts';
+import { type HubState } from './state/contracts.ts';
+import { normalizeHubState } from './state/validation.ts';
 
 export const BACKUP_LIMIT = 100 * 1024 * 1024;
 export type HubBackup = {

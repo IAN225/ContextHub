@@ -1,4 +1,4 @@
-import { uid } from '../../domain.ts';
+import { uid } from '../../core/identity.ts';
 import {
   createImport,
   ImportError,
@@ -8,7 +8,7 @@ import {
   type Protocol,
 } from '../contracts.ts';
 import { getProtocol } from '../protocols.ts';
-import type { ImportRepository } from './repository.ts';
+import { deliveryAcknowledgement } from './acknowledgements.ts';
 import {
   deliveryOwner,
   digest,
@@ -17,12 +17,12 @@ import {
   requireManagementRequest,
   sessionCookie,
 } from './auth.ts';
+import type { ImportRepository } from './repository.ts';
 import {
   discardRequestBody,
   importShare,
   readLimitedBody,
 } from './share-service.ts';
-import { deliveryAcknowledgement } from './acknowledgements.ts';
 
 async function jsonBody(request: Request, limit = MAX_IMPORT_BYTES) {
   if (!request.headers.get('content-type')?.includes('application/json'))

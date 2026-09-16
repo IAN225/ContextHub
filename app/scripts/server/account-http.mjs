@@ -1,5 +1,5 @@
 import { CLIENT_PROTOCOL } from '../../lib/storage/protocol.ts';
-import { AccountError } from './accounts.mjs';
+import { AccountError } from './account-credentials.mjs';
 export const accountCookie = (local) =>
   local ? 'ch_account_local' : '__Host-ch_account';
 export function accountToken(req, local) {
