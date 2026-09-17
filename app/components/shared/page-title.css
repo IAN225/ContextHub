@@ -1,7 +1,6 @@
 .section-heading {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 31px;
   align-items: center;
   min-height: 36px;
   gap: var(--space-3);
@@ -38,7 +37,6 @@
   background: var(--ui-subtle, #edf1e4);
 }
 .section-heading.compact {
-  margin-bottom: 30px;
   align-items: center;
   min-height: 36px;
   gap: var(--space-3);
@@ -81,15 +79,8 @@
   font-size: 12px;
 }
 @media (max-width: 480px) {
-  .section-heading > .button {
-    padding: 6px var(--space-2);
-    font-size: 12px;
-  }
   .section-heading.compact p {
     line-height: 1.9;
-  }
-  .section-heading.compact > .button {
-    margin-top: 23px;
   }
 }
 @media (max-width: 480px) {

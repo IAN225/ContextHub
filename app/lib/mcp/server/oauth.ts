@@ -1,9 +1,7 @@
 import { uid } from '../../core/identity.ts';
-import { digest, randomSecret } from '../../imports/server/auth.ts';
-import {
-  discardRequestBody,
-  readLimitedBody,
-} from '../../imports/server/share-service.ts';
+import { digest, randomSecret } from '../../server/crypto.ts';
+import { discardRequestBody } from '../../server/body.ts';
+import { readLimitedBody } from './http.ts';
 import { McpError, object } from '../contracts.ts';
 import { oauthClientName } from '../oauth-clients.ts';
 import type { OAuthRepository, OAuthRequest } from './oauth-repository.ts';

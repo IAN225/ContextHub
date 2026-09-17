@@ -368,13 +368,6 @@
     grid-template-columns: 1fr;
     gap: 14px;
   }
-
-  .summary-switches {
-    gap: 15px;
-  }
-  .summary-paper {
-    padding: 23px 19px;
-  }
   .summary-paper-footer {
     flex-wrap: wrap;
   }
@@ -396,8 +389,7 @@
   .checkpoint-title {
     font-size: 13px;
   }
-  .checkpoint-list p,
-  .checkpoint-list small {
+  .checkpoint-list p {
     font-size: 11px;
   }
   .checkpoint-title .pill {

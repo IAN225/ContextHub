@@ -1,6 +1,7 @@
+import { managementGuard, sessionOwner } from '../../server/request.ts';
 import { type Workspace } from '../../core/model.ts';
-import { digest } from '../../imports/server/auth.ts';
-import { readLimitedBody } from '../../imports/server/share-service.ts';
+import { digest } from '../../server/crypto.ts';
+import { readTextBody } from '../../server/body.ts';
 import {
   resolveSummaryConnection,
   type SummaryEnvironment,
@@ -12,6 +13,9 @@ export type TaskEnvironment = SummaryEnvironment & {
 };
 export const headers = { 'Cache-Control': 'no-store' };
 export const COOKIE = 'context_hub_tasks';
+export const requireManagementRequest = managementGuard(
+  (message) => new TaskError('FORBIDDEN', message, 403),
+);
 export const object = (v: unknown): Record<string, unknown> =>
   v && typeof v === 'object' && !Array.isArray(v)
     ? (v as Record<string, unknown>)
@@ -20,22 +24,21 @@ export async function body(request: Request, limit = MAX_TASK_BYTES) {
   if (!request.headers.get('content-type')?.includes('application/json'))
     throw new TaskError('JSON_REQUIRED', '请使用 JSON 请求。', 415);
   try {
-    return object(JSON.parse(await readLimitedBody(request, limit)));
+    return object(
+      JSON.parse(
+        await readTextBody(request, limit, {
+          tooLarge: () =>
+            new TaskError('TOO_LARGE', '内容超过大小限制，请分批导入。', 413),
+        }),
+      ),
+    );
   } catch (error) {
     if (error instanceof Error && 'status' in error) throw error;
     throw new TaskError('INVALID_JSON', '任务数据格式无效。');
   }
 }
 export async function owner(request: Request, repo: TaskRepository) {
-  const secret = request.headers
-    .get('cookie')
-    ?.split(';')
-    .map((s) => s.trim())
-    .find((s) => s.startsWith(`${COOKIE}=`))
-    ?.slice(COOKIE.length + 1);
-  return secret && /^[a-f0-9]{64}$/.test(secret)
-    ? repo.session(await digest(secret))
-    : undefined;
+  return sessionOwner(request, COOKIE, (hash) => repo.session(hash));
 }
 export async function connectionHash(w: Workspace, env: TaskEnvironment) {
   const c = resolveSummaryConnection(w.config, env);

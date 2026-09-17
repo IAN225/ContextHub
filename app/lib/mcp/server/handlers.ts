@@ -1,5 +1,5 @@
-import { digest } from '../../imports/server/auth.ts';
-import { discardRequestBody } from '../../imports/server/share-service.ts';
+import { digest } from '../../server/crypto.ts';
+import { discardRequestBody } from '../../server/body.ts';
 import { mcpTools } from '../catalog.ts';
 import { McpError, object } from '../contracts.ts';
 import { errorInfo, headers, json, localOrigin } from './http.ts';

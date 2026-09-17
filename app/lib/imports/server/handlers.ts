@@ -1,3 +1,6 @@
+import { digest, randomSecret } from '../../server/crypto.ts';
+import { discardRequestBody } from '../../server/body.ts';
+import { readLimitedBody } from './http.ts';
 import { uid } from '../../core/identity.ts';
 import {
   createImport,
@@ -11,18 +14,12 @@ import { getProtocol } from '../protocols.ts';
 import { deliveryAcknowledgement } from './acknowledgements.ts';
 import {
   deliveryOwner,
-  digest,
   managementOwner,
-  randomSecret,
   requireManagementRequest,
   sessionCookie,
 } from './auth.ts';
 import type { ImportRepository } from './repository.ts';
-import {
-  discardRequestBody,
-  importShare,
-  readLimitedBody,
-} from './share-service.ts';
+import { importShare } from './share-service.ts';
 
 async function jsonBody(request: Request, limit = MAX_IMPORT_BYTES) {
   if (!request.headers.get('content-type')?.includes('application/json'))

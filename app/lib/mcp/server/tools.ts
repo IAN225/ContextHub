@@ -1,6 +1,6 @@
 import { now, uid } from '../../core/identity.ts';
 import { type Note } from '../../core/model.ts';
-import { digest } from '../../imports/server/auth.ts';
+import { digest } from '../../server/crypto.ts';
 import { importShare } from '../../imports/server/share-service.ts';
 import { createMemorySearch } from '../../memory-search.ts';
 import { memoryText } from '../../memory/compose.ts';

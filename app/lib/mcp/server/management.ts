@@ -1,10 +1,6 @@
 import { uid } from '../../core/identity.ts';
-import {
-  digest,
-  randomSecret,
-  requireManagementRequest,
-} from '../../imports/server/auth.ts';
-import { discardRequestBody } from '../../imports/server/share-service.ts';
+import { digest, randomSecret } from '../../server/crypto.ts';
+import { discardRequestBody } from '../../server/body.ts';
 import {
   MAX_MCP_BYTES,
   McpError,
@@ -14,6 +10,7 @@ import {
 } from '../contracts.ts';
 import { oauthClientName } from '../oauth-clients.ts';
 import {
+  requireManagementRequest,
   COOKIE,
   errorInfo,
   headers,

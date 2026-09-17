@@ -175,9 +175,6 @@
   .journal-wordmark > svg {
     width: 19px;
   }
-  .journal-home-header > div {
-    gap: 14px;
-  }
   .journal-header-action span {
     display: none;
   }

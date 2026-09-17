@@ -279,14 +279,6 @@
   }
 }
 @media (max-width: 480px) {
-  .journal-reader-header {
-    padding: 0 16px;
-    padding-inline: 8px;
-    gap: 4px;
-  }
-  .reader-actions > .icon-button {
-    padding: 4px;
-  }
   .reader-actions .button {
     padding: 7px 9px;
     min-height: 30px;
@@ -295,9 +287,6 @@
   .back-to-shelf {
     gap: 5px;
     font-size: 13px;
-  }
-  .journal-reader {
-    padding: 13px 8px 26px 3px;
   }
   .journal-margin {
     width: 9px;
@@ -308,30 +297,10 @@
   .journal-sheet::before {
     left: 7px;
   }
-  .journal-tabs {
-    padding: 0 10px;
-  }
-  .journal-tabs button {
-    padding: 12px 8px 10px;
-    gap: 4px;
-    flex-direction: column;
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-  .journal-tabs small {
-    display: none;
-  }
-  .journal-tabs button > span {
-    letter-spacing: 0;
-    font-size: 12px;
-  }
   .journal-tabs button.selected::after {
     right: 5px;
     height: 7px;
     width: 5px;
-  }
-  .page-content {
-    padding: 25px 19px 9px;
   }
   .journal-toast {
     width: max-content;
@@ -345,9 +314,6 @@
   }
 }
 @media (max-width: 480px) {
-  .reader-actions {
-    gap: 5px;
-  }
   .reader-actions > .icon-button svg {
     width: 15px;
   }
@@ -538,6 +504,10 @@
 }
 
 @media (max-width: 480px) {
+  .journal-reader-header {
+    padding: 0 8px;
+    gap: 4px;
+  }
   .reader-actions .reader-import {
     width: 32px;
     height: 36px;

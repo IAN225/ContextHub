@@ -1,3 +1,4 @@
+import { readTextBody } from '../../server/body.ts';
 import {
   fitsBudget,
   MAX_SUMMARY_BYTES,
@@ -8,59 +9,22 @@ import {
 import { summaryProvider } from '../providers/index.ts';
 import { resolveSummaryConnection, type SummaryEnvironment } from './config.ts';
 
-export async function readSummaryBody(
+export function readSummaryBody(
   response: Response | Request,
   limit: number,
   signal?: AbortSignal,
 ) {
-  if (signal?.aborted)
-    throw new SummaryError('SUMMARY_ABORTED', '摘要请求已取消或超时。', 408);
-  if (Number(response.headers.get('content-length')) > limit)
-    throw new SummaryError(
-      'SUMMARY_TOO_LARGE',
-      '摘要请求或响应超过大小限制。',
-      413,
-    );
-  const reader = response.body?.getReader();
-  if (!reader) return '';
-  let cancel!: () => void;
-  const aborted = new Promise<never>((_, reject) => {
-    cancel = () => {
-      void reader.cancel().catch(() => {});
-      reject(
-        new SummaryError('SUMMARY_ABORTED', '摘要请求已取消或超时。', 408),
-      );
-    };
-    if (signal?.aborted) cancel();
-    else signal?.addEventListener('abort', cancel, { once: true });
+  return readTextBody(response, limit, {
+    tooLarge: () =>
+      new SummaryError(
+        'SUMMARY_TOO_LARGE',
+        '摘要请求或响应超过大小限制。',
+        413,
+      ),
+    signal,
+    aborted: () =>
+      new SummaryError('SUMMARY_ABORTED', '摘要请求已取消或超时。', 408),
   });
-  const chunks: Uint8Array[] = [];
-  let bytes = 0;
-  try {
-    for (;;) {
-      const { value, done } = await Promise.race([reader.read(), aborted]);
-      if (done) break;
-      bytes += value.byteLength;
-      if (bytes > limit)
-        throw new SummaryError(
-          'SUMMARY_TOO_LARGE',
-          '摘要请求或响应超过大小限制。',
-          413,
-        );
-      chunks.push(value);
-    }
-  } finally {
-    signal?.removeEventListener('abort', cancel);
-    await reader.cancel().catch(() => {});
-    reader.releaseLock();
-  }
-  const result = new Uint8Array(bytes);
-  let offset = 0;
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return new TextDecoder().decode(result);
 }
 function providerFailure(status: number) {
   if (status === 401 || status === 403)

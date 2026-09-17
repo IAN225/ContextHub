@@ -1,5 +1,5 @@
-import { digest } from '../../imports/server/auth.ts';
-import { readLimitedBody } from '../../imports/server/share-service.ts';
+import { managementGuard, sessionOwner } from '../../server/request.ts';
+import { readTextBody } from '../../server/body.ts';
 import { normalizeHubState } from '../../state/validation.ts';
 import { McpError } from '../contracts.ts';
 import { mcpWorkspace } from '../snapshot.ts';
@@ -9,6 +9,9 @@ export const headers = {
   'Cache-Control': 'no-store',
   'X-Content-Type-Options': 'nosniff',
 };
+export const requireManagementRequest = managementGuard(
+  (message) => new McpError('FORBIDDEN', message, 403),
+);
 export function localOrigin(request: Request) {
   const url = new URL(request.url);
   if (!['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname))
@@ -16,6 +19,12 @@ export function localOrigin(request: Request) {
   const origin = request.headers.get('origin');
   if (origin && origin !== url.origin)
     throw new McpError('FORBIDDEN', '请求来源不允许访问本机 MCP。', 403);
+}
+export function readLimitedBody(response: Response | Request, limit: number) {
+  return readTextBody(response, limit, {
+    tooLarge: () =>
+      new McpError('TOO_LARGE', '内容超过大小限制，请分批导入。', 413),
+  });
 }
 export async function json(request: Request, limit: number) {
   if (!request.headers.get('content-type')?.includes('application/json'))
@@ -41,15 +50,7 @@ export function errorInfo(error: unknown) {
   };
 }
 export async function owner(request: Request, repo: McpRepository) {
-  const secret = request.headers
-    .get('cookie')
-    ?.split(';')
-    .map((s) => s.trim())
-    .find((s) => s.startsWith(`${COOKIE}=`))
-    ?.slice(COOKIE.length + 1);
-  return secret && /^[a-f0-9]{64}$/.test(secret)
-    ? repo.session(await digest(secret))
-    : undefined;
+  return sessionOwner(request, COOKIE, (hash) => repo.session(hash));
 }
 export function workspace(value: unknown) {
   try {

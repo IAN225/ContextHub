@@ -128,10 +128,6 @@
   }
 }
 @media (max-width: 767px) {
-  .form-grid,
-  .split-view {
-    grid-template-columns: 1fr;
-  }
   .form-actions {
     flex-wrap: wrap;
   }

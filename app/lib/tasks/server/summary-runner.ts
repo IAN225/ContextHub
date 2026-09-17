@@ -1,5 +1,5 @@
 import { now, uid } from '../../core/identity.ts';
-import { digest } from '../../imports/server/auth.ts';
+import { digest } from '../../server/crypto.ts';
 import { coverage } from '../../summary/coverage.ts';
 import {
   applyGeneratedCheckpoint,

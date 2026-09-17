@@ -1,11 +1,7 @@
 import { attachmentStatus } from '../../attachments.ts';
 import { type Attachment } from '../../core/model.ts';
-import {
-  digest,
-  randomSecret,
-  requireManagementRequest,
-} from '../../imports/server/auth.ts';
-import { discardRequestBody } from '../../imports/server/share-service.ts';
+import { digest, randomSecret } from '../../server/crypto.ts';
+import { discardRequestBody } from '../../server/body.ts';
 import { normalizeHubState } from '../../state/validation.ts';
 import { coverage } from '../../summary/coverage.ts';
 import {
@@ -30,6 +26,7 @@ import {
 import { summaryTaskWorkspace } from '../snapshot.ts';
 import {
   body,
+  requireManagementRequest,
   connectionHash,
   COOKIE,
   headers,

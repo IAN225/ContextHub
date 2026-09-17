@@ -403,7 +403,6 @@
     gap: 5px;
   }
   .new-notebook {
-    max-height: none;
     min-height: 0;
   }
   .new-notebook-icon {

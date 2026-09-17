@@ -1,3 +1,4 @@
+import { readLimitedBody } from './http.ts';
 import { createImport, ImportError } from '../contracts.ts';
 import { shareProviders } from '../share-providers.ts';
 
@@ -35,68 +36,6 @@ export function resolveShareUrl(value: string) {
     id: match[1],
     canonical: `https://${provider.host}/share/${match[1]}`,
   };
-}
-
-export async function readLimitedBody(
-  response: Response | Request,
-  limit: number,
-) {
-  if (Number(response.headers.get('content-length')) > limit)
-    throw new ImportError('TOO_LARGE', '内容超过大小限制，请分批导入。', 413);
-  const reader = response.body?.getReader();
-  if (!reader) return '';
-  const chunks: Uint8Array[] = [];
-  let bytes = 0;
-  try {
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      bytes += value.byteLength;
-      if (bytes > limit)
-        throw new ImportError(
-          'TOO_LARGE',
-          '内容超过大小限制，请分批导入。',
-          413,
-        );
-      chunks.push(value);
-    }
-  } finally {
-    await reader.cancel().catch(() => {});
-    reader.releaseLock();
-  }
-  const buffer = new Uint8Array(bytes);
-  let offset = 0;
-  for (const chunk of chunks) {
-    buffer.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return new TextDecoder().decode(buffer);
-}
-
-// Rejected local HTTP requests still need their wire body drained before the
-// proxy can reuse the connection. Discard without retaining bytes in memory.
-export async function discardRequestBody(request: Request): Promise<boolean> {
-  if (!request.body || request.bodyUsed) return true;
-  const reader = request.body.getReader();
-  let bytes = 0;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const deadline = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error('Drain timeout')), 2000);
-  });
-  try {
-    for (;;) {
-      const { value, done } = await Promise.race([reader.read(), deadline]);
-      if (done) return true;
-      bytes += value.byteLength;
-      if (bytes > 8 * 1024 * 1024) return false;
-    }
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timer);
-    await reader.cancel().catch(() => {});
-    reader.releaseLock();
-  }
 }
 
 export async function importShare(

@@ -1,4 +1,4 @@
-import { digest, randomSecret } from '../../imports/server/auth.ts';
+import { digest, randomSecret } from '../../server/crypto.ts';
 import { SummaryError } from '../contracts.ts';
 import type { SummaryEngine } from '../engines.ts';
 import {
