@@ -6,11 +6,11 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { Workspace } from '../domain';
-import type { HubCommand, HubState } from '../hub-state';
+import { type Workspace } from '../core/model.ts';
+import { type HubCommand, type HubState } from '../state/contracts.ts';
+import { mcpRequest } from './client';
 import type { McpEvent, PublicMcpToken } from './contracts';
 import { mcpWorkspace } from './snapshot';
-import { mcpRequest } from './client';
 
 type Status = {
   publicOrigin?: string | null;

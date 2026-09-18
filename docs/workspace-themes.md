@@ -9,6 +9,6 @@
 - 主题色用于主要操作、选中态、链接、时间轴节点和细边线；选中卡片仅铺很浅的底色。
 - 错误、警告、标星和覆盖范围等有含义的状态保留独立的颜色或纹理。
 
-颜色入口为 app/lib/workspace-theme.ts 和 components/hub/workspace-theme.css。组件通过语义变量引用颜色，原颜色仅作为主题范围外的回退。工作区根容器和通过 Portal 渲染的弹窗、下拉菜单、拖动浮层共享 React 主题上下文，切换工作区时同步更新。
+颜色入口为 app/lib/workspace-theme.ts 和 components/theme/workspace-theme.css。组件通过语义变量引用颜色，原颜色仅作为主题范围外的回退。工作区根容器和通过 Portal 渲染的弹窗、下拉菜单、拖动浮层共享 React 主题上下文，切换工作区时同步更新。
 
 测试检查四种主题的正文、次要文字、强调文字与阅读底色，以及主按钮文字至少达到 4.5:1 的对比度；并检查大面积底色保持较低色彩浓度。新增组件应优先复用 ui-text、ui-muted、ui-surface、ui-subtle、ui-accent 等语义变量。

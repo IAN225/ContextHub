@@ -1,9 +1,11 @@
-import { summaryWorkspace, parseSummaryEngine } from '../../summary/engines.ts';
-import { coverage } from '../../domain.ts';
-import { memoryText, now, uid, type Note } from '../../domain.ts';
-import { createMemorySearch } from '../../memory-search.ts';
-import { digest } from '../../imports/server/auth.ts';
+import { now, uid } from '../../core/identity.ts';
+import { type Note } from '../../core/model.ts';
+import { digest } from '../../server/crypto.ts';
 import { importShare } from '../../imports/server/share-service.ts';
+import { createMemorySearch } from '../../memory-search.ts';
+import { memoryText } from '../../memory/compose.ts';
+import { coverage } from '../../summary/coverage.ts';
+import { parseSummaryEngine, summaryWorkspace } from '../../summary/engines.ts';
 import { mcpTools } from '../catalog.ts';
 import { McpError, object, type McpToken } from '../contracts.ts';
 import { noteSignature } from '../snapshot.ts';

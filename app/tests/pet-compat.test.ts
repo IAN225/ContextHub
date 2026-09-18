@@ -1,13 +1,13 @@
-import { test } from 'node:test';
+import { strToU8, zipSync } from 'fflate';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { zipSync, strToU8 } from 'fflate';
-import { importCompatiblePetPack, type PetCrop } from '../lib/pets/codex.ts';
-import { readPetZip } from '../lib/pets/zip.ts';
-import { petLimits, frameIndex } from '../lib/pets/contracts.ts';
-import { normalizePetPreferences } from '../lib/pets/package.ts';
-import { createEmptyHubState } from '../lib/hub-state.ts';
+import { test } from 'node:test';
 import { parseBackup } from '../lib/backup.ts';
+import { importCompatiblePetPack, type PetCrop } from '../lib/pets/codex.ts';
+import { frameIndex, petLimits } from '../lib/pets/contracts.ts';
+import { normalizePetPreferences } from '../lib/pets/package.ts';
+import { readPetZip } from '../lib/pets/zip.ts';
+import { createEmptyHubState } from '../lib/state/empty.ts';
 const read = (p: string) =>
   new Uint8Array(readFileSync(new URL(p, import.meta.url)));
 const frame = read('./fixtures/codex-frame.png');

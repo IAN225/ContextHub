@@ -1,5 +1,5 @@
-import { imageInfo } from './images';
 import type { CropPetFrames } from './codex';
+import { imageInfo } from './images';
 export const cropPetFrames: CropPetFrames = async (bytes, rectangles) => {
   const info = imageInfo(bytes, { bytes: 20 * 1024 * 1024, dimension: 2288 });
   const bitmap = await createImageBitmap(

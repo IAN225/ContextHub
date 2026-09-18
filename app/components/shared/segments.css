@@ -1,0 +1,27 @@
+.segments {
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  height: 34px !important;
+  gap: 20px !important;
+}
+.segments [data-slot='tabs-trigger'] {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 1px !important;
+  box-shadow: none !important;
+  font-weight: 400 !important;
+  color: var(--ui-muted, #98a586) !important;
+  font-size: 14px !important;
+}
+.segments [data-active] {
+  border-bottom: 1px solid var(--ui-border-accent, #9fc8b7) !important;
+  color: var(--ui-accent, #647b50) !important;
+  border-bottom-color: var(--ui-border-accent, #99ab80) !important;
+}
+@media (max-width: 767px) {
+  .segments {
+    gap: 14px !important;
+  }
+}

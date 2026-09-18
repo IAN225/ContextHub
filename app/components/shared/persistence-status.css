@@ -1,0 +1,26 @@
+.save-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ui-muted, #7f9690);
+}
+.status-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #97aa82;
+}
+.status-dot.error {
+  background: #d9977c;
+}
+@media (max-width: 1150px) {
+  .save-state {
+    font-size: 10px;
+  }
+}
+.save-caption {
+  color: var(--ui-muted, #8ea074);
+  font-size: 12px;
+}

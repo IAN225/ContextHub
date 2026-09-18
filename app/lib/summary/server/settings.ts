@@ -1,6 +1,6 @@
-import type { SummaryEngine } from '../engines.ts';
+import { digest, randomSecret } from '../../server/crypto.ts';
 import { SummaryError } from '../contracts.ts';
-import { digest, randomSecret } from '../../imports/server/auth.ts';
+import type { SummaryEngine } from '../engines.ts';
 import {
   normalizeBaseUrl,
   readSummaryConnection,

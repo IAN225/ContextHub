@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { createPersistentSession } from './persistent-session';
 import { accountRepository, type Repository } from './repository';
 

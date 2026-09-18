@@ -1,4 +1,4 @@
-import type { Config } from '../domain.ts';
+import { type Config } from '../core/model.ts';
 import { estimateTextTokens } from '../token-budget.ts';
 
 export type SummaryProtocol = 'openai' | 'responses' | 'anthropic' | 'gemini';

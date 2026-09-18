@@ -1,6 +1,6 @@
 import { randomId } from './browser-compat.ts';
-import { CLIENT_PROTOCOL } from './storage/protocol.ts';
 import type { DataRepository, StorageEntry } from './repository.ts';
+import { CLIENT_PROTOCOL } from './storage/protocol.ts';
 type RecordEntry = StorageEntry & { revision: number };
 type ReadResult = { generation: number; entry: RecordEntry };
 type ListResult = { generation: number; entries: RecordEntry[] };

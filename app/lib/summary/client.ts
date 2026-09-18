@@ -1,9 +1,9 @@
-import { uid } from '../domain.ts';
+import { uid } from '../core/identity.ts';
 import {
   SummaryError,
+  type SummaryConnectionInput,
   type SummaryInput,
   type SummaryResult,
-  type SummaryConnectionInput,
 } from './contracts.ts';
 
 export async function summaryRequest<T>(

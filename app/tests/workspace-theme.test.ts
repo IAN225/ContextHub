@@ -1,6 +1,6 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
 import {
   workspacePalette,
   workspaceThemeClass,
@@ -41,7 +41,7 @@ test('all workspace themes keep readable text, clear actions and low-chroma larg
 });
 test('CSS palette stays synchronized with the tested semantic colors', () => {
   const css = readFileSync(
-    new URL('../components/hub/workspace-theme.css', import.meta.url),
+    new URL('../components/theme/workspace-theme.css', import.meta.url),
     'utf8',
   );
   for (const [tone, p] of Object.entries(workspacePalette)) {

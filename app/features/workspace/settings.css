@@ -1,0 +1,90 @@
+.tone-sage {
+  --workspace-accent: #73875e;
+  --workspace-soft: #eef3e6;
+  --workspace-cover: #829175;
+}
+.tone-blue {
+  --workspace-accent: #557f97;
+  --workspace-soft: #eaf2f7;
+  --workspace-cover: #7896a8;
+}
+.tone-rose {
+  --workspace-accent: #a16e79;
+  --workspace-soft: #f8edef;
+  --workspace-cover: #b48791;
+}
+.tone-sand {
+  --workspace-accent: #9b8159;
+  --workspace-soft: #f7f0e4;
+  --workspace-cover: #b4a080;
+}
+.notebook-item:is(.tone-sage, .tone-blue, .tone-rose, .tone-sand)
+  .notebook-cover {
+  background: var(--workspace-cover);
+}
+.open-journal .journal-tabs button.selected {
+  color: var(--workspace-accent);
+  background-color: var(--workspace-soft);
+}
+.open-journal .page-content h1 {
+  color: var(--workspace-accent);
+}
+.open-journal .journal-tabs button.selected::after,
+.open-journal .button.primary {
+  background: var(--workspace-accent);
+}
+.open-journal .message-avatar {
+  background-color: var(--workspace-soft);
+  color: var(--workspace-accent);
+}
+.workspace-preferences {
+  display: grid;
+  gap: 24px;
+  max-width: 720px;
+}
+.workspace-preferences fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.workspace-preferences legend {
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.appearance-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.appearance-options button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--ui-border, #dce3d4);
+  border-radius: 7px;
+}
+.appearance-options button[aria-pressed='true'] {
+  background: var(--ui-soft, #edf3e6);
+  border-color: var(--ui-border-accent, #849674);
+}
+.tone-swatch {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--workspace-cover);
+}
+.workspace-delete-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--ui-border, #e4e7df);
+}
+.workspace-delete-section .danger,
+.hub-dialog .button.danger {
+  color: #a95656;
+  background: #fae8e6;
+  border-color: #eecfcc;
+}

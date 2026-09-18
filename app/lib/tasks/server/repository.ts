@@ -1,5 +1,5 @@
-import { encodePayload, decodePayload } from '../../storage/payload.ts';
-import { uid } from '../../domain.ts';
+import { uid } from '../../core/identity.ts';
+import { decodePayload, encodePayload } from '../../storage/payload.ts';
 import {
   MAX_TASK_BYTES,
   TASK_LEASE_MS,

@@ -1,5 +1,7 @@
+import { send as accountReply } from './http.mjs';
+export { accountReply };
 import { CLIENT_PROTOCOL } from '../../lib/storage/protocol.ts';
-import { AccountError } from './accounts.mjs';
+import { AccountError } from './account-credentials.mjs';
 export const accountCookie = (local) =>
   local ? 'ch_account_local' : '__Host-ch_account';
 export function accountToken(req, local) {
@@ -19,14 +21,6 @@ export function setAccountCookie(res, token, local) {
       (token ? '43200' : '0') +
       (local ? '' : '; Secure'),
   );
-}
-export function accountReply(res, status, value) {
-  res.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store',
-    'X-Content-Type-Options': 'nosniff',
-  });
-  res.end(JSON.stringify(value));
 }
 async function json(req, limit = 8192) {
   if (!req.headers['content-type']?.includes('application/json'))

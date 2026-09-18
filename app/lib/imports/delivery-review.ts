@@ -1,4 +1,5 @@
-import { uploadChannel, type Upload } from '../domain.ts';
+import { type Upload } from '../core/model.ts';
+import { uploadChannel } from './queue.ts';
 
 // A chat client sends a new user message to trigger delivery. Keep the original
 // receipt intact and let the reviewer opt back in before archiving it.

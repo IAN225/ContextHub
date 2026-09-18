@@ -1,0 +1,491 @@
+.notebook-item {
+  background: transparent;
+  text-align: left;
+  min-width: 0;
+  position: relative;
+  perspective: 900px;
+  padding: 0;
+}
+.notebook-cover {
+  width: 100%;
+  aspect-ratio: 0.72;
+  border-radius: 3px 9px 9px 3px;
+  position: relative;
+  padding: 21px 21px 17px 27px;
+  color: #fff9e9;
+  background: #829175;
+  box-shadow:
+    2px 4px 0 #f5f3e9,
+    4px 5px 0 #d3d5c7,
+    5px 8px 12px #39452e18,
+    0 1px 0 #fff4 inset;
+  transform: rotate(-1deg);
+  transform-origin: left center;
+  transition:
+    transform var(--notebook-open-duration) cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow var(--notebook-open-duration);
+  isolation: isolate;
+}
+.notebook-cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image:
+    repeating-linear-gradient(0deg, #ffffff08 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, #00000003 0 1px, transparent 1px 4px);
+  pointer-events: none;
+  z-index: -1;
+}
+.notebook-spine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 11px;
+  background: linear-gradient(90deg, #24351920, #ffffff05, #33412218);
+  border-right: 1px solid #ffffff12;
+  border-radius: 3px 0 0 3px;
+}
+.notebook-bookmark {
+  position: absolute;
+  right: 26px;
+  top: -3px;
+  width: 13px;
+  height: 29px;
+  background: #e2d2a7;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 81%, 0 100%);
+  z-index: 2;
+}
+.notebook-cover-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 7px;
+  letter-spacing: 1.3px;
+  color: #eef1dece;
+  padding-right: 22px;
+}
+.notebook-cover-top > span:last-child {
+  font-family: Georgia, serif;
+  font-size: 8px;
+  letter-spacing: 0.6px;
+}
+.notebook-title {
+  position: absolute;
+  left: 27px;
+  right: 19px;
+  top: 24%;
+}
+.book-emblem {
+  font-size: 29px;
+  color: #e0e7cf;
+  margin-bottom: 10px;
+  display: block;
+}
+.notebook-title h2 {
+  font-family: 'Songti SC', 'Noto Serif CJK SC', 'SimSun', serif;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  margin: 0 0 15px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.book-title-rule {
+  width: 27px;
+  height: 1px;
+  background: #e6edd15c;
+  margin-bottom: 14px;
+}
+.notebook-title p {
+  white-space: pre-line;
+  color: #eef1dded;
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0;
+  line-height: 1.8;
+}
+.notebook-cover-bottom {
+  position: absolute;
+  bottom: 20px;
+  left: 27px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #eef1ddbd;
+}
+.notebook-cover-bottom > span {
+  font-size: 5px;
+  letter-spacing: 1.1px;
+}
+.notebook-cover-bottom svg {
+  opacity: 0.55;
+}
+.notebook-item:is(:hover, :focus-visible, .opening) .notebook-cover {
+  transform: rotate(-2deg) translateY(-9px) rotateY(-7deg);
+  box-shadow:
+    2px 4px 0 #f5f3e9,
+    4px 5px 0 #d3d5c7,
+    12px 16px 20px #39452e1f;
+}
+.notebook-item.book-tone-1 .notebook-cover {
+  background: #ae9377;
+  transform: rotate(1.5deg);
+}
+.notebook-item.book-tone-1:is(:hover, :focus-visible, .opening)
+  .notebook-cover {
+  transform: rotate(0.3deg) translateY(-9px) rotateY(-7deg);
+}
+.book-tone-1 .notebook-bookmark {
+  background: #d4ddbc;
+}
+.book-tone-1 .book-emblem {
+  color: #f0dcc1;
+}
+.notebook-item.book-tone-2 .notebook-cover {
+  background: #84979b;
+  transform: rotate(-0.5deg);
+}
+.notebook-item.book-tone-2:is(:hover, :focus-visible, .opening)
+  .notebook-cover {
+  transform: rotate(-1.8deg) translateY(-9px) rotateY(-7deg);
+}
+.book-tone-2 .notebook-bookmark {
+  background: #e4c8ad;
+}
+.notebook-item.book-tone-3 .notebook-cover {
+  background: #9a8b97;
+}
+.notebook-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #7e8976;
+  margin: 24px 2px 12px;
+  gap: 4px;
+  margin-top: 16px;
+  font-size: 12px;
+}
+.notebook-caption > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.notebook-caption i {
+  font-style: normal;
+  color: #bcc2ac;
+}
+.open-book-label {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  color: #788865;
+  opacity: 0;
+  transform: translateX(-5px);
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+.notebook-item:is(:hover, :focus-visible, .opening) .open-book-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+.book-progress {
+  margin: 0 2px;
+}
+.notebook-footnote {
+  line-height: 1.9;
+  color: #949e81;
+  margin: 10px 2px 0;
+  margin-top: 6px;
+  font-size: 12px;
+}
+.new-notebook {
+  width: 100%;
+  aspect-ratio: 0.72;
+  border: 1px dashed #cbd2bd;
+  border-radius: 5px;
+  background: #f7f6ef55;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #8a9979;
+  min-width: 0;
+}
+.new-notebook:hover {
+  background: #e9eddc88;
+  border-color: #9da98c;
+}
+.new-notebook-icon {
+  width: 43px;
+  height: 43px;
+  border: 1px solid #cbd4bb;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin-bottom: 21px;
+}
+.new-notebook h2 {
+  font-family: 'SimSun', serif;
+  letter-spacing: 2px;
+  font-weight: 400;
+  margin: 0 0 13px;
+  font-size: 21px;
+}
+.new-notebook p {
+  line-height: 2.1;
+  color: #919e7e;
+  margin: 0 0 27px;
+  font-size: 12px;
+}
+.new-notebook > span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 1px;
+  font-size: 12px;
+}
+@media (min-width: 1550px) {
+  .notebook-title h2 {
+    font-size: 25px;
+  }
+  .notebook-cover-top {
+    font-size: 8px;
+  }
+  .notebook-cover-bottom > span {
+    font-size: 6px;
+  }
+}
+@media (max-width: 1100px) {
+  .notebook-cover {
+    padding: 18px 14px 15px 21px;
+  }
+  .notebook-title {
+    left: 21px;
+    right: 15px;
+    top: 24%;
+  }
+  .notebook-title h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  .book-emblem {
+    font-size: 23px;
+    margin-bottom: 8px;
+  }
+  .book-title-rule {
+    margin-bottom: 10px;
+  }
+  .notebook-cover-top {
+    font-size: 6px;
+    letter-spacing: 0.7px;
+    padding-right: 15px;
+  }
+  .notebook-cover-top > span:last-child {
+    font-size: 7px;
+  }
+  .notebook-cover-bottom {
+    left: 21px;
+    right: 15px;
+    bottom: 17px;
+  }
+  .notebook-cover-bottom > span {
+    font-size: 4px;
+    letter-spacing: 0.6px;
+  }
+  .open-book-label {
+    display: none;
+  }
+  .new-notebook p {
+    margin-bottom: 19px;
+  }
+  .new-notebook-icon {
+    width: 37px;
+    height: 37px;
+    margin-bottom: 16px;
+  }
+}
+@media (max-width: 800px) {
+  .notebook-cover {
+    padding: 24px 24px 20px 30px;
+    max-height: none;
+  }
+  .notebook-title {
+    left: 30px;
+    right: 22px;
+    top: 22%;
+  }
+  .notebook-title h2 {
+    margin-bottom: 14px;
+    font-size: 25px;
+  }
+  .book-emblem {
+    font-size: 30px;
+    margin-bottom: 13px;
+  }
+  .book-title-rule {
+    margin-bottom: 13px;
+  }
+  .notebook-cover-top {
+    font-size: 8px;
+    letter-spacing: 1px;
+    padding-right: 24px;
+  }
+  .notebook-cover-top > span:last-child {
+    font-size: 9px;
+  }
+  .notebook-cover-bottom {
+    left: 30px;
+    right: 23px;
+    bottom: 20px;
+  }
+  .notebook-cover-bottom > span {
+    font-size: 6px;
+    letter-spacing: 1px;
+  }
+  .new-notebook p {
+    line-height: 2.2;
+  }
+  .new-notebook-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 25px;
+  }
+}
+@media (max-width: 480px) {
+  .notebook-cover {
+    padding: 16px 12px 13px 20px;
+    max-height: none;
+    min-height: 0;
+  }
+  .notebook-cover-top {
+    font-size: 5px;
+    padding-right: 6px;
+    letter-spacing: 0.7px;
+  }
+  .notebook-cover-top > span:last-child {
+    font-size: 6px;
+  }
+  .notebook-bookmark {
+    width: 10px;
+    height: 23px;
+    right: 17px;
+  }
+  .book-title-rule {
+    width: 22px;
+    margin-bottom: 10px;
+  }
+  .notebook-cover-bottom {
+    left: 20px;
+    right: 13px;
+    bottom: 14px;
+  }
+  .notebook-cover-bottom > span {
+    font-size: 4px;
+    letter-spacing: 0.3px;
+  }
+  .notebook-cover-bottom > svg {
+    width: 12px;
+  }
+  .notebook-caption {
+    margin-bottom: 9px;
+    font-size: 11px;
+  }
+  .notebook-caption > div {
+    gap: 5px;
+  }
+  .new-notebook {
+    min-height: 0;
+  }
+  .new-notebook-icon {
+    width: 35px;
+    height: 35px;
+    margin-bottom: 10px;
+  }
+  .new-notebook-icon svg {
+    width: 18px;
+  }
+  .new-notebook h2 {
+    letter-spacing: 1px;
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  .new-notebook p {
+    margin-bottom: 22px;
+    font-size: 11px;
+    display: none;
+  }
+}
+@media (max-width: 1100px) and (min-width: 801px) {
+  .notebook-title h2 {
+    font-size: 22px;
+  }
+  .notebook-title p {
+    font-size: 12px;
+  }
+  .notebook-cover-top {
+    font-size: 8px;
+  }
+  .notebook-cover-top > span:last-child {
+    font-size: 9px;
+  }
+  .notebook-cover-bottom > span {
+    font-size: 6px;
+  }
+  .new-notebook {
+    max-width: none;
+  }
+}
+@media (max-width: 800px) {
+  .new-notebook {
+    max-height: none;
+  }
+  .notebook-title p {
+    font-size: 13px;
+  }
+  .notebook-footnote {
+    font-size: 12px;
+  }
+}
+@media (max-width: 480px) {
+  .notebook-title {
+    left: 17px;
+    right: 12px;
+    top: 18%;
+  }
+  .notebook-title h2 {
+    font-size: 18px;
+    line-height: 1.55;
+    letter-spacing: 0;
+    margin-bottom: 10px;
+  }
+  .notebook-title p {
+    font-size: 10px;
+    line-height: 1.8;
+    display: none;
+  }
+  .book-emblem {
+    font-size: 21px;
+    margin-bottom: 9px;
+  }
+  .notebook-footnote {
+    font-size: 10px;
+  }
+  .new-notebook > span:last-child {
+    font-size: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notebook-cover,
+  .open-book-label {
+    transition: none;
+  }
+}

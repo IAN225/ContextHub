@@ -1,15 +1,15 @@
 import {
+  attachmentFromReference,
+  attachmentMarker,
+  parseMediaBlock,
+} from '../../attachments.ts';
+import { type Message } from '../../core/model.ts';
+import {
   ImportError,
   record,
   string,
   type ParsedConversation,
 } from '../contracts.ts';
-import type { Message } from '../../domain.ts';
-import {
-  attachmentFromReference,
-  attachmentMarker,
-  parseMediaBlock,
-} from '../../attachments.ts';
 
 function publicBranch(p: Record<string, unknown>): unknown[] {
   const nodes = p.chat_messages as unknown[];

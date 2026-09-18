@@ -1,22 +1,20 @@
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  blankWorkspace,
-  groupTurns,
-  coverage,
-  memoryText,
-  estimateTurnTokens,
-  type Turn,
-} from '../lib/domain.ts';
-import {
-  planCompression,
-  checkpointFromResult,
-  applyGeneratedCheckpoint,
-} from '../lib/summary/planning.ts';
-import { summaryWorkspace, emptyRemeTrack } from '../lib/summary/engines.ts';
-import { mcpWorkspace } from '../lib/mcp/snapshot.ts';
-import { callMcpTool } from '../lib/mcp/server/tools.ts';
+import { test } from 'node:test';
+import { type Turn } from '../lib/core/model.ts';
 import type { McpRepository } from '../lib/mcp/server/repository.ts';
+import { callMcpTool } from '../lib/mcp/server/tools.ts';
+import { mcpWorkspace } from '../lib/mcp/snapshot.ts';
+import { memoryText } from '../lib/memory/compose.ts';
+import { coverage } from '../lib/summary/coverage.ts';
+import { emptyRemeTrack, summaryWorkspace } from '../lib/summary/engines.ts';
+import {
+  applyGeneratedCheckpoint,
+  checkpointFromResult,
+  planCompression,
+} from '../lib/summary/planning.ts';
+import { estimateTurnTokens } from '../lib/transcript/tokens.ts';
+import { groupTurns } from '../lib/transcript/turns.ts';
+import { blankWorkspace } from '../lib/workspaces/create.ts';
 function fixture() {
   const w = blankWorkspace('Recent window');
   w.turns = groupTurns(

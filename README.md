@@ -99,7 +99,7 @@ Docker 部署脚本不接受源码脚本的 CLI 参数，启动配置写在 `.en
 - 客户端投递预览默认排除末尾尚无回复的纯文本用户消息（通常用于触发投递）；可勾选“保留最后一条用户消息”恢复。原收件在归档前保持完整，分享链接、手动导入和带附件的末尾消息不使用该默认排除。
 - 收件箱按窗口可用高度显示，邮件标题和归档栏固定，长对话在邮件内部滚动。
 - 摘要页可切换“自定义压缩”和“ReMeLight 风格（实验）”；两套配置、模型连接、摘要历史和处理进度独立，任务在服务器后台逐个执行。实验方案是参考 ReMeLight 的 TypeScript 实现，不包含官方 Python 引擎。详见 [摘要方案](docs/summary-engines.md)。
-- 两套方案分别配置模型地址、名称和 API Key。查看页签不会更改记忆注入来源；用“设为记忆注入来源”或在记忆包页明确选择。
+- 两套方案分别配置模型地址、名称和 API Key。查看页签不会更改记忆注入来源；在记忆包的活跃摘要组件中选择注入来源。
 - 配置 HTTPS 后，工作区“连接”页可授权 Claude、ChatGPT 等 MCP 客户端访问当前工作区。
 - 换设备后用同一账号读取已保存内容；同时修改同一记录会触发冲突保护。
 - 已下载附件按账号保存；未下载的外部附件仍依赖原地址，单个附件上限 5 MB。
@@ -109,7 +109,8 @@ Docker 部署脚本不接受源码脚本的 CLI 参数，启动配置写在 `.en
 ```text
 app/                 应用源码、数据库迁移与运行脚本
   app/               页面与 API 路由
-  components/        按业务模块拆分的前端组件
+  features/          按功能组织的页面、交互控制器与样式
+  components/        通用控件、账号 Provider 与主题容器
   lib/               领域逻辑、账号存储、MCP 与后台任务
   scripts/           账号网关、内部应用进程与运维命令
   drizzle/           数据库迁移
@@ -122,3 +123,5 @@ compose.yaml
 仓库仅提供源码及构建配置，不包含数据库或凭据。手动运行时，在 `app/` 执行 `pnpm install --frozen-lockfile`、`pnpm build`、`pnpm db:init`，最后 `pnpm start`。启动进程可通过环境变量 `CONTEXT_HUB_PORT` 覆盖网页端口；首次初始化还支持 `CONTEXT_HUB_DOMAIN`、`CONTEXT_HUB_HTTPS_MODE`、`CONTEXT_HUB_ACCEPT_ACME_TERMS`。直接用 `pnpm start` 不会安装 Caddy 或系统服务，正式部署请用上述脚本。
 
 [升级、日志、密码重置与备份恢复](docs/operations.md)。
+
+[模块边界与开发检查](docs/architecture.md)。

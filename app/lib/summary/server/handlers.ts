@@ -1,3 +1,5 @@
+import { managementGuard } from '../../server/request.ts';
+import { digest } from '../../server/crypto.ts';
 import {
   MAX_SUMMARY_BYTES,
   SummaryError,
@@ -6,31 +8,22 @@ import {
   type SummaryProbe,
 } from '../contracts.ts';
 import { object, outputField } from '../providers/shared.ts';
+import { thinkingProbe } from '../thinking-probe.ts';
 import {
   readSummaryConnection,
   summaryConnectionStatus,
   type SummaryEnvironment,
 } from './config.ts';
 import { generateSummary, readSummaryBody } from './service.ts';
-import { thinkingProbe } from '../thinking-probe.ts';
 import {
   publicSummarySettings,
   type SummarySettingsRepository,
 } from './settings.ts';
 
 const headers = { 'Cache-Control': 'no-store' };
-function localRequest(request: Request) {
-  const url = new URL(request.url),
-    origin = request.headers.get('origin'),
-    site = request.headers.get('sec-fetch-site');
-  if (
-    request.headers.get('x-context-hub') !== '1' ||
-    (site && !['same-origin', 'none'].includes(site)) ||
-    (origin && origin !== url.origin) ||
-    (request.method !== 'GET' && !origin)
-  )
-    throw new SummaryError('FORBIDDEN', '请从当前 Context Hub 页面操作。', 403);
-}
+const localRequest = managementGuard(
+  () => new SummaryError('FORBIDDEN', '请从当前 Context Hub 页面操作。', 403),
+);
 function inputFrom(value: unknown): SummaryInput {
   const body = object(value),
     raw = object(body.config);
@@ -140,17 +133,9 @@ export function createSummaryHandler() {
           'REQUEST_ID_REQUIRED',
           '摘要请求缺少有效任务编号。',
         );
-      const fingerprint = Array.from(
-        new Uint8Array(
-          await crypto.subtle.digest(
-            'SHA-256',
-            new TextEncoder().encode(
-              `${stored?.revision ?? ''}\n${action}\n${body}`,
-            ),
-          ),
-        ),
-        (x) => x.toString(16).padStart(2, '0'),
-      ).join('');
+      const fingerprint = await digest(
+        `${stored?.revision ?? ''}\n${action}\n${body}`,
+      );
       for (const [id, entry] of cache)
         if (Date.now() - entry.at > 300000) cache.delete(id);
       const existing = cache.get(key);

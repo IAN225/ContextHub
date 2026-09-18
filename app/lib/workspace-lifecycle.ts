@@ -1,4 +1,5 @@
-import { applyHubCommand, type HubState } from './hub-state.ts';
+import { type HubState } from './state/contracts.ts';
+import { applyHubCommand } from './state/hub-reducer.ts';
 export function removeWorkspaceData(state: HubState, workspaceId: string) {
   const w = state.workspaces.find((w) => w.id === workspaceId);
   const keys = w

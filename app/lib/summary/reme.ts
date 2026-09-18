@@ -1,5 +1,5 @@
-import type { Summary, Turn, Workspace } from '../domain.ts';
 import { attachmentContext } from '../attachments.ts';
+import { type Summary, type Turn, type Workspace } from '../core/model.ts';
 import { generationConfig, SummaryError } from './contracts.ts';
 // Independently written strategy inspired by ReMeLight context checkpoints.
 // This does not embed the Python engine or its file-based memory service.

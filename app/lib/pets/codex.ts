@@ -1,13 +1,13 @@
 import {
+  normalizeSourceName,
   object,
   petLimits,
-  normalizeSourceName,
-  type PetPack,
   type PetAnimation,
+  type PetPack,
 } from './contracts.ts';
-import { imageInfo, imageDataUrl } from './images.ts';
-import { readPetZip, safePetPath } from './zip.ts';
+import { imageDataUrl, imageInfo } from './images.ts';
 import { normalizePetPreferences } from './package.ts';
+import { readPetZip, safePetPath } from './zip.ts';
 
 // Layout metadata verified against Codex desktop 26.908.9136.0 (v1/v2).
 export const codexLayouts = {

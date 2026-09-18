@@ -1,5 +1,5 @@
-import type { Turn } from './domain.ts';
 import { attachmentMarker } from './attachments.ts';
+import { type Turn } from './core/model.ts';
 /** Projection only: original imported text and payload remain untouched. */
 export function messageMedia(turn: Turn) {
   const attachments = turn.attachments ?? [];

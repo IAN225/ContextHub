@@ -1,5 +1,6 @@
-import { groupTurns, type Message, type Attachment } from '../../domain.ts';
 import { attachmentMarker, parseMediaBlock } from '../../attachments.ts';
+import { type Attachment, type Message } from '../../core/model.ts';
+import { groupTurns } from '../../transcript/turns.ts';
 type Row = Record<string, unknown>;
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
 const row = (v: unknown): Row => (v && typeof v === 'object' ? (v as Row) : {});

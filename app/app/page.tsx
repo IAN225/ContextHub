@@ -1,5 +1,5 @@
-import { AccountBoundary } from '@/components/hub/account';
-import { Hub } from '@/components/hub/hub';
+import { AccountBoundary } from '../components/providers/account.tsx';
+import { Hub } from '../features/workspace/index.ts';
 export default function HomePage() {
   return (
     <AccountBoundary>

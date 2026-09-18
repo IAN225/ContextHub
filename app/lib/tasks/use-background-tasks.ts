@@ -1,6 +1,4 @@
 'use client';
-import { summaryWorkspace, summaryEngines } from '../summary/engines';
-import { sha256Hex } from '../browser-compat';
 import {
   createContext,
   useCallback,
@@ -10,13 +8,17 @@ import {
   useRef,
   useState,
 } from 'react';
-import { coverage, uid, type Attachment, type Workspace } from '../domain';
 import { attachmentRevision, attachmentStatus } from '../attachments';
-import type { HubCommand, HubState } from '../hub-state';
+import { sha256Hex } from '../browser-compat';
+import { uid } from '../core/identity.ts';
+import { type Attachment, type Workspace } from '../core/model.ts';
+import { type HubCommand, type HubState } from '../state/contracts.ts';
+import { coverage } from '../summary/coverage.ts';
+import { summaryEngines, summaryWorkspace } from '../summary/engines';
 import { summaryRevision } from '../summary/planning';
-import { summaryTaskWorkspace } from './snapshot';
 import { taskControl, taskRequest, taskResult } from './client';
 import type { BackgroundTask, SummaryTaskResult } from './contracts';
+import { summaryTaskWorkspace } from './snapshot';
 
 async function hash(value: string) {
   return sha256Hex(new TextEncoder().encode(value));

@@ -55,30 +55,19 @@ body {
   font-size: 14px;
   background: var(--paper-canvas);
   color: var(--ink-strong);
-}
-button,
-input,
-textarea,
-select {
-  font: inherit;
+  overflow-x: clip;
+  overscroll-behavior: none;
+  scrollbar-width: none;
 }
 button {
+  font: inherit;
   cursor: pointer;
   transition:
     background 0.16s,
     color 0.16s;
 }
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-}
-:is(button, a, input, textarea, select, [tabindex]):focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 4px;
-}
-input,
-textarea,
-select {
+input {
+  font: inherit;
   border: 1px solid var(--line-input);
   border-radius: 6px;
   padding: 10px 12px;
@@ -87,9 +76,33 @@ select {
   color: var(--ink-body);
 }
 textarea {
+  font: inherit;
+  border: 1px solid var(--line-input);
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-width: 0;
+  background: var(--paper-input);
+  color: var(--ink-body);
   resize: vertical;
   line-height: 1.85;
   width: 100%;
+}
+select {
+  font: inherit;
+  border: 1px solid var(--line-input);
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-width: 0;
+  background: var(--paper-input);
+  color: var(--ink-body);
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+:is(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
 }
 a {
   color: #99d8c0;
@@ -135,8 +148,9 @@ textarea::placeholder {
 @media (prefers-reduced-motion: reduce) {
   * {
     scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
   }
-  *,
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none !important;
@@ -169,8 +183,7 @@ html[data-pointer-type='pen'] body {
   user-select: text;
   -webkit-touch-callout: default;
 }
-html,
-body {
+html {
   overflow-x: clip;
   overscroll-behavior: none;
   scrollbar-width: none;

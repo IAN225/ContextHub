@@ -1,0 +1,62 @@
+import { type Workspace } from '../../core/model.ts';
+import { applyGeneratedCheckpoint } from '../../summary/planning.ts';
+import { restoreSummary } from '../../summary/restore.ts';
+import { type WorkspaceCommand } from '../contracts.ts';
+
+export function applySummaries(
+  w: Workspace,
+  command: Extract<
+    WorkspaceCommand,
+    {
+      type:
+        | 'summary/config'
+        | 'summary/retain'
+        | 'summary/generated'
+        | 'summary/restore';
+    }
+  >,
+): Workspace {
+  switch (command.type) {
+    case 'summary/config': {
+      const config = { ...w.config, ...command.patch };
+      if (config.review) config.auto = false;
+      // A previously saved toggle never authorizes a newly connected paid model.
+      if (config.modelEnabled && !w.config.modelEnabled)
+        return {
+          ...w,
+          config: { ...config, auto: false },
+          started: false,
+          firstComplete: false,
+        };
+      return { ...w, config };
+    }
+    case 'summary/retain':
+      return {
+        ...w,
+        ...(command.retain !== undefined
+          ? {
+              retain: Math.max(
+                1,
+                Math.min(500, Math.floor(command.retain) || 1),
+              ),
+            }
+          : {}),
+        ...(command.mode ? { retainMode: command.mode } : {}),
+        ...(command.tokens !== undefined
+          ? {
+              retainTokens: Math.max(
+                1,
+                Math.min(2000000, Math.floor(command.tokens) || 1),
+              ),
+            }
+          : {}),
+      };
+    case 'summary/generated':
+      return applyGeneratedCheckpoint(w, command.generated);
+    case 'summary/restore':
+      return {
+        ...restoreSummary(w, command.summaryId, command.mode),
+        config: { ...w.config, auto: false },
+      };
+  }
+}
