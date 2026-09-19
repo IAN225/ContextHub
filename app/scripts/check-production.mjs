@@ -1,20 +1,29 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-const root = new URL('../production/', import.meta.url);
+import { pathToFileURL } from 'node:url';
+const root = process.env.CONTEXT_HUB_CHECK_RUNTIME
+  ? pathToFileURL(process.env.CONTEXT_HUB_CHECK_RUNTIME + '/')
+  : new URL('../production/', import.meta.url);
 if (!process.env.CONTEXT_HUB_CHECK_DIRECTORY) {
   const directory = await mkdtemp(join(tmpdir(), 'context-production-'));
   let result;
   try {
+    const runtime = join(directory, 'runtime');
+    await cp(root, runtime, { recursive: true, dereference: true });
     result = spawnSync(
       process.execPath,
       ['--no-experimental-strip-types', process.argv[1]],
       {
         stdio: 'inherit',
-        env: { ...process.env, CONTEXT_HUB_CHECK_DIRECTORY: directory },
+        env: {
+          ...process.env,
+          CONTEXT_HUB_CHECK_DIRECTORY: directory,
+          CONTEXT_HUB_CHECK_RUNTIME: runtime,
+        },
       },
     );
   } finally {

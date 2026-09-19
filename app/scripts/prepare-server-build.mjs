@@ -10,6 +10,7 @@ import {
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
+import { createRequire, isBuiltin } from 'node:module';
 const root = fileURLToPath(new URL('../', import.meta.url)),
   output = resolve(root, 'production');
 if (dirname(output) !== resolve(root))
@@ -29,6 +30,67 @@ const entries = [
   'scripts/mcp-stdio.mjs',
 ];
 const visited = new Set();
+const packages = new Map();
+function copyPackage(specifier, importer) {
+  if (isBuiltin(specifier)) return;
+  const name = specifier.startsWith('@')
+    ? specifier.split('/').slice(0, 2).join('/')
+    : specifier.split('/')[0];
+  const require = createRequire(importer);
+  let directory = dirname(require.resolve(specifier));
+  let manifest;
+  while (true) {
+    const file = resolve(directory, 'package.json');
+    if (existsSync(file)) {
+      const candidate = JSON.parse(readFileSync(file, 'utf8'));
+      if (candidate.name === name) {
+        manifest = candidate;
+        break;
+      }
+    }
+    const parent = dirname(directory);
+    if (parent === directory)
+      throw new Error('Cannot locate runtime package ' + name);
+    directory = parent;
+  }
+  if (packages.has(name)) {
+    if (packages.get(name) !== manifest.version)
+      throw new Error('Conflicting runtime package versions: ' + name);
+    return;
+  }
+  packages.set(name, manifest.version);
+  cpSync(directory, resolve(output, 'node_modules', name), {
+    recursive: true,
+    dereference: true,
+    filter: (path) =>
+      path === directory ||
+      !relative(directory, path).split(/[\\/]/).includes('node_modules'),
+  });
+  for (const dependency of Object.keys(manifest.dependencies || {})) {
+    copyPackage(dependency, resolve(directory, 'package.json'));
+  }
+}
+function collectPackages(source, absolute) {
+  const parsed = ts.createSourceFile(
+    absolute,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  function visit(node) {
+    const spec =
+      ts.isImportDeclaration(node) || ts.isExportDeclaration(node)
+        ? node.moduleSpecifier
+        : ts.isCallExpression(node) &&
+            node.expression.kind === ts.SyntaxKind.ImportKeyword
+          ? node.arguments[0]
+          : null;
+    if (spec && ts.isStringLiteralLike(spec) && !spec.text.startsWith('.'))
+      copyPackage(spec.text, absolute);
+    ts.forEachChild(node, visit);
+  }
+  visit(parsed);
+}
 function compile(path) {
   const absolute = resolve(root, path);
   if (visited.has(absolute)) return;
@@ -77,6 +139,7 @@ function compile(path) {
       /(from\s*['"]|import\s*\(\s*['"])([^'"]+)\.ts(['"])/g,
       '$1$2.js$3',
     );
+  collectPackages(emitted, absolute);
   const target = resolve(output, path.replace(/\.ts$/, '.js'));
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, emitted);
@@ -103,6 +166,7 @@ writeFileSync(
     {
       format: 1,
       node: 24,
+      packages: Object.fromEntries(packages),
       entry: 'scripts/start-server.mjs',
       files: [...files(output)].sort((a, b) => a.localeCompare(b)),
     },
