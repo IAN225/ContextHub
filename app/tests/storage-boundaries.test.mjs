@@ -226,3 +226,33 @@ test('stdio bounds an unfinished input line and preserves split UTF-8', async ()
     }
   }, /1 MB/);
 });
+
+test('cloud drafts release rejected writes but retain uncertain requests for idempotent retry', async () => {
+  const { createCloudRepository } =
+    await import('../lib/storage/cloud-repository.ts');
+  for (const status of [400, 500]) {
+    const commits = [];
+    const repository = createCloudRepository(async (_url, init) => {
+      if (init.method === 'GET')
+        return Response.json({
+          generation: 0,
+          entry: { key: 'import-draft-v1', revision: 0 },
+        });
+      const body = JSON.parse(init.body);
+      commits.push(body.commitId);
+      if (commits.length === 1)
+        return Response.json({ error: 'rejected' }, { status });
+      return Response.json({
+        generation: 0,
+        entries: [{ key: 'import-draft-v1', revision: 1 }],
+      });
+    });
+    const value = [{ key: 'import-draft-v1', value: { text: 'draft' } }];
+    await assert.rejects(repository.write(value), /rejected/);
+    if (status === 400) await repository.flush();
+    else await assert.rejects(repository.flush(), /未确认/);
+    await repository.write(value);
+    assert.equal(commits[0] === commits[1], status === 500);
+    await repository.flush();
+  }
+});

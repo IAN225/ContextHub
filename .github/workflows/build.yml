@@ -15,7 +15,7 @@ jobs:
         working-directory: app
       - run: pnpm check:architecture && pnpm typecheck && pnpm lint && pnpm test && pnpm build && node --no-experimental-strip-types scripts/check-production.mjs
         working-directory: app
-      - run: python3 -m py_compile deploy/backup.py deploy/upgrade.py && shellcheck deploy/install.sh deploy/docker.sh
+      - run: python3 -m py_compile deploy/backup.py deploy/upgrade.py deploy/check-recovery.py && python3 deploy/test-backup.py && shellcheck deploy/install.sh deploy/docker.sh
       - run: docker compose config --quiet && docker build -t contexthub:check .
       - run: bash deploy/check-container.sh
       - run: pnpm exec playwright install --with-deps chromium

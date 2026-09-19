@@ -114,6 +114,6 @@ sudo python3 deploy/backup.py restore /path/to/contexthub.tar.gz --mode docker
 sudo bash deploy/docker.sh
 ```
 
-恢复前校验清单与 SHA-256，拒绝不安全归档路径。目标已有数据时默认拒绝覆盖；--replace-existing 会先将原文件保留到 /var/backups/contexthub/before-restore-\*。恢复后服务保持停止，部署命令负责启动。使用外部 HTTPS 时，源码备份与恢复均加 --skip-caddy。
+恢复前校验清单与 SHA-256，拒绝不安全归档路径、链接、重复路径、超过 100,000 个条目或解包后超过 32 GiB 的归档。这是恢复工具的保护上限，不是已验证的实例容量。目标已有数据时默认拒绝覆盖；--replace-existing 会先将原文件保留到 /var/backups/contexthub/before-restore-\*。恢复后服务保持停止，部署命令负责启动。使用外部 HTTPS 时，源码备份与恢复均加 --skip-caddy。
 
 默认 Compose 项目名为 contexthub，自定义项目要保持 --project 或 COMPOSE_PROJECT_NAME 一致。更换域名后需重新配置 HTTPS，第三方客户端可能要求重新授权。

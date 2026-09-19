@@ -13,10 +13,17 @@ import {
 import { AccountError, hash } from './account-credentials.mjs';
 export function accountRecords({ db, lifecycle, transaction }) {
   function storedValue(key, raw) {
-    const value = JSON.parse(raw);
-    return key.startsWith(RECORD_PREFIX) || key === HUB_KEY
-      ? value
-      : decodeAuxiliary(key, value);
+    try {
+      const value = JSON.parse(raw);
+      return key.startsWith(RECORD_PREFIX) || key === HUB_KEY
+        ? value
+        : decodeAuxiliary(key, value);
+    } catch {
+      throw new AccountError(
+        '存储格式无法读取，请检查数据或使用匹配的应用版本。',
+        426,
+      );
+    }
   }
   function record(id, key) {
     const row = db
