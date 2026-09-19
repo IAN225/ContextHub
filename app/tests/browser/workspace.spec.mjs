@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
-const base = 'http://127.0.0.1:8080';
 const password = () =>
   execFileSync(
     'docker',
@@ -42,46 +41,17 @@ test('workspace buttons, draft failure/retry, keyboard and themed portal', async
   await expect(dialog).toHaveCount(0);
   const nav = page.getByRole('navigation', { name: '工作区章节' });
   await expect(nav).toBeVisible();
-  const user = (await (await page.request.get('/api/account/status')).json())
-    .user;
-  const snapshot = await (
-    await page.request.get('/api/workspaces', {
-      headers: { 'X-Context-Hub-User': user.id },
-    })
-  ).json();
-  const workspace = snapshot.state.workspaces.find(
-    (w) => w.name === name + '-offline',
-  );
-  expect(workspace).toBeTruthy();
-  const response = await page.request.post('/api/workspaces', {
-    headers: {
-      Origin: base,
-      'X-Context-Hub': '1',
-      'X-Context-Hub-Version': '4',
-      'X-Context-Hub-User': user.id,
-    },
-    data: {
-      id: crypto.randomUUID(),
-      generation: snapshot.generation,
-      expected: snapshot.revisions,
-      command: {
-        type: 'workspace',
-        workspaceId: workspace.id,
-        command: {
-          type: 'workspace/settings',
-          name: workspace.name,
-          appearance: { tone: 'umber' },
-        },
-      },
-    },
-  });
-  expect(response.ok()).toBeTruthy();
-  await expect(page.locator('.open-journal')).toHaveClass(/tone-umber/);
   await nav.getByRole('button', { name: '设置', exact: true }).click();
+  await page.getByRole('button', { name: '暖沙', exact: true }).click();
+  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(page.locator('.workspace-preferences output')).toHaveText(
+    '已保存',
+  );
+  await expect(page.locator('.open-journal')).toHaveClass(/tone-sand/);
   const remove = page.getByRole('button', { name: '删除工作区', exact: true });
   await remove.click();
   await expect(dialog).toBeVisible();
-  await expect(dialog).toHaveClass(/workspace-theme.*tone-umber/);
+  await expect(dialog).toHaveClass(/workspace-theme.*tone-sand/);
   const box = await dialog.boundingBox();
   expect(box.width).toBeLessThanOrEqual(page.viewportSize().width);
   await page.keyboard.press('Escape');
