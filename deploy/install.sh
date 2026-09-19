@@ -86,7 +86,7 @@ stage=$(mktemp -d /opt/contexthub-build.XXXXXXXX)
 chmod 755 "$stage"
 rsync -a --exclude=.git --exclude=node_modules --exclude=dist --exclude=production --exclude=.wrangler --exclude='.env*' --exclude=outputs "$SOURCE/app/" "$stage/app/"
 chown -R contexthub:contexthub "$stage"
-sudo -u contexthub env HOME=/var/lib/contexthub PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$2" install --frozen-lockfile; "$2" build' _ "$stage/app" "$PNPM"
+sudo -u contexthub env HOME=/var/lib/contexthub XDG_CONFIG_HOME=/var/lib/contexthub/.config XDG_DATA_HOME=/var/lib/contexthub/.local/share XDG_CACHE_HOME=/var/lib/contexthub/.cache PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$2" install --frozen-lockfile; "$2" build' _ "$stage/app" "$PNPM"
 fi
 if [[ -f $PREFIX/app/.wrangler/server/accounts.sqlite && ${CONTEXT_HUB_UPGRADE_CHILD:-} != 1 ]]; then
   $START || { echo 'An existing instance must be upgraded with startup verification; omit --no-start.' >&2; exit 1; }
@@ -107,7 +107,7 @@ fi
 install -d -m 755 "$PREFIX/app"
 rsync -a --delete --no-perms --no-owner --no-group --exclude=.wrangler --exclude=".env*" "$stage/app/production/" "$PREFIX/app/"
 install -d -o contexthub -g contexthub -m 700 "$PREFIX/app/.wrangler"
-sudo -u contexthub env HOME=/var/lib/contexthub PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$6" scripts/schema-check.mjs; CONTEXT_HUB_DOMAIN="$3" CONTEXT_HUB_HTTPS_MODE="$4" CONTEXT_HUB_ACCEPT_ACME_TERMS="$5" "$6" scripts/initialize-server.mjs' _ "$PREFIX/app" "$PNPM" "$DOMAIN" "$MODE" "$TERMS" "$NODE"
+sudo -u contexthub env HOME=/var/lib/contexthub XDG_CONFIG_HOME=/var/lib/contexthub/.config XDG_DATA_HOME=/var/lib/contexthub/.local/share XDG_CACHE_HOME=/var/lib/contexthub/.cache PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$6" scripts/schema-check.mjs; CONTEXT_HUB_DOMAIN="$3" CONTEXT_HUB_HTTPS_MODE="$4" CONTEXT_HUB_ACCEPT_ACME_TERMS="$5" "$6" scripts/initialize-server.mjs' _ "$PREFIX/app" "$PNPM" "$DOMAIN" "$MODE" "$TERMS" "$NODE"
 if [[ -n $PORT ]]; then
   printf '%s\n' "$PORT" > "$PREFIX/app/.wrangler/server/http-port"
   chown contexthub:contexthub "$PREFIX/app/.wrangler/server/http-port"

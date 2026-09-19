@@ -1,15 +1,11 @@
 'use client';
 import { useServerSettings } from './use-server-settings.ts';
 
-import { ArrowLeft, Globe, LockKeyhole, LogOut, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Globe, LogOut, RotateCcw } from 'lucide-react';
 import { Button } from '../../components/shared/button.tsx';
 export function ServerPage() {
   const {
     status,
-    password,
-    setPassword,
-    confirmation,
-    setConfirmation,
     origin,
     setOrigin,
     mode,
@@ -49,72 +45,9 @@ export function ServerPage() {
       )}
       {status?.enabled && !status.authenticated && (
         <section className="server-card">
-          <h2>
-            <LockKeyhole size={18} />
-            {status.initialized ? '管理员登录' : '设置管理员'}
-          </h2>
-          {!status.initialized && !status.localSetup ? (
-            <p>首次设置请通过 SSH 转发打开服务器本机配置页。</p>
-          ) : (
-            <>
-              <p>
-                {status.initialized
-                  ? '使用这台服务器的管理员密码登录。'
-                  : '首次设置仅在服务器本机入口进行。请保存好管理员密码。'}
-              </p>
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void action(status.initialized ? 'login' : 'setup', {
-                    password,
-                  });
-                }}
-              >
-                <label className="server-field">
-                  管理员密码
-                  <input
-                    type="password"
-                    autoComplete={
-                      status.initialized ? 'current-password' : 'new-password'
-                    }
-                    minLength={status.initialized ? 1 : 12}
-                    maxLength={256}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </label>
-                {!status.initialized && (
-                  <label className="server-field">
-                    再次输入密码
-                    <input
-                      type="password"
-                      autoComplete="new-password"
-                      required
-                      value={confirmation}
-                      onChange={(e) => setConfirmation(e.target.value)}
-                    />
-                    <small>至少 12 个字符。</small>
-                  </label>
-                )}
-                <button
-                  className="button primary"
-                  disabled={
-                    busy ||
-                    !password ||
-                    (!status.initialized &&
-                      (password.length < 12 || password !== confirmation))
-                  }
-                >
-                  {busy
-                    ? '正在处理…'
-                    : status.initialized
-                      ? '登录'
-                      : '保存管理员密码'}
-                </button>
-              </form>
-            </>
-          )}
+          <p>请使用管理员账号登录。</p>
+          {/* oxlint-disable-next-line nextjs/no-html-link-for-pages -- Reset expired account navigation. */}
+          <a href="/login">登录</a>
         </section>
       )}
       {status?.authenticated && (

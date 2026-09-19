@@ -44,9 +44,10 @@ export async function importShare(
   fetcher: typeof fetch = fetch,
 ) {
   const { provider, id, canonical } = resolveShareUrl(link);
+  let response: Response | undefined;
   try {
     // Fetch only a provider-constructed URL; never follow redirects into arbitrary hosts.
-    const response = await fetcher(provider.resource(id), {
+    response = await fetcher(provider.resource(id), {
       redirect: 'manual',
       signal: AbortSignal.timeout(20000),
       headers: {
@@ -105,5 +106,8 @@ export async function importShare(
       '暂时无法连接分享来源，请检查网络后重试，或使用手动复制导入。',
       502,
     );
+  } finally {
+    if (response?.body && !response.bodyUsed)
+      await response.body.cancel().catch(() => {});
   }
 }

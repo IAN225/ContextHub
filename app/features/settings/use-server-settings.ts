@@ -5,8 +5,6 @@ import type { ServerStatus } from './server-contracts.ts';
 
 export function useServerSettings() {
   const [status, setStatus] = useState<ServerStatus | null>(null);
-  const [password, setPassword] = useState(''),
-    [confirmation, setConfirmation] = useState('');
   const [origin, setOrigin] = useState(''),
     [mode, setMode] = useState('automatic');
   const [terms, setTerms] = useState(false),
@@ -47,7 +45,10 @@ export function useServerSettings() {
     }, 2500);
     return () => clearInterval(timer);
   }, [hasPending, load]);
-  async function action(name: string, input: object = {}) {
+  async function action(
+    name: 'configure' | 'check' | 'logout',
+    input: object = {},
+  ) {
     setBusy(true);
     setError('');
     setFeedback('');
@@ -64,8 +65,6 @@ export function useServerSettings() {
       if (!response.ok || result.error)
         throw new Error(result.error || '操作未完成。');
       if (name === 'check') setFeedback('连接正常');
-      setPassword('');
-      setConfirmation('');
       await load();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : '操作失败。');
@@ -84,10 +83,6 @@ export function useServerSettings() {
   }
   return {
     status,
-    password,
-    setPassword,
-    confirmation,
-    setConfirmation,
     origin,
     setOrigin,
     mode,
