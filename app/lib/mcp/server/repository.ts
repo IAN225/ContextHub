@@ -36,24 +36,6 @@ export function mcpRepository(
       ).run();
       return id;
     },
-    async session(hash: string) {
-      return (
-        await sql(
-          'SELECT id FROM mcp_sessions WHERE session_hash=?',
-          hash,
-        ).first<{ id: string }>()
-      )?.id;
-    },
-    async createSession(hash: string) {
-      const id = uid();
-      await sql(
-        'INSERT INTO mcp_sessions(id,session_hash,created_at) VALUES(?,?,?)',
-        id,
-        hash,
-        Date.now(),
-      ).run();
-      return id;
-    },
     async list(owner: string) {
       application.requireOwner(owner);
       const [workspaces, tokens] = await Promise.all([

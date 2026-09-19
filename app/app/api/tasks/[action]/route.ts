@@ -37,11 +37,9 @@ async function handle(
     account ?? undefined,
     async (owner, engine) =>
       (
-        await summarySettingsRepository(
-          bindings.DB,
-          bindings.CONTEXT_HUB_ACCOUNT_MODE === '1' ? owner : undefined,
-          engine,
-        ).read(bindings)
+        await summarySettingsRepository(bindings.DB, owner, engine).read(
+          bindings,
+        )
       ).env,
   );
 }

@@ -51,7 +51,9 @@ test('account activation, approval, roles, credentials and data survive reopenin
       generation: 0,
       mode: 'write',
       commitId: 'transaction_00001',
-      entries: [{ key: 'test-draft', revision: 0, value: { text: 'saved' } }],
+      entries: [
+        { key: 'import-draft-v1', revision: 0, value: { text: 'saved' } },
+      ],
     };
     const saved = accounts.write(reader.id, transaction);
     assert.deepEqual(accounts.write(reader.id, transaction), saved);
@@ -64,7 +66,7 @@ test('account activation, approval, roles, credentials and data survive reopenin
       /另一页面/,
     );
     assert.equal(
-      accounts.read(admin.user.id, 'test-draft').entry.value,
+      accounts.read(admin.user.id, 'import-draft-v1').entry.value,
       undefined,
     );
     await accounts.password(
@@ -78,7 +80,7 @@ test('account activation, approval, roles, credentials and data survive reopenin
     accounts.close();
     accounts = await openAccounts(directory);
     assert.ok(await accounts.login('reader', 'changed-password-123'));
-    assert.deepEqual(accounts.read(reader.id, 'test-draft').entry.value, {
+    assert.deepEqual(accounts.read(reader.id, 'import-draft-v1').entry.value, {
       text: 'saved',
     });
     const current = accounts.management(admin.user.id);

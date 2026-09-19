@@ -10,10 +10,8 @@ type Receipt = {
   acknowledged_at: number | null;
 };
 export interface ImportRepository {
-  accountOwner?(id: string): Promise<Owner>;
-  findOwner(sessionHash: string): Promise<Owner | null>;
+  accountOwner(id: string): Promise<Owner>;
   findDeliveryOwner(keyHash: string): Promise<Owner | null>;
-  createOwner(id: string, sessionHash: string, keyHash: string): Promise<void>;
   rotateKey(ownerId: string, keyHash: string | null): Promise<void>;
   enqueue(
     owner: Owner,
@@ -44,12 +42,6 @@ export function createImportRepository(
         .run(id, 'account:' + id, Date.now());
       return ownerRow(id);
     },
-    async findOwner(hash) {
-      const owner = sql
-        .prepare('SELECT id,key_hash FROM import_owners WHERE session_hash=?')
-        .get(hash) as Owner | null;
-      return owner ?? null;
-    },
     async findDeliveryOwner(hash) {
       const owner = sql
         .prepare('SELECT id,key_hash FROM import_owners WHERE key_hash=?')
@@ -62,9 +54,6 @@ export function createImportRepository(
         }
       }
       return owner ?? null;
-    },
-    async createOwner() {
-      throw new ImportError('UNAUTHORIZED', '请使用账号登录。', 401);
     },
     async rotateKey(id, key) {
       application.requireOwner(id);

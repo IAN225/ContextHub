@@ -1,10 +1,8 @@
-import { managementGuard, sessionOwner } from '../../server/request.ts';
+import { managementGuard } from '../../server/request.ts';
 import { readTextBody } from '../../server/body.ts';
 import { normalizeHubState } from '../../state/validation.ts';
 import { McpError } from '../contracts.ts';
 import { mcpWorkspace } from '../snapshot.ts';
-import type { McpRepository } from './repository.ts';
-export const COOKIE = 'context_hub_mcp';
 export const headers = {
   'Cache-Control': 'no-store',
   'X-Content-Type-Options': 'nosniff',
@@ -48,9 +46,6 @@ export function errorInfo(error: unknown) {
     message: '本机 MCP 操作失败，数据未确认写入，请使用同一 request_id 重试。',
     status: 500,
   };
-}
-export async function owner(request: Request, repo: McpRepository) {
-  return sessionOwner(request, COOKIE, (hash) => repo.session(hash));
 }
 export function workspace(value: unknown) {
   try {

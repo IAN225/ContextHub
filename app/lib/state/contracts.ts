@@ -4,7 +4,6 @@ import {
   type Config,
   type Note,
   type Status,
-  type Token,
   type Turn,
   type Upload,
   type Workspace,
@@ -79,10 +78,7 @@ type WorkspaceCommandBody =
     }
   | { type: 'summary/generated'; generated: GeneratedCheckpoint }
   | { type: 'summary/restore'; summaryId: string; mode: 'keep' | 'rewind' }
-  | { type: 'memory/set'; blocks: Block[] }
-  | { type: 'token/create'; token: Token }
-  | { type: 'token/revoke'; tokenId: string }
-  | { type: 'token/rotate'; tokenId: string; token: Token };
+  | { type: 'memory/set'; blocks: Block[] };
 
 export type HubCommand =
   | { type: 'notification/read'; notificationId: string }

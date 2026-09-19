@@ -8,7 +8,6 @@ import { type WorkspaceCommand } from './contracts.ts';
 import { applyMemory } from './reducers/memory.ts';
 import { applyNotes } from './reducers/notes.ts';
 import { applySummaries } from './reducers/summaries.ts';
-import { applyTokens } from './reducers/tokens.ts';
 import { applyTurns } from './reducers/turns.ts';
 import { applyWorkspaceSettings } from './reducers/workspace-settings.ts';
 
@@ -53,9 +52,5 @@ export function applyWorkspaceCommand(
       return applyNotes(w, command);
     case 'memory/set':
       return applyMemory(w, command);
-    case 'token/create':
-    case 'token/revoke':
-    case 'token/rotate':
-      return applyTokens(w, command);
   }
 }

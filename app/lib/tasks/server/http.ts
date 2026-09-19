@@ -1,18 +1,16 @@
 import { type WorkspaceContext } from '../../core/model.ts';
 import { readTextBody } from '../../server/body.ts';
 import { digest } from '../../server/crypto.ts';
-import { managementGuard, sessionOwner } from '../../server/request.ts';
+import { managementGuard } from '../../server/request.ts';
 import {
   resolveSummaryConnection,
   type SummaryEnvironment,
 } from '../../summary/server/config.ts';
 import { MAX_TASK_BYTES, TaskError } from '../contracts.ts';
-import type { TaskRepository } from './repository.ts';
 export type TaskEnvironment = SummaryEnvironment & {
   CONTEXT_HUB_TASK_RUNNER_KEY?: string;
 };
 export const headers = { 'Cache-Control': 'no-store' };
-export const COOKIE = 'context_hub_tasks';
 export const requireManagementRequest = managementGuard(
   (message) => new TaskError('FORBIDDEN', message, 403),
 );
@@ -36,9 +34,6 @@ export async function body(request: Request, limit = MAX_TASK_BYTES) {
     if (error instanceof Error && 'status' in error) throw error;
     throw new TaskError('INVALID_JSON', '任务数据格式无效。');
   }
-}
-export async function owner(request: Request, repo: TaskRepository) {
-  return sessionOwner(request, COOKIE, (hash) => repo.session(hash));
 }
 export async function connectionHash(
   w: WorkspaceContext,

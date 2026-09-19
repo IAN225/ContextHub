@@ -25,27 +25,26 @@ export function publicSummarySettings(settings: SavedSummarySettings) {
 }
 export function summarySettingsRepository(
   db: SqlDatabase,
-  owner?: string,
+  owner: string,
   engine: SummaryEngine = 'custom',
   commit?: (
     query: string,
     parameters: (string | number | null)[],
   ) => Promise<{ meta: { changes: number } }>,
 ) {
+  if (!owner) throw new SummaryError('UNAUTHORIZED', '请先登录。', 401);
   const isolated = engine === 'reme';
-  const isolatedOwner = owner ? 'account:' + owner : 'local';
+  const isolatedOwner = 'account:' + owner;
   async function read(
-    environment: SummaryEnvironment,
+    _environment: SummaryEnvironment,
   ): Promise<SavedSummarySettings> {
     const row = await db
       .prepare(
         isolated
           ? 'SELECT value,revision FROM summary_engine_settings WHERE owner_id=? AND engine=?'
-          : owner
-            ? 'SELECT value,revision FROM account_summary_settings WHERE user_id=?'
-            : 'SELECT value,revision FROM summary_settings WHERE id=?',
+          : 'SELECT value,revision FROM account_summary_settings WHERE user_id=?',
       )
-      .bind(...(isolated ? [isolatedOwner, engine] : [owner ?? 'summary']))
+      .bind(...(isolated ? [isolatedOwner, engine] : [owner]))
       .first<{ value: string; revision: string }>();
     if (row) {
       try {
@@ -60,15 +59,7 @@ export function summarySettingsRepository(
         );
       }
     }
-    // Only credential-related bindings enter the fingerprint, not DB or runner keys.
-    if (owner || isolated) environment = {};
-    const env: SummaryEnvironment = {
-      CONTEXT_HUB_SUMMARY_BASE_URL: environment.CONTEXT_HUB_SUMMARY_BASE_URL,
-      CONTEXT_HUB_SUMMARY_MODEL: environment.CONTEXT_HUB_SUMMARY_MODEL,
-      CONTEXT_HUB_SUMMARY_API_KEY: environment.CONTEXT_HUB_SUMMARY_API_KEY,
-      CONTEXT_HUB_SUMMARY_PROTOCOL: environment.CONTEXT_HUB_SUMMARY_PROTOCOL,
-      CONTEXT_HUB_SUMMARY_THINKING: environment.CONTEXT_HUB_SUMMARY_THINKING,
-    };
+    const env: SummaryEnvironment = {};
     return {
       env,
       revision: await digest(JSON.stringify(env)),
@@ -99,7 +90,7 @@ export function summarySettingsRepository(
           409,
         );
       const baseUrl = normalizeBaseUrl(String(input.baseUrl).trim());
-      if (owner && new URL(baseUrl).protocol !== 'https:')
+      if (new URL(baseUrl).protocol !== 'https:')
         throw new SummaryError(
           'INVALID_CONNECTION',
           '云端账号的模型接口必须使用公网 HTTPS。',
@@ -138,11 +129,9 @@ export function summarySettingsRepository(
       const revision = randomSecret('');
       const query = isolated
         ? 'INSERT INTO summary_engine_settings(owner_id,engine,value,revision) VALUES(?,?,?,?) ON CONFLICT(owner_id,engine) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE summary_engine_settings.revision=?'
-        : owner
-          ? 'INSERT INTO account_summary_settings(user_id,value,revision) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE account_summary_settings.revision=?'
-          : 'INSERT INTO summary_settings(id,value,revision) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE summary_settings.revision=?';
+        : 'INSERT INTO account_summary_settings(user_id,value,revision) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE account_summary_settings.revision=?';
       const parameters = [
-        ...(isolated ? [isolatedOwner, engine] : [owner ?? 'summary']),
+        ...(isolated ? [isolatedOwner, engine] : [owner]),
         JSON.stringify(env),
         revision,
         current.revision,

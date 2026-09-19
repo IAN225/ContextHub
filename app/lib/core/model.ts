@@ -85,7 +85,8 @@ export type Block = {
   noteIds?: string[];
 };
 
-export type Token = {
+// Historical backup data only; active credentials live in the server token repository.
+type LegacyToken = {
   id: string;
   name: string;
   value: string;
@@ -145,7 +146,7 @@ type WorkspaceData = {
   retainTokens?: number;
   notes: Note[];
   blocks: Block[];
-  tokens: Token[];
+  tokens: LegacyToken[];
   config: Config;
   started: boolean;
   firstComplete?: boolean;

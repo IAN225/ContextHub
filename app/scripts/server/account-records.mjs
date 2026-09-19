@@ -1,3 +1,7 @@
+import {
+  decodeAuxiliary,
+  encodeAuxiliary,
+} from '../../lib/storage/auxiliary.ts';
 import { createEmptyHubState } from '../../lib/state/empty.ts';
 import { normalizeHubState } from '../../lib/state/validation.ts';
 import {
@@ -8,6 +12,12 @@ import {
 } from '../../lib/storage/records.ts';
 import { AccountError, hash } from './account-credentials.mjs';
 export function accountRecords({ db, lifecycle, transaction }) {
+  function storedValue(key, raw) {
+    const value = JSON.parse(raw);
+    return key.startsWith(RECORD_PREFIX) || key === HUB_KEY
+      ? value
+      : decodeAuxiliary(key, value);
+  }
   function record(id, key) {
     const row = db
       .prepare(
@@ -17,7 +27,9 @@ export function accountRecords({ db, lifecycle, transaction }) {
     return {
       key,
       revision: row?.revision ?? 0,
-      ...(row?.value_json != null ? { value: JSON.parse(row.value_json) } : {}),
+      ...(row?.value_json != null
+        ? { value: storedValue(key, row.value_json) }
+        : {}),
     };
   }
   return {
@@ -37,7 +49,7 @@ export function accountRecords({ db, lifecycle, transaction }) {
           .all(id)
           .map((row) => ({
             key: row.record_key,
-            value: JSON.parse(row.value_json),
+            value: storedValue(row.record_key, row.value_json),
             revision: row.revision,
           }));
         return { generation: user.generation, entries };
@@ -75,6 +87,14 @@ export function accountRecords({ db, lifecycle, transaction }) {
             decodeRecord(entry.value);
           } catch {
             throw new AccountError('存储版本不兼容。', 426);
+          }
+        }
+        if (!entry.key.startsWith(RECORD_PREFIX)) {
+          try {
+            if (entry.value !== undefined)
+              encodeAuxiliary(entry.key, entry.value);
+          } catch {
+            throw new AccountError('偏好或草稿格式无效。');
           }
         }
         seen.add(entry.key);
@@ -169,7 +189,13 @@ export function accountRecords({ db, lifecycle, transaction }) {
         );
         const entries = input.entries.map((entry) => {
           const json =
-            entry.value === undefined ? null : JSON.stringify(entry.value);
+            entry.value === undefined
+              ? null
+              : JSON.stringify(
+                  entry.key.startsWith(RECORD_PREFIX)
+                    ? entry.value
+                    : encodeAuxiliary(entry.key, entry.value),
+                );
           const current = db
             .prepare(
               'SELECT value_json,revision FROM account_records WHERE user_id=? AND record_key=?',

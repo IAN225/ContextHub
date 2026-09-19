@@ -72,24 +72,6 @@ export function taskRepository(db: SqlDatabase) {
       ).run();
       return id;
     },
-    async session(hash: string) {
-      return (
-        await bind(
-          'SELECT id FROM task_sessions WHERE session_hash=?',
-          hash,
-        ).first<{ id: string }>()
-      )?.id;
-    },
-    async createSession(hash: string) {
-      const id = uid();
-      await bind(
-        'INSERT INTO task_sessions(id,session_hash,created_at) VALUES(?,?,?)',
-        id,
-        hash,
-        Date.now(),
-      ).run();
-      return id;
-    },
     async list(owner: string) {
       return (
         await bind(

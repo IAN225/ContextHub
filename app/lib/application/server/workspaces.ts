@@ -1,3 +1,4 @@
+import { encodeAuxiliary } from '../../storage/auxiliary.ts';
 import { createHash } from 'node:crypto';
 import { purgeTrash } from '../../recycle-bin.ts';
 import type { SQLiteDatabase } from '../../server/sqlite.ts';
@@ -300,6 +301,15 @@ export function workspaceApplication(db: SQLiteDatabase) {
             '草稿已在另一页面更新。',
           );
       }
+      let companionValue;
+      try {
+        companionValue =
+          companion?.value === undefined
+            ? null
+            : JSON.stringify(encodeAuxiliary(companion.key, companion.value));
+      } catch {
+        throw new ApplicationError('INVALID_DRAFT', '草稿内容格式无效。', 400);
+      }
       const count = apply(owner, before, command);
       if (companion)
         sql
@@ -309,7 +319,7 @@ export function workspaceApplication(db: SQLiteDatabase) {
           .run(
             owner,
             companion.key,
-            JSON.stringify(companion.value) ?? null,
+            companionValue,
             companion.revision + 1,
             Date.now(),
           );

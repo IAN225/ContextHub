@@ -35,7 +35,7 @@ export function JournalHome({
           <span>Context Hub</span>
         </button>
         <div>
-          <AdminLink saved={saved} />
+          <AdminLink saved={saved} placement="home" />
           <button
             className="journal-header-action"
             onClick={onTasks}

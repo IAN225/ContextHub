@@ -11,6 +11,11 @@ type WriteResult = {
 };
 class CloudRepositoryError extends Error {
   override name = 'CloudRepositoryError';
+  readonly status: number;
+  constructor(message: string, status = 0) {
+    super(message);
+    this.status = status;
+  }
 }
 export function createCloudRepository(
   fetcher: typeof fetch = fetch,
@@ -41,6 +46,7 @@ export function createCloudRepository(
     if (!response.ok)
       throw new CloudRepositoryError(
         value.error ?? '云端保存失败，请稍后重试。',
+        response.status,
       );
     return value;
   }
@@ -101,7 +107,19 @@ export function createCloudRepository(
     const fingerprint = JSON.stringify(data);
     const commitId = pending.get(fingerprint) ?? randomId();
     pending.set(fingerprint, commitId);
-    const result = await request<WriteResult>('', { ...data, commitId });
+    let result: WriteResult;
+    try {
+      result = await request<WriteResult>('', { ...data, commitId });
+    } catch (error) {
+      if (
+        error instanceof CloudRepositoryError &&
+        error.status >= 400 &&
+        error.status < 500 &&
+        error.status !== 408
+      )
+        pending.delete(fingerprint);
+      throw error;
+    }
     generation = result.generation;
     for (const entry of result.entries)
       revisions.set(entry.key, entry.revision);

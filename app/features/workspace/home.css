@@ -256,8 +256,7 @@
     justify-content: flex-end;
     gap: 2px;
   }
-  .journal-home-header .journal-header-action,
-  .journal-home-header .admin-entry-button {
+  .journal-home-header .journal-header-action {
     width: 32px;
     height: 36px;
     padding: 0;
@@ -267,21 +266,12 @@
     background: transparent;
     color: #7e8676;
   }
-  .journal-home-header .journal-header-action:hover,
-  .journal-home-header .admin-entry-button:hover {
+  .journal-home-header .journal-header-action:hover {
     background: #e9eddf;
     color: #425c34;
   }
-  .journal-home-header .journal-header-action > span,
-  .journal-home-header .admin-entry-button > span {
+  .journal-home-header .journal-header-action > span {
     display: none;
-  }
-  .journal-home-header .admin-entry-error {
-    position: fixed;
-    top: 60px;
-    left: 8px;
-    right: 8px;
-    width: auto;
   }
 }
 @media (max-width: 480px) {
@@ -289,7 +279,6 @@
     gap: 5px;
   }
   .journal-home-header .journal-header-action,
-  .journal-home-header .admin-entry-button,
   .journal-home-header .journal-avatar {
     width: 28px;
     flex-shrink: 0;
