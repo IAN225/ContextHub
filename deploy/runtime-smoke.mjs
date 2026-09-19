@@ -78,7 +78,7 @@ assert.equal((await fetch(base + '/mcp/example', { headers })).status, 403);
 assert.equal(
   (await fetch(base + '/api/tasks/runner-claim', { method: 'POST', headers }))
     .status,
-  403,
+  404,
 );
 assert.equal((await fetch(base + '/api/workspaces')).status, 401);
 console.log(
