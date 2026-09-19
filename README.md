@@ -1,14 +1,29 @@
-# Context Hub
+# ContextHub
 
-自托管的对话、Note、摘要和记忆仓库。内容、附件、草稿、偏好、模型配置与授权按账号保存。管理员可以审批注册、管理用户角色和 HTTPS。
+ContextHub 是一个自托管的 AI 对话与记忆工作区。你可以集中保存不同客户端的对话，把长对话整理成摘要和 Note，再通过 MCP 让新的对话读取这些上下文。
 
-桌宠可在“设置 → 偏好 → 桌宠”导入 Codex 图集 ZIP，详见 [角色包格式与制作说明](docs/pet-packs.md)。
+一个工作区对应一组相关内容，例如一个项目、一段长期对话或一个创作主题。内容保存在你部署的服务器上，登录同一账号即可跨设备使用。
 
-工作区可独立选择主题色，配色层次与开发约定见 [工作区主题](docs/workspace-themes.md)。
+## 可以做什么
 
-## Quickstart：源码部署
+- **整理对话**：导入已有对话、接收客户端投递，按轮次查看原文和附件。
+- **维护 Note**：保存设定、资料和重要结论，支持编辑历史与标星。
+- **压缩上下文**：配置自己的模型服务，分批生成摘要，保留近期原文。
+- **编排记忆包**：组合摘要、原文、Note 和自定义内容，供 MCP 客户端读取。
+- **共享一台服务器**：不同账号分别保存内容、草稿、偏好和连接配置；管理员审批注册、管理角色和证书。
+- **个性化外观**：设置工作区主题和模型头像，导入自己的桌宠角色包。
 
-支持 Ubuntu 22.04 及以上版本，建议至少 2 核、4 GB 内存。无需域名，先开放服务器防火墙和云防火墙的 TCP 8080 端口（SSH 使用 TCP 22）：
+摘要提供“自定义压缩”和“ReMeLight 风格（实验）”两种方案，可分别配置模型与压缩策略。实验方案是参考 ReMeLight 的实现，不包含其官方 Python 引擎。模型调用需要自行配置 API，费用由所用模型服务收取。详见[摘要方案](docs/summary-engines.md)。
+
+## Quickstart
+
+选择源码或 Docker 部署其中一种。**没有域名也可以使用网页；连接 MCP 客户端需要 HTTPS 域名。**
+
+### 方式一：源码部署
+
+准备一台 Ubuntu 22.04 或更新版本的服务器、具有 sudo 权限的账号，以及 Git。可从 2 核、4 GB 内存的配置开始；长对话和大量附件的资源需求会更高。服务器需要能够下载 GitHub 源码及安装依赖。
+
+在服务器和云平台防火墙放行 TCP **8080**，保留用于远程管理的 SSH 端口，然后执行：
 
 ```bash
 git clone https://github.com/IAN225/ContextHub.git
@@ -16,112 +31,129 @@ cd ContextHub
 sudo bash deploy/install.sh
 ```
 
-脚本安装 Node.js 24、pnpm、Python 和 Caddy，构建应用、初始化数据库并设置开机自启。完成后访问 `http://服务器IP:8080`；在部署这台电脑上也可以使用 `http://localhost:8080`。`0.0.0.0` 是监听地址，不是需要输入浏览器的地址。
+脚本会安装运行依赖、构建应用、创建数据库，并设置服务开机自启。完成后访问：
 
-控制台末尾会列出检测到的访问地址、管理员用户名 `admin` 和查看当前密码的命令：
+```text
+http://服务器IP:8080
+```
+
+安装结果会列出访问地址和查看管理员密码的方法。默认管理员用户名为 `admin`，密码随机生成，在服务器执行以下命令查看：
 
 ```bash
 sudo cat /opt/contexthub/app/.wrangler/server/admin-password.txt
 ```
 
-首次管理员登录即激活，进入管理员页后可选择“保留当前密码”或设置新密码。改密无需再次输入当前密码。内置 `admin` 的当前密码始终保存在上述文件中，改密后自动更新；新用户注册仍需要管理员审批。
+### 方式二：Docker 部署
 
-HTTP 不加密密码和内容。网页功能可以先通过 HTTP 使用；**MCP 必须配置 HTTPS 域名后才能启用**。在“管理员设置 → HTTPS”中填写域名，或首次部署时直接传入：
-
-```bash
-# 更换 HTTP 网页端口
-sudo bash deploy/install.sh --port 8088
-
-# 首次部署时同时配置 HTTPS；域名须已解析到服务器，并开放 TCP 80、443
-sudo bash deploy/install.sh --domain hub.example.com --accept-acme-terms
-
-# 使用已有的 HTTPS 反向代理
-sudo bash deploy/install.sh --domain hub.example.com --external-https
-```
-
-自动证书需要先阅读 [Let's Encrypt 订户协议](https://letsencrypt.org/repository/)。外部代理应转发到 `127.0.0.1:4080`，保留 `Host`，设置 `X-Forwarded-Proto: https`。配置 HTTPS 后网页仍可通过 IP 和 HTTP 端口访问；MCP 连接地址始终使用配置的 HTTPS 域名。
-
-### 源码部署参数
-
-参数可以组合使用，`sudo bash deploy/install.sh --help` 可查看帮助。
-
-| 参数                            | 默认值与作用                                                                                                                             |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `--port 8088`                   | HTTP 网页端口，首次默认 `8080`。可用范围 `1024–65535`，排除内部端口 `3000`、`3001`、`4080`、`4310`。保存后升级时不传该参数会沿用原端口。 |
-| `--domain hub.example.com`      | 可选 HTTPS 域名，不带协议、端口和路径；无域名也可部署。仅用于初始化，已有域名在管理员页面修改。                                          |
-| `--accept-acme-terms`           | 同意自动证书订户协议；与首次配置的自动 HTTPS 域名一起使用。                                                                              |
-| `--external-https`              | 使用已有的 HTTPS 代理，不由安装脚本管理 Caddy。后续升级继续传入此参数。                                                                  |
-| `--prefix /opt/contexthub-test` | 安装前缀，默认 `/opt/contexthub`；允许该路径或带小写字母、数字、短横线的后缀。升级沿用原值。                                             |
-| `--service contexthub-test`     | systemd 服务名，默认 `contexthub`，允许相同规则的后缀。升级沿用原值。                                                                    |
-| `--skip-dependencies`           | 跳过系统依赖安装，适用于依赖已就绪的升级。                                                                                               |
-| `--no-start`                    | 安装并初始化后不启动服务；仅限首次安装。输出地址会注明服务尚未启动。                                                                     |
-| `--help`                        | 输出参数帮助。                                                                                                                           |
-
-自定义 prefix/service 不会自动隔离内部端口；同机只运行一个实例。修改 HTTP 端口时记得同步调整防火墙。
-
-## Quickstart：Docker 部署
-
-Linux 服务器需先安装 Docker Engine、Compose v2 和 Python 3。开放 TCP 8080；启用 HTTPS 时再开放 TCP 80、443。在仓库根目录执行：
+准备一台装有 Git、Docker Engine、Compose v2 和 Python 3.10+ 的 Linux 服务器，并放行 TCP **8080**。
 
 ```bash
 git clone https://github.com/IAN225/ContextHub.git
 cd ContextHub
 cp .env.example .env
-# 可直接保留默认值；需要自定义端口或域名时编辑 .env
 sudo bash deploy/docker.sh
 ```
 
-完成后访问 `http://服务器IP:8080`。控制台同样会输出地址和密码查看方法（在仓库根目录运行）：
+默认访问地址同样是 `http://服务器IP:8080`。用户名为 `admin`，在仓库目录查看随机生成的密码：
 
 ```bash
 sudo docker compose exec app cat .wrangler/server/admin-password.txt
 ```
 
-Docker 部署脚本不接受源码脚本的 CLI 参数，启动配置写在 `.env` 中并在升级时保留：
+应用数据和证书使用持久卷保存；更新时保留 `.env` 和这些卷。
 
-| 变量                            | 默认值与作用                                                           |
-| ------------------------------- | ---------------------------------------------------------------------- |
-| `CONTEXT_HUB_PORT`              | `8080`，宿主机 HTTP 网页端口；容器内固定为 `8080`。                    |
-| `CONTEXT_HUB_DOMAIN`            | 留空；填写域名可在首次启动时初始化 HTTPS。                             |
-| `CONTEXT_HUB_HTTPS_MODE`        | `automatic` 自动证书；`external` 使用已有 HTTPS 代理。                 |
-| `CONTEXT_HUB_ACCEPT_ACME_TERMS` | `false`；自动证书配置域名时设置为 `true`。                             |
-| `CONTEXT_HUB_SETUP_PORT`        | `4310`，仅绑定宿主机 `127.0.0.1` 的维护端口。                          |
-| `CONTEXT_HUB_HTTP_BIND`         | `0.0.0.0:80`，Caddy 的 HTTP 绑定。                                     |
-| `CONTEXT_HUB_HTTPS_BIND`        | `0.0.0.0:443`，Caddy 的 HTTPS 绑定。正式 HTTPS 入口使用标准 443 端口。 |
+### 首次使用
 
-外部 HTTPS 代理需要与应用共享可访问 `4080` 的网络；Compose 默认不把内部端口暴露到公网。源码与 Docker 部署二选一，避免端口冲突。应用和证书存入持久卷；升级不要删除 `.env` 或持久卷。
+1. 使用 `admin` 登录以激活实例。在设置页选择保留初始密码或设置新密码。
+2. 回到首页创建工作区，导入对话或新建 Note。
+3. 需要生成摘要时，在工作区“摘要”中选择方案，配置模型地址、模型名称和 API Key。
+4. 需要连接 AI 客户端时，先完成下方 HTTPS 配置，再到工作区“连接”中创建授权，按页面指引配置客户端。MCP（模型上下文协议）使客户端能读取记忆、检索内容和操作 Note。
 
-部署输出中的公网 IP 来自一次限时地址查询，失败时仍会列出本机地址，不影响部署。云 NAT、代理或家用路由器环境下，以云控制台的公网 IP 或你配置的端口转发为准。密码不会直接打印到日志。内置 `admin` 的恢复文件权限为 600，仅服务器文件系统授权用户可读；普通用户及其他管理员不保存明文密码副本。管理员密码错误时，登录页提示查看该文件的方法，网页接口不会返回密码。
+新用户注册后需要管理员批准。管理员可在首页“设置”中审批申请、关闭注册入口或调整用户角色；个人偏好也在这里设置。
 
-## 使用
+## 域名与 HTTPS
 
-- 创建工作区后，可写入或导入对话、Note，维护摘要和记忆包。
-- 客户端投递预览默认排除末尾尚无回复的纯文本用户消息（通常用于触发投递）；可勾选“保留最后一条用户消息”恢复。原收件在归档前保持完整，分享链接、手动导入和带附件的末尾消息不使用该默认排除。
-- 收件箱按窗口可用高度显示，邮件标题和归档栏固定，长对话在邮件内部滚动。
-- 摘要页可切换“自定义压缩”和“ReMeLight 风格（实验）”；两套配置、模型连接、摘要历史和处理进度独立，任务在服务器后台逐个执行。实验方案是参考 ReMeLight 的 TypeScript 实现，不包含官方 Python 引擎。详见 [摘要方案](docs/summary-engines.md)。
-- 两套方案分别配置模型地址、名称和 API Key。查看页签不会更改记忆注入来源；在记忆包的活跃摘要组件中选择注入来源。
-- 配置 HTTPS 后，工作区“连接”页可授权 Claude、ChatGPT 等 MCP 客户端访问当前工作区。
-- 换设备后用同一账号读取已保存内容；同时修改同一记录会触发冲突保护。
-- 已下载附件按账号保存；未下载的外部附件仍依赖原地址，单个附件上限 5 MB。
+将域名的 DNS 记录指向服务器，并在服务器与云防火墙放行 TCP **80、443**。管理员登录后，进入 **设置 → HTTPS 与证书 → 打开证书设置**，填写域名并启用 HTTPS。自动证书由 Caddy 申请和续期。
 
-## 仓库结构
+也可以在首次部署时直接配置：
 
-```text
-app/                 应用源码、数据库迁移与运行脚本
-  app/               页面与 API 路由
-  features/          按功能组织的页面、交互控制器与样式
-  components/        通用控件、账号 Provider 与主题容器
-  lib/               领域逻辑、账号存储、MCP 与后台任务
-  scripts/           账号网关、内部应用进程与运维命令
-  drizzle/           数据库迁移
-deploy/              源码、Docker 部署及备份恢复工具
-docs/operations.md   日常运维说明
-Dockerfile
-compose.yaml
+```bash
+# 源码部署
+sudo bash deploy/install.sh --domain hub.example.com --accept-acme-terms
 ```
 
-仓库仅提供源码及构建配置，不包含数据库或凭据。手动运行时，在 `app/` 执行 `pnpm install --frozen-lockfile`、`pnpm build`、`pnpm db:init`，最后 `pnpm start`。构建产物位于 `app/production/`；源码启动的持久数据仍在 `app/.wrangler/`，重新构建不会清除账号数据。正式进程使用 Node.js，不运行开发服务器。启动进程可通过环境变量 `CONTEXT_HUB_PORT` 覆盖网页端口；首次初始化还支持 `CONTEXT_HUB_DOMAIN`、`CONTEXT_HUB_HTTPS_MODE`、`CONTEXT_HUB_ACCEPT_ACME_TERMS`。直接用 `pnpm start` 不会安装 Caddy 或系统服务，正式部署请用上述脚本。
+Docker 部署则在首次运行前编辑 `.env`：
 
-[升级、日志、密码重置与备份恢复](docs/operations.md)。
+```dotenv
+CONTEXT_HUB_DOMAIN=hub.example.com
+CONTEXT_HUB_HTTPS_MODE=automatic
+CONTEXT_HUB_ACCEPT_ACME_TERMS=true
+```
 
-[模块边界与开发检查](docs/architecture.md)。
+启用自动证书前，请阅读 [Let's Encrypt 订户协议](https://letsencrypt.org/repository/)。域名只填写 `hub.example.com`，不带协议、端口或路径。HTTPS 配置完成后，通过 `https://你的域名` 访问，也可继续使用原 HTTP 端口。
+
+HTTP 访问不会加密登录信息和内容，公网日常使用建议启用 HTTPS。已有反向代理时可选择“已有 HTTPS 入口”，配置要求见[运维说明](docs/operations.md)。
+
+## 部署时可配置的选项
+
+### 源码脚本参数
+
+参数可组合使用，例如同时指定域名和网页端口：
+
+```bash
+sudo bash deploy/install.sh --port 8088 --domain hub.example.com --accept-acme-terms
+```
+
+| 参数 | 作用 |
+| --- | --- |
+| `--port 8088` | HTTP 网页端口，首次默认 `8080`；升级时不传则保留原值。 |
+| `--domain hub.example.com` | 首次初始化 HTTPS 域名；已有域名在网页设置中修改。 |
+| `--accept-acme-terms` | 同意自动证书协议，与首次配置的自动 HTTPS 域名一起使用。 |
+| `--external-https` | 使用已有 HTTPS 反向代理，后续升级仍需传入。 |
+| `--prefix /opt/contexthub-test` | 自定义安装前缀，默认 `/opt/contexthub`；升级沿用原值。 |
+| `--service contexthub-test` | 自定义服务名，默认 `contexthub`；升级沿用原值。 |
+| `--skip-dependencies` | 已安装所需依赖时，跳过系统依赖安装。 |
+| `--no-start` | 首次安装时只初始化，不启动服务。 |
+| `--help` | 查看参数帮助。 |
+
+网页端口范围为 `1024–65535`，排除内部端口 `3000`、`3001`、`4080`、`4310`。修改端口后需同步调整防火墙。自定义前缀和服务名只能使用默认名称或在其后添加由小写字母、数字、短横线组成的后缀；当前部署方案支持同机运行一个实例。
+
+### Docker 环境变量
+
+Docker 脚本通过仓库根目录的 `.env` 接收配置，不使用上面的源码脚本参数。
+
+| 变量 | 默认值与作用 |
+| --- | --- |
+| `CONTEXT_HUB_PORT` | `8080`，宿主机 HTTP 网页端口。 |
+| `CONTEXT_HUB_DOMAIN` | 留空，首次启动时可填写 HTTPS 域名。 |
+| `CONTEXT_HUB_HTTPS_MODE` | `automatic` 自动证书；`external` 已有 HTTPS 代理。 |
+| `CONTEXT_HUB_ACCEPT_ACME_TERMS` | `false`；使用域名申请自动证书时设为 `true`。 |
+| `CONTEXT_HUB_SETUP_PORT` | `4310`，仅绑定宿主机本地地址的维护端口。 |
+| `CONTEXT_HUB_HTTP_BIND` | `0.0.0.0:80`，证书服务的 HTTP 绑定地址。 |
+| `CONTEXT_HUB_HTTPS_BIND` | `0.0.0.0:443`，证书服务的 HTTPS 绑定地址。 |
+
+域名和证书配置初始化后，在网页设置中管理。使用外部代理或调整端口绑定前，请参阅[运维说明](docs/operations.md)。
+
+## 更新与备份
+
+在服务器的源码仓库目录拉取新版本，再执行所用部署方式的脚本：
+
+```bash
+git pull --ff-only
+
+# 源码部署
+sudo bash deploy/install.sh
+```
+
+Docker 部署将最后一行换为 `sudo bash deploy/docker.sh`。自定义安装参数需沿用原值，Docker 需保持原 `.env`、项目名称及数据卷。
+
+升级流程会备份现有状态、迁移数据库并检查服务，有短暂停机。账号、内容和配置保留。重装服务器前请另行保存完整备份；仅重新拉取 GitHub 源码不会恢复已有数据。
+
+[查看升级、日志、密码恢复与完整备份指南](docs/operations.md)。
+
+## 更多文档
+
+- [摘要方案与记忆来源](docs/summary-engines.md)
+- [制作和导入桌宠](docs/pet-packs.md)
+- [部署维护与备份恢复](docs/operations.md)
+- [项目结构、模块边界与开发检查](docs/architecture.md)
