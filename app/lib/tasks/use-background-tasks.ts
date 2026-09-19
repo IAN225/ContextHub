@@ -8,34 +8,20 @@ import {
   useRef,
   useState,
 } from 'react';
-import { attachmentRevision, attachmentStatus } from '../attachments';
+import { attachmentRevision } from '../attachments';
 import { sha256Hex } from '../browser-compat';
 import { uid } from '../core/identity.ts';
-import { type Attachment, type Workspace } from '../core/model.ts';
-import { type HubCommand, type HubState } from '../state/contracts.ts';
-import { coverage } from '../summary/coverage.ts';
-import { summaryEngines, summaryWorkspace } from '../summary/engines';
+import { type Attachment, type WorkspaceContext } from '../core/model.ts';
+import { type HubState } from '../state/contracts.ts';
+import { summaryWorkspace } from '../summary/engines';
 import { summaryRevision } from '../summary/planning';
-import { taskControl, taskRequest, taskResult } from './client';
+import { taskControl, taskRequest } from './client';
 import type { BackgroundTask, SummaryTaskResult } from './contracts';
-import { summaryTaskWorkspace } from './snapshot';
 
 async function hash(value: string) {
   return sha256Hex(new TextEncoder().encode(value));
 }
-function media(state: HubState) {
-  return [
-    ...state.workspaces.flatMap((w) => w.turns),
-    ...state.uploads.flatMap((u) => u.turns),
-  ]
-    .filter((t) => t.status !== 'trash')
-    .flatMap((t) => t.attachments ?? []);
-}
-export function useBackgroundTasks(
-  data: HubState,
-  enabled: boolean,
-  commit: (command: HubCommand) => Promise<boolean>,
-) {
+export function useBackgroundTasks(data: HubState, enabled: boolean) {
   const [tasks, setTasks] = useState<BackgroundTask[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
@@ -44,13 +30,12 @@ export function useBackgroundTasks(
     Record<string, SummaryTaskResult>
   >({});
   const [submitting, setSubmitting] = useState(false);
-  const latest = useRef({ data, commit, tasks, enabled });
+  const latest = useRef({ data, tasks, enabled });
   useLayoutEffect(() => {
-    latest.current = { data, commit, tasks, enabled };
-  }, [data, commit, tasks, enabled]);
+    latest.current = { data, tasks, enabled };
+  }, [data, tasks, enabled]);
   const session = useRef<Promise<void> | null>(null);
   const pendingIds = useRef(new Set<string>());
-  const blocked = useRef(new Set<string>());
   const initialize = useCallback(() => {
     if (!session.current)
       session.current = taskRequest<{ ready: boolean }>('session', {})
@@ -68,6 +53,7 @@ export function useBackgroundTasks(
     const value = await taskRequest<{
       ready: boolean;
       tasks: BackgroundTask[];
+      candidates: Record<string, SummaryTaskResult>;
     }>('list');
     setTasks((current) =>
       JSON.stringify(current) === JSON.stringify(value.tasks)
@@ -75,11 +61,17 @@ export function useBackgroundTasks(
         : value.tasks,
     );
     setReady(value.ready);
+    setCandidates(value.candidates);
+    setProblems(
+      Object.fromEntries(
+        value.tasks.filter((t) => t.error).map((t) => [t.id, t.error!]),
+      ),
+    );
     setError('');
     return value;
   }, [initialize]);
   const startSummary = useCallback(
-    async (workspace: Workspace) => {
+    async (workspace: WorkspaceContext) => {
       await initialize();
       setSubmitting(true);
       setError('');
@@ -87,7 +79,13 @@ export function useBackgroundTasks(
         const id = `s_${uid()}`;
         const response = await taskRequest<{ task: BackgroundTask }>(
           'enqueue',
-          { id, kind: 'summary', workspace: summaryTaskWorkspace(workspace) },
+          {
+            id,
+            kind: 'summary',
+            workspaceId: workspace.id,
+            engine: workspace.summaryEngine ?? 'custom',
+            expectedHash: await hash(summaryRevision(workspace)),
+          },
         );
         setTasks((values) => [
           response.task,
@@ -135,7 +133,7 @@ export function useBackgroundTasks(
   );
   const startWorkbench = useCallback(
     async (
-      workspace: Workspace,
+      workspace: WorkspaceContext,
       turnIds: string[],
       summaryId: string,
       instruction: string,
@@ -144,7 +142,9 @@ export function useBackgroundTasks(
       const { task } = await taskRequest<{ task: BackgroundTask }>('enqueue', {
         id: uid(),
         kind: 'workbench',
-        workspace: summaryTaskWorkspace(workspace),
+        workspaceId: workspace.id,
+        engine: 'custom',
+        expectedHash: await hash(summaryRevision(workspace)),
         turnIds,
         summaryId,
         instruction,
@@ -157,25 +157,6 @@ export function useBackgroundTasks(
   const control = useCallback(
     async (id: string, action: 'pause' | 'resume' | 'cancel') => {
       const task = latest.current.tasks.find((t) => t.id === id);
-      if (action !== 'resume' && task?.kind === 'summary') {
-        const workspace = latest.current.data.workspaces.find(
-          (w) => w.id === task.workspace_id,
-        );
-        if (
-          workspace &&
-          summaryWorkspace(workspace, task.engine ?? 'custom').config.auto &&
-          !(await latest.current.commit({
-            type: 'workspace',
-            workspaceId: workspace.id,
-            command: {
-              type: 'summary/config',
-              engine: task.engine,
-              patch: { auto: false },
-            },
-          }))
-        )
-          throw new Error('自动运行设置未能保存，请重试后再停止任务。');
-      }
       if (action === 'resume' && task?.kind === 'summary') {
         const workspace = latest.current.data.workspaces.find(
           (w) => w.id === task.workspace_id,
@@ -193,7 +174,6 @@ export function useBackgroundTasks(
             .review,
         });
       } else await taskControl(id, action);
-      blocked.current.delete(id);
       setProblems((current) => {
         const next = { ...current };
         delete next[id];
@@ -209,102 +189,6 @@ export function useBackgroundTasks(
     },
     [refresh],
   );
-  const receive = useCallback(async (list: BackgroundTask[]) => {
-    for (const task of list) {
-      if (
-        !latest.current.enabled ||
-        task.status === 'cancelled' ||
-        blocked.current.has(task.id)
-      )
-        continue;
-      const saved = latest.current.data.taskReceipts?.[task.id] ?? 0;
-      if (saved > task.acknowledged) {
-        for (
-          let step = task.acknowledged + 1;
-          step <= Math.min(saved, task.step);
-          step++
-        )
-          await taskRequest('ack', { id: task.id, step });
-        return;
-      }
-      if (task.step <= saved) continue;
-      const step = saved + 1;
-      const { result } = await taskResult(task.id, step);
-      if (!result) {
-        blocked.current.add(task.id);
-        setProblems((values) => ({
-          ...values,
-          [task.id]: '结果已在其他页面接收或已清理，请刷新当前页面。',
-        }));
-        continue;
-      }
-      try {
-        let command: HubCommand;
-        if (result.kind === 'summary') {
-          const w = latest.current.data.workspaces.find(
-            (w) => w.id === task.workspace_id,
-          );
-          if (!w) throw new Error('原工作区已不存在，结果暂未应用。');
-          if ((result.engine ?? 'custom') !== (task.engine ?? 'custom'))
-            throw new Error('任务摘要方案不匹配。');
-          const expected = summaryRevision(
-            summaryWorkspace(w, result.engine ?? 'custom'),
-          );
-          if ((await hash(expected)) !== result.expectedHash) {
-            setCandidates((values) => ({ ...values, [task.id]: result }));
-            throw new Error(
-              '原文或配置已变化，后台摘要没有覆盖当前工作区。可复制结果，或取消旧任务后重新整理。',
-            );
-          }
-          command = {
-            type: 'task/summary',
-            taskId: task.id,
-            step,
-            workspaceId: w.id,
-            generated: {
-              engine: result.engine,
-              expected,
-              summary: result.summary,
-              turnIds: result.turnIds,
-            },
-          };
-        } else if (result.kind === 'workbench')
-          command = {
-            type: 'task/workbench',
-            taskId: task.id,
-            step,
-            upload: result.upload,
-          };
-        else
-          command = {
-            type: 'task/attachment',
-            taskId: task.id,
-            step,
-            expected: result.expected,
-            attachment: result.attachment,
-          };
-        if (!latest.current.enabled) return;
-        if (!(await latest.current.commit(command)))
-          throw new Error(
-            '结果未能保存到浏览器。服务端结果仍保留，可重试接收。',
-          );
-        await taskRequest('ack', { id: task.id, step });
-      } catch (failure) {
-        blocked.current.add(task.id);
-        if (
-          task.kind === 'summary' &&
-          ['running', 'queued'].includes(task.status)
-        )
-          await taskControl(task.id, 'pause');
-        setProblems((values) => ({
-          ...values,
-          [task.id]:
-            failure instanceof Error ? failure.message : '接收结果失败。',
-        }));
-      }
-      return; // Let React publish the durable state before applying the next batch.
-    }
-  }, []);
   useEffect(() => {
     if (!enabled) return;
     let disposed = false,
@@ -314,54 +198,8 @@ export function useBackgroundTasks(
       busy = true;
       const work = async () => {
         try {
-          const value = await refresh();
+          await refresh();
           if (disposed || !latest.current.enabled) return;
-          await receive(value.tasks);
-          if (!value.ready || disposed) return;
-          const state = latest.current.data;
-          for (const w of state.workspaces.flatMap((workspace) =>
-            summaryEngines.map((engine) => summaryWorkspace(workspace, engine)),
-          )) {
-            if (
-              w.config.auto &&
-              w.firstComplete &&
-              w.config.modelEnabled &&
-              !w.config.review &&
-              coverage(w).pending.length &&
-              !value.tasks.some(
-                (t) =>
-                  t.workspace_id === w.id &&
-                  (t.engine ?? 'custom') === (w.summaryEngine ?? 'custom') &&
-                  t.kind === 'summary' &&
-                  t.status !== 'cancelled' &&
-                  (t.status !== 'completed' || t.step > t.acknowledged),
-              )
-            ) {
-              try {
-                await startSummary(w);
-              } catch {
-                /* The visible task error explains why. */
-              }
-              return;
-            }
-          }
-          if (
-            value.tasks.filter(
-              (t) => !['completed', 'cancelled'].includes(t.status),
-            ).length >= 20
-          )
-            return;
-          for (const attachment of media(state)) {
-            if (attachmentStatus(attachment) !== 'remote') continue;
-            const id = `a_${await hash(attachmentRevision(attachment))}`;
-            if (
-              pendingIds.current.has(id) ||
-              value.tasks.some((t) => t.id === id)
-            )
-              continue;
-            await startAttachment(attachment, true);
-            break;
-          }
         } catch (failure) {
           if (!disposed)
             setError(
@@ -372,15 +210,7 @@ export function useBackgroundTasks(
         }
       };
       try {
-        if (navigator.locks)
-          await navigator.locks.request(
-            'context-hub-background-receiver',
-            { ifAvailable: true },
-            async (lock) => {
-              if (lock) await work();
-            },
-          );
-        else await work();
+        await work();
       } finally {
         busy = false;
       }
@@ -395,15 +225,18 @@ export function useBackgroundTasks(
       clearInterval(timer);
       window.removeEventListener('focus', poll);
     };
-  }, [enabled, refresh, receive, startAttachment, startSummary]);
-  const retryReceive = useCallback((id: string) => {
-    blocked.current.delete(id);
-    setProblems((values) => {
-      const next = { ...values };
-      delete next[id];
-      return next;
-    });
-  }, []);
+  }, [enabled, refresh]);
+  const refreshTask = useCallback(
+    (id: string) => {
+      setProblems((values) => {
+        const next = { ...values };
+        delete next[id];
+        return next;
+      });
+      void refresh();
+    },
+    [refresh],
+  );
   return {
     tasks,
     ready,
@@ -415,7 +248,7 @@ export function useBackgroundTasks(
     startWorkbench,
     startAttachment,
     control,
-    retryReceive,
+    refreshTask,
     refresh,
   };
 }

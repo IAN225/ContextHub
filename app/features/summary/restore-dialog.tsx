@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '../../components/shared/button.tsx';
 import { ChainMap } from '../../components/shared/coverage-map.tsx';
 import { Modal } from '../../components/shared/modal.tsx';
-import { type Summary, type Workspace } from '../../lib/core/model.ts';
+import { type Summary, type WorkspaceContext } from '../../lib/core/model.ts';
 import { coverage } from '../../lib/summary/coverage.ts';
 import { restoreSummary } from '../../lib/summary/restore.ts';
 export function RestoreDialog({
@@ -13,7 +13,7 @@ export function RestoreDialog({
   onApply,
   onClose,
 }: {
-  w: Workspace;
+  w: WorkspaceContext;
   summary: Summary;
   onApply: (mode: 'keep' | 'rewind') => void;
   onClose: () => void;

@@ -1,3 +1,4 @@
+import type { SqlDatabase } from '../../server/database.ts';
 import { McpError } from '../contracts.ts';
 import { oauthClientName } from '../oauth-clients.ts';
 
@@ -22,7 +23,7 @@ export type OAuthRequest = {
   code_hash: string | null;
   consumed: number;
 };
-export function oauthRepository(db: D1Database) {
+export function oauthRepository(db: SqlDatabase) {
   const sql = (q: string, ...args: unknown[]) => db.prepare(q).bind(...args);
   return {
     async cancel(id: string) {

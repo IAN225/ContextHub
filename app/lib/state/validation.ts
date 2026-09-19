@@ -196,6 +196,11 @@ export function normalizeHubState(raw: unknown): HubState {
         (typeof item.channel === 'string' &&
           ['api', 'link', 'manual', 'workbench'].includes(item.channel)),
     );
+    requireShape(
+      item.summaryEngine === undefined ||
+        item.summaryEngine === 'custom' ||
+        item.summaryEngine === 'reme',
+    );
     const upload = item as unknown as Upload;
     const channel = uploadChannel(upload);
     if (upload.channel === channel) return upload;

@@ -120,7 +120,7 @@ Dockerfile
 compose.yaml
 ```
 
-仓库仅提供源码及构建配置，不包含数据库或凭据。手动运行时，在 `app/` 执行 `pnpm install --frozen-lockfile`、`pnpm build`、`pnpm db:init`，最后 `pnpm start`。启动进程可通过环境变量 `CONTEXT_HUB_PORT` 覆盖网页端口；首次初始化还支持 `CONTEXT_HUB_DOMAIN`、`CONTEXT_HUB_HTTPS_MODE`、`CONTEXT_HUB_ACCEPT_ACME_TERMS`。直接用 `pnpm start` 不会安装 Caddy 或系统服务，正式部署请用上述脚本。
+仓库仅提供源码及构建配置，不包含数据库或凭据。手动运行时，在 `app/` 执行 `pnpm install --frozen-lockfile`、`pnpm build`、`pnpm db:init`，最后 `pnpm start`。构建产物位于 `app/production/`；源码启动的持久数据仍在 `app/.wrangler/`，重新构建不会清除账号数据。正式进程使用 Node.js，不运行开发服务器。启动进程可通过环境变量 `CONTEXT_HUB_PORT` 覆盖网页端口；首次初始化还支持 `CONTEXT_HUB_DOMAIN`、`CONTEXT_HUB_HTTPS_MODE`、`CONTEXT_HUB_ACCEPT_ACME_TERMS`。直接用 `pnpm start` 不会安装 Caddy 或系统服务，正式部署请用上述脚本。
 
 [升级、日志、密码重置与备份恢复](docs/operations.md)。
 

@@ -6,7 +6,8 @@ export function accountContext(
   request: Request,
   env: AccountEnvironment,
 ): string | null | Response {
-  if (env.CONTEXT_HUB_ACCOUNT_MODE !== '1') return null;
+  if (env.CONTEXT_HUB_ACCOUNT_MODE !== '1')
+    return Response.json({ error: '账号服务未配置。' }, { status: 503 });
   const id = request.headers.get('x-context-hub-account');
   const key = request.headers.get('x-context-hub-account-key');
   if (

@@ -1,7 +1,5 @@
-import { digest, randomSecret } from '../../server/crypto.ts';
 import { discardRequestBody } from '../../server/body.ts';
-import { readLimitedBody } from './http.ts';
-import { uid } from '../../core/identity.ts';
+import { digest, randomSecret } from '../../server/crypto.ts';
 import {
   createImport,
   ImportError,
@@ -12,12 +10,8 @@ import {
 } from '../contracts.ts';
 import { getProtocol } from '../protocols.ts';
 import { deliveryAcknowledgement } from './acknowledgements.ts';
-import {
-  deliveryOwner,
-  managementOwner,
-  requireManagementRequest,
-  sessionCookie,
-} from './auth.ts';
+import { deliveryOwner, requireManagementRequest } from './auth.ts';
+import { readLimitedBody } from './http.ts';
 import type { ImportRepository } from './repository.ts';
 import { importShare } from './share-service.ts';
 
@@ -43,6 +37,9 @@ export async function manageImports(
   accountId?: string,
 ) {
   requireManagementRequest(request);
+  if (!accountId || !repo.accountOwner)
+    throw new ImportError('UNAUTHORIZED', '请先登录。', 401);
+  const owner = await repo.accountOwner(accountId);
   if (action === 'share' && request.method === 'POST') {
     const body = await jsonBody(request, 8192);
     return Response.json(
@@ -56,10 +53,6 @@ export async function manageImports(
       { headers: { 'Cache-Control': 'no-store' } },
     );
   }
-  const owner =
-    accountId && repo.accountOwner
-      ? await repo.accountOwner(accountId)
-      : await managementOwner(request, repo);
   if (action === 'delivery' && request.method === 'GET')
     return Response.json(
       { enabled: !!owner?.key_hash },
@@ -78,19 +71,12 @@ export async function manageImports(
       throw new ImportError('INVALID_ACTION', '未知操作。', 400);
     const key = randomSecret('ch_delivery_');
     const keyHash = await digest(key);
-    let cookie: string | undefined;
-    if (owner) await repo.rotateKey(owner.id, keyHash);
-    else {
-      const session = randomSecret('');
-      await repo.createOwner(uid(), await digest(session), keyHash);
-      cookie = sessionCookie(session, request);
-    }
+    await repo.rotateKey(owner.id, keyHash);
     return Response.json(
       { enabled: true, key },
       {
         headers: {
           'Cache-Control': 'no-store',
-          ...(cookie ? { 'Set-Cookie': cookie } : {}),
         },
       },
     );

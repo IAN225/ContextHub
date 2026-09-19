@@ -3,7 +3,7 @@ import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../../components/shared/button.tsx';
 import { Modal } from '../../components/shared/modal.tsx';
-import { type Block, type Workspace } from '../../lib/core/model.ts';
+import { type Block, type WorkspaceContext } from '../../lib/core/model.ts';
 import {
   memoryBlockLabel,
   memoryNotes,
@@ -23,7 +23,7 @@ export function MemoryBlockEditor({
   onClose,
   onEngineChange,
 }: {
-  w: Workspace;
+  w: WorkspaceContext;
   onEngineChange: (engine: SummaryEngine) => void;
   block: Block;
   onUpdate: (patch: Partial<Block>) => void;

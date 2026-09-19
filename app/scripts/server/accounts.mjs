@@ -1,21 +1,23 @@
+import { DatabaseSync } from 'node:sqlite';
 import {
   AccountError,
-  hash,
-  publicUser,
   credentials,
+  hash,
   matches,
+  publicUser,
   validateUsername,
 } from './account-credentials.mjs';
-import { accountRecords } from './account-records.mjs';
-export { AccountError } from './account-credentials.mjs';
-import { adminPasswordRecovery } from './admin-password-recovery.mjs';
-import { DatabaseSync } from 'node:sqlite';
 import { migrateAccounts } from './account-migrations.mjs';
+import { accountRecords } from './account-records.mjs';
+import { adminPasswordRecovery } from './admin-password-recovery.mjs';
+import { migrateBusiness } from './business-migrations.mjs';
+import { migrateLegacyData } from './legacy-data.mjs';
+export { AccountError } from './account-credentials.mjs';
 
-import { accountLifecycle } from './account-lifecycle.mjs';
 import { randomBytes, randomUUID } from 'node:crypto';
+import { accountLifecycle } from './account-lifecycle.mjs';
 
-import { mkdir, chmod, readFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 export async function openAccounts(directory, bootstrap) {
   await mkdir(directory, { recursive: true, mode: 0o700 });
@@ -27,6 +29,8 @@ export async function openAccounts(directory, bootstrap) {
   );
   try {
     migrateAccounts(db);
+    migrateBusiness(db);
+    migrateLegacyData(db, directory);
   } catch (error) {
     db.close();
     throw error;

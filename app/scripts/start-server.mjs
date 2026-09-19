@@ -1,20 +1,20 @@
-import { httpPort } from './server/http-port.mjs';
-import { checkSchema, recordSchema } from './schema-check.mjs';
 import { createServer } from 'node:http';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { checkSchema, recordSchema } from './schema-check.mjs';
 import { openAccessStore } from './server/access-store.mjs';
-import { createServerService } from './server/service.mjs';
-import { createRuntime, requireFreePort } from './server/runtime.mjs';
 import { openAccounts } from './server/accounts.mjs';
-import { configureCaddy } from './server/tls.mjs';
+import { httpPort } from './server/http-port.mjs';
 import { initializeOrigin } from './server/initialize-origin.mjs';
+import { createRuntime, requireFreePort } from './server/runtime.mjs';
+import { createServerService } from './server/service.mjs';
+import { configureCaddy } from './server/tls.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const directory = resolve(
   process.env.CONTEXT_HUB_SERVER_DATA_DIR || `${root}/.wrangler/server`,
 );
-checkSchema(resolve(root, '.wrangler'), directory);
+checkSchema(dirname(directory), directory);
 const webPort = httpPort(directory);
 for (const port of [3000, 3001, 4080, 4310, webPort])
   await requireFreePort(port);
@@ -82,7 +82,7 @@ try {
     });
   }
   if (store.access?.mode === 'automatic') await configureCaddy([store.access]);
-  recordSchema(resolve(root, '.wrangler'));
+  recordSchema(dirname(directory));
   ready = true;
   timer = setInterval(() => {
     void service.check();

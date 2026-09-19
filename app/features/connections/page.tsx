@@ -271,9 +271,9 @@ export function ConnectionsPage({
             服务。网页打开时同步已保存版本；关闭后仍可读取上次同步内容及读写
             Note。草稿和附件文件不向 MCP 提供。
           </p>
-          {mcp.synced[w.id] && (
+          {mcp.checkedAt[w.id] && (
             <p className="inline-note">
-              最近同步 {formatDate(mcp.synced[w.id])}
+              最近检查 {formatDate(mcp.checkedAt[w.id])}
             </p>
           )}
         </div>

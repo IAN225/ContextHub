@@ -1,6 +1,6 @@
 import { uid } from '../../core/identity.ts';
-import { digest, randomSecret } from '../../server/crypto.ts';
 import { discardRequestBody } from '../../server/body.ts';
+import { digest, randomSecret } from '../../server/crypto.ts';
 import {
   MAX_MCP_BYTES,
   McpError,
@@ -10,13 +10,11 @@ import {
 } from '../contracts.ts';
 import { oauthClientName } from '../oauth-clients.ts';
 import {
-  requireManagementRequest,
-  COOKIE,
   errorInfo,
   headers,
   json,
   localOrigin,
-  owner,
+  requireManagementRequest,
   workspace,
 } from './http.ts';
 import type { OAuthRepository } from './oauth-repository.ts';
@@ -32,9 +30,8 @@ export async function manageMcp(
   try {
     localOrigin(request);
     requireManagementRequest(request);
-    let ownerId = accountId
-      ? await repo.accountSession(accountId)
-      : await owner(request, repo);
+    if (!accountId) throw new McpError('UNAUTHORIZED', '请先登录。', 401);
+    const ownerId = await repo.accountSession(accountId);
     if (action === 'reset' && request.method === 'POST') {
       if (ownerId && oauth) await oauth.repo.reset(ownerId);
       if (ownerId) await repo.reset(ownerId);
@@ -134,41 +131,21 @@ export async function manageMcp(
           'INVALID_ARGUMENTS',
           '请填写连接名称，并选择 1 小时至 30 天的有效期。',
         );
-      const w = workspace(body.workspace);
-      let cookie = '';
-      if (!ownerId) {
-        if (body.action === 'rotate')
-          throw new McpError(
-            'UNAUTHORIZED',
-            '连接会话已失效，请重新创建连接。',
-            401,
-          );
-        const secret = randomSecret('');
-        ownerId = await repo.createSession(await digest(secret));
-        cookie = `${COOKIE}=${secret}; Path=/api/mcp; HttpOnly; SameSite=Strict; Max-Age=31536000${new URL(request.url).protocol === 'https:' ? '; Secure' : ''}`;
-      }
+      const w = {
+        id:
+          typeof body.workspaceId === 'string'
+            ? body.workspaceId
+            : workspace(body.workspace).id,
+      };
       const existing = await repo.read(ownerId, w.id);
-      if (!existing) {
-        if (body.action === 'rotate')
-          throw new McpError(
-            'WORKSPACE_NOT_READY',
-            '授权工作区不存在，请重新创建连接。',
-            404,
-          );
-        await repo.save(ownerId, w.id, null, {
-          workspace: w,
-          events: [],
-          syncedAt: new Date().toISOString(),
-        });
-      }
+      if (!existing)
+        throw new McpError('NOT_FOUND', '账号中没有此工作区。', 404);
+      await repo.register(ownerId, w.id);
       if (action === 'prepare')
         return Response.json(
           { endpoint: `${oauth!.origin}/mcp/${encodeURIComponent(w.id)}` },
           {
-            headers: {
-              ...headers,
-              ...(cookie ? { 'Set-Cookie': cookie } : {}),
-            },
+            headers,
           },
         );
       const secret = randomSecret('ch_mcp_');
@@ -189,7 +166,7 @@ export async function manageMcp(
       return Response.json(
         { token: publicToken(token), secret },
         {
-          headers: { ...headers, ...(cookie ? { 'Set-Cookie': cookie } : {}) },
+          headers,
         },
       );
     }
@@ -215,52 +192,8 @@ export async function manageMcp(
         { headers },
       );
     }
-    if (action === 'sync' && request.method === 'POST') {
-      const body = object(await json(request, MAX_MCP_BYTES));
-      const w = workspace(body.workspace);
-      const snapshot = await repo.read(ownerId, w.id);
-      if (!snapshot || snapshot.revision !== body.revision)
-        throw new McpError(
-          'CONCURRENT_CHANGE',
-          '副本已变化，请先接收变更。',
-          409,
-        );
-      if (
-        !Array.isArray(body.receivedIds) ||
-        !body.receivedIds.every((id) => typeof id === 'string') ||
-        snapshot.events.some(
-          (e) => !(body.receivedIds as unknown[]).includes(e.id),
-        )
-      )
-        throw new McpError(
-          'UNRECEIVED_CHANGES',
-          '请先保存 MCP 变更，再更新工作区副本。',
-          409,
-        );
-      const syncedAt = new Date().toISOString();
-      if (
-        snapshot.receiptIds?.some(
-          (id) => !(body.receivedIds as string[]).includes(id),
-        )
-      )
-        throw new McpError(
-          'STALE_BROWSER',
-          '该页面早于已接收的 MCP 变更，请刷新页面后重试；服务端版本已保留。',
-          409,
-        );
-      const revision = await repo.save(ownerId, w.id, snapshot.revision, {
-        workspace: w,
-        events: [],
-        syncedAt,
-        receiptIds: [
-          ...new Set([
-            ...(snapshot.receiptIds ?? []),
-            ...snapshot.events.map((e) => e.id),
-          ]),
-        ],
-      });
-      return Response.json({ revision, syncedAt }, { headers });
-    }
+    if (action === 'sync' && request.method === 'POST')
+      throw new McpError('UPGRADE_REQUIRED', '服务已升级，请刷新页面。', 426);
     throw new McpError('NOT_FOUND', '接口不存在。', 404);
   } catch (error) {
     await discardRequestBody(request);

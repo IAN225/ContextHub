@@ -1,7 +1,10 @@
+import { createEmptyHubState } from '../../lib/state/empty.ts';
+import { normalizeHubState } from '../../lib/state/validation.ts';
 import {
   HUB_KEY,
   RECORD_PREFIX,
   decodeRecord,
+  joinHub,
 } from '../../lib/storage/records.ts';
 import { AccountError, hash } from './account-credentials.mjs';
 export function accountRecords({ db, lifecycle, transaction }) {
@@ -63,6 +66,8 @@ export function accountRecords({ db, lifecycle, transaction }) {
           entry.revision < 0
         )
           throw new AccountError('存储条目无效。');
+        if (input.mode === 'write' && entry.key.startsWith(RECORD_PREFIX))
+          throw new AccountError('请使用工作区操作接口保存业务数据。', 426);
         if (entry.key === HUB_KEY)
           throw new AccountError('存储格式已升级，请刷新页面后再保存。', 426);
         if (entry.key.startsWith(RECORD_PREFIX) && entry.value !== undefined) {
@@ -134,6 +139,24 @@ export function accountRecords({ db, lifecycle, transaction }) {
             )
           )
             throw new AccountError('云端数据已变化，请重新预览恢复。', 409);
+          const restored = normalizeHubState(
+            joinHub(input.entries) ?? createEmptyHubState(),
+          );
+          if (restored.workspaces.some((w) => w.summaryEngine !== undefined))
+            throw new AccountError('备份包含无效的摘要投影。');
+          db.prepare(
+            "UPDATE background_tasks SET status='cancelled',lease=NULL,lease_until=NULL,acknowledged=step WHERE owner_id=?",
+          ).run(id);
+          db.prepare(
+            'UPDATE mcp_tokens SET revoked_at=COALESCE(revoked_at,?) WHERE owner_id=?',
+          ).run(Date.now(), id);
+          db.prepare('UPDATE import_owners SET key_hash=NULL WHERE id=?').run(
+            id,
+          );
+          db.prepare(
+            'UPDATE mcp_oauth_requests SET denied=1,consumed=1 WHERE owner_id=?',
+          ).run(id);
+          db.prepare('DELETE FROM mcp_workspaces WHERE owner_id=?').run(id);
           db.prepare('DELETE FROM account_records WHERE user_id=?').run(id);
           generation++;
           db.prepare('UPDATE users SET generation=? WHERE id=?').run(

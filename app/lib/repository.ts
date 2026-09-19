@@ -8,6 +8,13 @@ export interface Repository {
 }
 export interface DataRepository extends Repository {
   flush?(): Promise<void>;
+  commitEntry?(
+    entry: StorageEntry,
+    action: (
+      revision: number,
+      applied: (revision: number) => void,
+    ) => Promise<boolean>,
+  ): Promise<boolean>;
   entries(): Promise<StorageEntry[]>;
   replace(
     transform: (current: StorageEntry[]) => StorageEntry[],
@@ -31,6 +38,11 @@ async function repository(): Promise<DataRepository> {
 }
 // All durable consumers use this adapter; cloud mode never reads legacy browser data.
 export const accountRepository: DataRepository = {
+  commitEntry: async (entry, action) => {
+    const store = await repository();
+    if (!store.commitEntry) throw new Error('存储接口需要更新。');
+    return store.commitEntry(entry, action);
+  },
   flush: async () => {
     if (selected) await (await selected).flush?.();
   },

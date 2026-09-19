@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { type Config, type Workspace } from '../../lib/core/model.ts';
+import { type Config, type WorkspaceContext } from '../../lib/core/model.ts';
 import { usePersistent } from '../../lib/store.ts';
 import { summaryRequest } from '../../lib/summary/client.ts';
 import {
@@ -17,10 +17,12 @@ import type { CommitWorkspaceCommand } from '../../lib/use-hub.ts';
 export function useModelSettings({
   w,
   onCommit,
+  onRefresh,
   onClose,
 }: {
-  w: Workspace;
+  w: WorkspaceContext;
   onCommit: CommitWorkspaceCommand;
+  onRefresh: () => Promise<void>;
   onClose: () => void;
 }) {
   const engine = w.summaryEngine ?? 'custom';
@@ -91,6 +93,8 @@ export function useModelSettings({
     );
     setApiKey('');
     accept(saved);
+    setD((value) => ({ ...value, auto: false }));
+    await onRefresh();
     return saved;
   }
   async function save() {
@@ -101,6 +105,7 @@ export function useModelSettings({
       const connection = await saveConnection();
       const config = {
         ...d,
+        auto: false,
         baseUrl: connection.baseUrl,
         model: connection.model,
         protocol: connection.protocol,

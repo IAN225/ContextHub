@@ -1,42 +1,33 @@
+import type { WorkspaceApplication } from '../../application/server/workspaces.ts';
 import { uid } from '../../core/identity.ts';
-import { decodePayload, encodePayload } from '../../storage/payload.ts';
-import {
-  MAX_MCP_BYTES,
-  McpError,
-  type McpToken,
-  type Mirror,
-  type MirrorSnapshot,
-} from '../contracts.ts';
+import type { SqlDatabase } from '../../server/database.ts';
+import type { HubCommand } from '../../state/contracts.ts';
+import { McpError, type McpToken, type MirrorSnapshot } from '../contracts.ts';
+import { mcpWorkspace } from '../snapshot.ts';
 
-function chunks(value: Mirror) {
-  const body = JSON.stringify(encodePayload('mcp-mirror', value));
-  if (new TextEncoder().encode(body).length > MAX_MCP_BYTES)
-    throw new McpError(
-      'MEMORY_TOO_LARGE',
-      '授权工作区及待接收变更超过 16 MB，请接收变更或缩小工作区。',
-      413,
-    );
-  const parts: string[] = [];
-  for (let start = 0; start < body.length;) {
-    let end = Math.min(start + 100000, body.length);
-    if (end < body.length && /[\uD800-\uDBFF]/.test(body[end - 1])) end--;
-    parts.push(body.slice(start, end));
-    start = end;
-  }
-  return parts;
-}
 export type Receipt = { request_hash: string; result_json: string };
-export function mcpRepository(db: D1Database) {
+export function mcpRepository(
+  db: SqlDatabase,
+  application: WorkspaceApplication,
+) {
+  const applicationSql = () => application.database;
   const sql = (query: string, ...args: unknown[]) =>
     db.prepare(query).bind(...args);
-  const metadata = (owner: string, wid: string) =>
-    sql(
-      'SELECT revision FROM mcp_workspaces WHERE owner_id=? AND workspace_id=?',
-      owner,
-      wid,
-    ).first<{ revision: string }>();
   return {
+    async register(owner: string, wid: string) {
+      const current = application.read(owner);
+      if (!current.state.workspaces.some((w) => w.id === wid))
+        throw new McpError('NOT_FOUND', '工作区已不存在。', 404);
+      await sql(
+        'INSERT INTO mcp_workspaces(owner_id,workspace_id,revision,updated_at) VALUES(?,?,?,?) ON CONFLICT(owner_id,workspace_id) DO UPDATE SET updated_at=excluded.updated_at',
+        owner,
+        wid,
+        'account',
+        Date.now(),
+      ).run();
+    },
     async accountSession(id: string) {
+      application.requireOwner(id);
       await sql(
         'INSERT INTO mcp_sessions(id,session_hash,created_at) VALUES(?,?,?) ON CONFLICT(id) DO NOTHING',
         id,
@@ -64,6 +55,7 @@ export function mcpRepository(db: D1Database) {
       return id;
     },
     async list(owner: string) {
+      application.requireOwner(owner);
       const [workspaces, tokens] = await Promise.all([
         sql(
           'SELECT workspace_id,updated_at FROM mcp_workspaces WHERE owner_id=? ORDER BY updated_at DESC',
@@ -76,12 +68,21 @@ export function mcpRepository(db: D1Database) {
       ]);
       return { workspaces: workspaces.results, tokens: tokens.results };
     },
-    token: (hash: string) =>
-      sql(
+    async token(hash: string) {
+      const token = await sql(
         'SELECT * FROM mcp_tokens WHERE secret_hash=? AND revoked_at IS NULL AND expires_at>?',
         hash,
         Date.now(),
-      ).first<McpToken>(),
+      ).first<McpToken>();
+      if (token) {
+        try {
+          application.requireOwner(token.owner_id);
+        } catch {
+          return null;
+        }
+      }
+      return token;
+    },
     async createToken(token: McpToken, replaceId?: string) {
       if (replaceId) {
         const result = await db.batch([
@@ -169,25 +170,15 @@ export function mcpRepository(db: D1Database) {
       ]);
     },
     async read(owner: string, wid: string): Promise<MirrorSnapshot | null> {
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const before = await metadata(owner, wid);
-        if (!before) return null;
-        const rows = await sql(
-          'SELECT body FROM mcp_chunks WHERE owner_id=? AND workspace_id=? ORDER BY part',
-          owner,
-          wid,
-        ).all<{ body: string }>();
-        const after = await metadata(owner, wid);
-        if (before.revision !== after?.revision) continue;
-        return {
-          ...decodePayload<Mirror>(
-            'mcp-mirror',
-            JSON.parse(rows.results.map((r) => r.body).join('')),
-          ),
-          revision: before.revision,
-        };
-      }
-      throw new McpError('CONCURRENT_CHANGE', '工作区正在更新，请重试。', 409);
+      const snapshot = application.read(owner);
+      const workspace = snapshot.state.workspaces.find((w) => w.id === wid);
+      if (!workspace) return null;
+      return {
+        workspace: mcpWorkspace(workspace),
+        events: [],
+        syncedAt: new Date().toISOString(),
+        revision: application.workspaceRevision(snapshot, wid),
+      };
     },
     receipt: (tokenId: string, requestId: string) =>
       sql(
@@ -195,108 +186,92 @@ export function mcpRepository(db: D1Database) {
         tokenId,
         requestId,
       ).first<Receipt>(),
-    async save(
+    async commit(
       owner: string,
       wid: string,
-      expected: string | null,
-      value: Mirror,
-      write?: {
+      expected: string,
+      commands: HubCommand[],
+      write: {
         token: McpToken;
         requestId: string;
         hash: string;
         result: object;
       },
     ) {
-      if (value.events.length > 200)
-        throw new McpError(
-          'PENDING_LIMIT',
-          '待接收变更已达上限，请打开工作区接收后重试。',
-          507,
-        );
-      const parts = chunks(value);
-      const revision = uid();
-      const when = Date.now();
-      const guard =
-        'EXISTS(SELECT 1 FROM mcp_workspaces WHERE owner_id=? AND workspace_id=? AND revision=?)';
-      const mutation =
-        expected === null
-          ? sql(
-              'INSERT INTO mcp_workspaces(owner_id,workspace_id,revision,updated_at) VALUES(?,?,?,?) ON CONFLICT(owner_id,workspace_id) DO NOTHING',
-              owner,
-              wid,
-              revision,
-              when,
-            )
-          : write
-            ? sql(
-                `UPDATE mcp_workspaces SET revision=?,updated_at=? WHERE owner_id=? AND workspace_id=? AND revision=?
-              AND EXISTS(SELECT 1 FROM mcp_tokens WHERE id=? AND owner_id=? AND workspace_id=? AND secret_hash=? AND revoked_at IS NULL AND expires_at>?)
-              AND (SELECT COUNT(*) FROM mcp_receipts WHERE token_id=?) < 10000`,
-                revision,
-                when,
-                owner,
-                wid,
-                expected,
-                write.token.id,
-                owner,
-                wid,
-                write.token.secret_hash,
-                when,
-                write.token.id,
+      return application.transaction(() => {
+        const before = application.read(owner);
+        if (application.workspaceRevision(before, wid) !== expected)
+          throw new McpError(
+            'CONCURRENT_CHANGE',
+            '工作区已变化，请使用同一 request_id 重试。',
+            409,
+          );
+        // Token and receipt checks share the write transaction with account data.
+        const token = applicationSql()
+          .prepare(
+            'SELECT id FROM mcp_tokens WHERE id=? AND owner_id=? AND workspace_id=? AND secret_hash=? AND revoked_at IS NULL AND expires_at>?',
+          )
+          .get(write.token.id, owner, wid, write.token.secret_hash, Date.now());
+        if (!token) throw new McpError('UNAUTHORIZED', '授权已失效。', 401);
+        if (
+          Number(
+            applicationSql()
+              .prepare(
+                'SELECT COUNT(*) AS n FROM mcp_receipts WHERE token_id=?',
               )
-            : sql(
-                'UPDATE mcp_workspaces SET revision=?,updated_at=? WHERE owner_id=? AND workspace_id=? AND revision=?',
-                revision,
-                when,
-                owner,
-                wid,
-                expected,
-              );
-      const result = await db.batch([
-        mutation,
-        sql(
-          `DELETE FROM mcp_chunks WHERE owner_id=? AND workspace_id=? AND ${guard}`,
-          owner,
-          wid,
-          owner,
-          wid,
-          revision,
-        ),
-        ...parts.map((part, index) =>
-          sql(
-            `INSERT INTO mcp_chunks(owner_id,workspace_id,part,body) SELECT ?,?,?,? WHERE ${guard}`,
-            owner,
-            wid,
-            index,
-            part,
-            owner,
-            wid,
-            revision,
-          ),
-        ),
-        ...(write
-          ? [
-              sql(
-                `INSERT INTO mcp_receipts(token_id,request_id,request_hash,result_json,created_at) SELECT ?,?,?,?,? WHERE ${guard}`,
-                write.token.id,
-                write.requestId,
-                write.hash,
-                JSON.stringify(write.result),
-                when,
-                owner,
-                wid,
-                revision,
-              ),
-            ]
-          : []),
-      ]);
-      if (!result[0].meta.changes)
-        throw new McpError(
-          'CONCURRENT_CHANGE',
-          '工作区或授权已变化，或连接写入达到上限；请检查连接后使用同一 request_id 重试。',
-          409,
-        );
-      return revision;
+              .get(write.token.id)!.n,
+          ) >= 10000
+        )
+          throw new McpError(
+            'RECEIPT_LIMIT',
+            '连接写入已达上限，请轮换连接。',
+            507,
+          );
+        for (const command of commands) {
+          application.apply(owner, application.read(owner), command);
+          if (
+            command.type === 'workspace' &&
+            ['note/create', 'note/replace'].includes(command.command.type)
+          ) {
+            const snapshot = application.read(owner),
+              w = snapshot.state.workspaces.find((w) => w.id === wid)!;
+            const noteId =
+              command.command.type === 'note/create'
+                ? command.command.note.id
+                : 'noteId' in command.command
+                  ? command.command.noteId
+                  : '';
+            const note = w.notes.find((n) => n.id === noteId)!;
+            application.persist(owner, snapshot, {
+              ...snapshot.state,
+              noteNotifications: [
+                {
+                  id: uid(),
+                  workspaceId: wid,
+                  workspaceName: w.name,
+                  noteId,
+                  title: note.title,
+                  clientName: write.token.name,
+                  createdAt: new Date().toISOString(),
+                  read: false,
+                },
+                ...(snapshot.state.noteNotifications ?? []),
+              ].slice(0, 1000),
+            });
+          }
+        }
+        applicationSql()
+          .prepare(
+            'INSERT INTO mcp_receipts(token_id,request_id,request_hash,result_json,created_at) VALUES(?,?,?,?,?)',
+          )
+          .run(
+            write.token.id,
+            write.requestId,
+            write.hash,
+            JSON.stringify(write.result),
+            Date.now(),
+          );
+      });
     },
   };
 }

@@ -1,7 +1,7 @@
-import { managementGuard, sessionOwner } from '../../server/request.ts';
-import { type Workspace } from '../../core/model.ts';
-import { digest } from '../../server/crypto.ts';
+import { type WorkspaceContext } from '../../core/model.ts';
 import { readTextBody } from '../../server/body.ts';
+import { digest } from '../../server/crypto.ts';
+import { managementGuard, sessionOwner } from '../../server/request.ts';
 import {
   resolveSummaryConnection,
   type SummaryEnvironment,
@@ -40,7 +40,10 @@ export async function body(request: Request, limit = MAX_TASK_BYTES) {
 export async function owner(request: Request, repo: TaskRepository) {
   return sessionOwner(request, COOKIE, (hash) => repo.session(hash));
 }
-export async function connectionHash(w: Workspace, env: TaskEnvironment) {
+export async function connectionHash(
+  w: WorkspaceContext,
+  env: TaskEnvironment,
+) {
   const c = resolveSummaryConnection(w.config, env);
   return digest(JSON.stringify(c));
 }

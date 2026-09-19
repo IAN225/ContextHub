@@ -1,4 +1,5 @@
 import { digest, randomSecret } from '../../server/crypto.ts';
+import type { SqlDatabase } from '../../server/database.ts';
 import { SummaryError } from '../contracts.ts';
 import type { SummaryEngine } from '../engines.ts';
 import {
@@ -23,9 +24,13 @@ export function publicSummarySettings(settings: SavedSummarySettings) {
   };
 }
 export function summarySettingsRepository(
-  db: D1Database,
+  db: SqlDatabase,
   owner?: string,
   engine: SummaryEngine = 'custom',
+  commit?: (
+    query: string,
+    parameters: (string | number | null)[],
+  ) => Promise<{ meta: { changes: number } }>,
 ) {
   const isolated = engine === 'reme';
   const isolatedOwner = owner ? 'account:' + owner : 'local';
@@ -131,21 +136,23 @@ export function summarySettingsRepository(
       };
       readSummaryConnection(env);
       const revision = randomSecret('');
-      const result = await db
-        .prepare(
-          isolated
-            ? 'INSERT INTO summary_engine_settings(owner_id,engine,value,revision) VALUES(?,?,?,?) ON CONFLICT(owner_id,engine) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE summary_engine_settings.revision=?'
-            : owner
-              ? 'INSERT INTO account_summary_settings(user_id,value,revision) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE account_summary_settings.revision=?'
-              : 'INSERT INTO summary_settings(id,value,revision) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE summary_settings.revision=?',
-        )
-        .bind(
-          ...(isolated ? [isolatedOwner, engine] : [owner ?? 'summary']),
-          JSON.stringify(env),
-          revision,
-          current.revision,
-        )
-        .run();
+      const query = isolated
+        ? 'INSERT INTO summary_engine_settings(owner_id,engine,value,revision) VALUES(?,?,?,?) ON CONFLICT(owner_id,engine) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE summary_engine_settings.revision=?'
+        : owner
+          ? 'INSERT INTO account_summary_settings(user_id,value,revision) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE account_summary_settings.revision=?'
+          : 'INSERT INTO summary_settings(id,value,revision) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET value=excluded.value,revision=excluded.revision WHERE summary_settings.revision=?';
+      const parameters = [
+        ...(isolated ? [isolatedOwner, engine] : [owner ?? 'summary']),
+        JSON.stringify(env),
+        revision,
+        current.revision,
+      ];
+      const result = commit
+        ? await commit(query, parameters)
+        : await db
+            .prepare(query)
+            .bind(...parameters)
+            .run();
       if (!result.meta.changes)
         throw new SummaryError(
           'CONNECTION_CHANGED',

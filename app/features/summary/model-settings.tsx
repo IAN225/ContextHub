@@ -10,7 +10,7 @@ import { Picker } from '../../components/shared/picker.tsx';
 import { Composer } from '../../components/shared/prompt-composer.tsx';
 import { TextEditor } from '../../components/shared/text-editor.tsx';
 import { cloudMode } from '../../lib/account/client.ts';
-import { type Workspace } from '../../lib/core/model.ts';
+import { type WorkspaceContext } from '../../lib/core/model.ts';
 import { engineLabels } from '../../lib/summary/engines.ts';
 import { defaultSummaryPrompt } from '../../lib/summary/prompts.ts';
 import type { CommitWorkspaceCommand } from '../../lib/use-hub.ts';
@@ -19,10 +19,12 @@ import { useModelSettings } from './use-model-settings.ts';
 export function ModelSettings({
   w,
   onCommit,
+  onRefresh,
   onClose,
 }: {
-  w: Workspace;
+  w: WorkspaceContext;
   onCommit: CommitWorkspaceCommand;
+  onRefresh: () => Promise<void>;
   onClose: () => void;
 }) {
   const {
@@ -47,6 +49,7 @@ export function ModelSettings({
   } = useModelSettings({
     w,
     onCommit,
+    onRefresh,
     onClose,
   });
   return (

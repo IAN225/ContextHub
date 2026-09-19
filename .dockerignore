@@ -11,3 +11,5 @@ app/.git
 app/**/*.pem
 app/**/*.key
 app/**/*.sqlite*
+
+app/production

@@ -1,15 +1,15 @@
-import { send, body } from './http.mjs';
-import { proxy } from './proxy.mjs';
-import { createAccessController } from './access-controller.mjs';
-import { isIP } from 'node:net';
 import { existsSync } from 'node:fs';
+import { isIP } from 'node:net';
 import { CLIENT_PROTOCOL } from '../../lib/storage/protocol.ts';
+import { createAccessController } from './access-controller.mjs';
 import {
-  createAccountHttp,
   accountToken,
+  createAccountHttp,
   setAccountCookie,
 } from './account-http.mjs';
+import { body, send } from './http.mjs';
 import { createModelProxy } from './model-proxy.mjs';
+import { proxy } from './proxy.mjs';
 
 import { accessInput } from './tls.mjs';
 
@@ -90,7 +90,7 @@ export function createServerService(store, runtime, options = {}) {
         if (local && url.pathname === '/healthz' && req.method === 'GET')
           return send(res, options.isReady?.() === false ? 503 : 200, {
             ok: options.isReady?.() !== false,
-            schema: 4,
+            schema: 5,
             protocol: CLIENT_PROTOCOL,
           });
         if (options.maintenanceFile && existsSync(options.maintenanceFile)) {

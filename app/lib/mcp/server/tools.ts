@@ -1,9 +1,11 @@
 import { now, uid } from '../../core/identity.ts';
 import { type Note } from '../../core/model.ts';
-import { digest } from '../../server/crypto.ts';
 import { importShare } from '../../imports/server/share-service.ts';
 import { createMemorySearch } from '../../memory-search.ts';
 import { memoryText } from '../../memory/compose.ts';
+import { saveNote } from '../../notes/operations.ts';
+import { digest } from '../../server/crypto.ts';
+import type { HubCommand } from '../../state/contracts.ts';
 import { coverage } from '../../summary/coverage.ts';
 import { parseSummaryEngine, summaryWorkspace } from '../../summary/engines.ts';
 import { mcpTools } from '../catalog.ts';
@@ -190,6 +192,7 @@ export async function callMcpTool(
     };
   }
   let result: object;
+  const commands: HubCommand[] = [];
   if (name === 'note_create') {
     const title = String(args.title).trim();
     if (!title) throw new McpError('INVALID_ARGUMENTS', 'Note 标题不能为空。');
@@ -206,8 +209,11 @@ export async function callMcpTool(
       source: 'MCP',
       versions: [],
     };
-    w.notes = [note, ...w.notes];
-    snapshot.events.push({ id: uid(), kind: 'note', before: null, note });
+    commands.push({
+      type: 'workspace',
+      workspaceId: w.id,
+      command: { type: 'note/create', note },
+    });
     result = {
       ...context,
       id: note.id,
@@ -247,26 +253,29 @@ export async function callMcpTool(
         'INVALID_ARGUMENTS',
         '替换后正文或标题过长，或标题为空。',
       );
-    const note: Note =
-      value === before[field]
-        ? before
-        : {
-            ...before,
-            [field]: value,
-            updatedAt: now(),
-            editor: token.name,
-            versions: [
-              {
-                title: before.title,
-                body: before.body,
-                time: before.updatedAt,
-              },
-              ...before.versions,
-            ].slice(0, 5),
-          };
-    w.notes = w.notes.map((n) => (n.id === note.id ? note : n));
+    const note = saveNote(
+      before,
+      {
+        title: field === 'title' ? value : before.title,
+        body: field === 'body' ? value : before.body,
+        editor: token.name,
+        at: now(),
+      },
+      { trimTitle: false, recordUnchanged: false },
+    );
     if (note !== before)
-      snapshot.events.push({ id: uid(), kind: 'note', before, note });
+      commands.push({
+        type: 'workspace',
+        workspaceId: w.id,
+        command: {
+          type: 'note/replace',
+          noteId: before.id,
+          field,
+          value,
+          editor: token.name,
+          at: note.updatedAt,
+        },
+      });
     result = {
       ...context,
       id: note.id,
@@ -281,7 +290,7 @@ export async function callMcpTool(
       fetcher,
     );
     const upload = { ...imported, workspaceId: w.id, channel: 'link' as const };
-    snapshot.events.push({ id: uid(), kind: 'import', upload });
+    commands.push({ type: 'upload/add', upload });
     result = {
       ...context,
       uploadId: upload.id,
@@ -293,7 +302,7 @@ export async function callMcpTool(
     };
   }
   try {
-    await repo.save(token.owner_id, w.id, snapshot.revision, snapshot, {
+    await repo.commit(token.owner_id, w.id, snapshot.revision, commands, {
       token,
       requestId,
       hash,

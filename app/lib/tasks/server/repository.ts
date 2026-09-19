@@ -1,4 +1,5 @@
 import { uid } from '../../core/identity.ts';
+import type { SqlDatabase } from '../../server/database.ts';
 import { decodePayload, encodePayload } from '../../storage/payload.ts';
 import {
   MAX_TASK_BYTES,
@@ -27,7 +28,7 @@ function parts(value: unknown) {
   }
   return result;
 }
-export function taskRepository(db: D1Database) {
+export function taskRepository(db: SqlDatabase) {
   const bind = (sql: string, ...args: unknown[]) =>
     db.prepare(sql).bind(...args);
   const get = (id: string) =>
@@ -43,7 +44,7 @@ export function taskRepository(db: D1Database) {
     ).map((body, part) =>
       lease
         ? bind(
-            `INSERT INTO task_chunks(task_id,slot,part,body) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM background_tasks WHERE id=? AND lease=? AND status IN ('running','pausing'))`,
+            `INSERT INTO task_chunks(task_id,slot,part,body) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM background_tasks WHERE id=? AND lease=? AND status IN ('running','pausing') AND lease_until>CAST(unixepoch('subsec')*1000 AS INTEGER))`,
             id,
             slot,
             part,
@@ -129,8 +130,8 @@ export function taskRepository(db: D1Database) {
       // A partial unique index is unsuitable for pausing/completed-but-unreceived
       // summary tasks, so duplicate workspace work is checked in the atomic INSERT.
       const insert = bind(
-        `INSERT INTO background_tasks(id,owner_id,kind,title,workspace_id,status,request_hash,connection_hash,total,created_at,updated_at,engine)
-        SELECT ?,?,?,?,?,?,?,?,?,?,?,?
+        `INSERT INTO background_tasks(id,owner_id,kind,title,workspace_id,status,request_hash,connection_hash,total,created_at,updated_at,engine,generation)
+        SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?
         WHERE (SELECT COUNT(*) FROM background_tasks WHERE owner_id=? AND (status NOT IN ('completed','cancelled') OR step > acknowledged)) < 20
           AND (? <> 'summary' OR NOT EXISTS(SELECT 1 FROM background_tasks WHERE owner_id=? AND kind='summary' AND workspace_id=? AND engine=? AND (status NOT IN ('completed','cancelled') OR step > acknowledged)))`,
         task.id,
@@ -145,6 +146,7 @@ export function taskRepository(db: D1Database) {
         task.created_at,
         task.updated_at,
         task.engine ?? 'custom',
+        task.generation ?? 0,
         task.owner_id,
         task.kind,
         task.owner_id,
@@ -190,7 +192,7 @@ export function taskRepository(db: D1Database) {
         at,
       ).run();
       return bind(
-        `UPDATE background_tasks SET status='running', lease=?, lease_until=?,updated_at=? WHERE id=(SELECT id FROM background_tasks WHERE status='queued' ORDER BY created_at,id LIMIT 1) AND NOT EXISTS(SELECT 1 FROM background_tasks WHERE status IN ('running','pausing')) RETURNING *`,
+        `UPDATE background_tasks SET status='running', lease=?, lease_until=?,updated_at=? WHERE id=(SELECT id FROM background_tasks WHERE status='queued' AND step=acknowledged ORDER BY created_at,id LIMIT 1) AND NOT EXISTS(SELECT 1 FROM background_tasks WHERE status IN ('running','pausing')) RETURNING *`,
         uid(),
         at + TASK_LEASE_MS,
         at,
@@ -207,14 +209,15 @@ export function taskRepository(db: D1Database) {
       if (
         !live ||
         live.lease !== lease ||
-        !['running', 'pausing'].includes(live.status)
+        !['running', 'pausing'].includes(live.status) ||
+        (live.lease_until ?? 0) <= Date.now()
       )
         return false;
       const nextStatus =
         live.status === 'pausing' && status !== 'completed' ? 'paused' : status;
       await db.batch([
         bind(
-          `DELETE FROM task_chunks WHERE task_id=? AND slot='state' AND EXISTS(SELECT 1 FROM background_tasks WHERE id=? AND lease=? AND status IN ('running','pausing'))`,
+          `DELETE FROM task_chunks WHERE task_id=? AND slot='state' AND EXISTS(SELECT 1 FROM background_tasks WHERE id=? AND lease=? AND status IN ('running','pausing') AND lease_until>CAST(unixepoch('subsec')*1000 AS INTEGER))`,
           task.id,
           task.id,
           lease,
@@ -222,7 +225,7 @@ export function taskRepository(db: D1Database) {
         ...insertChunks(task.id, 'state', state, lease),
         ...insertChunks(task.id, `result:${task.step + 1}`, result, lease),
         bind(
-          `UPDATE background_tasks SET step=step+1,status=CASE WHEN status='pausing' AND ? <> 'completed' THEN 'paused' ELSE ? END,error=NULL,lease=NULL,lease_until=NULL,updated_at=? WHERE id=? AND lease=? AND status IN ('running','pausing')`,
+          `UPDATE background_tasks SET step=step+1,status=CASE WHEN status='pausing' AND ? <> 'completed' THEN 'paused' ELSE ? END,error=NULL,lease=NULL,lease_until=NULL,updated_at=? WHERE id=? AND lease=? AND status IN ('running','pausing') AND lease_until>CAST(unixepoch('subsec')*1000 AS INTEGER)`,
           nextStatus,
           nextStatus,
           Date.now(),
@@ -261,15 +264,16 @@ export function taskRepository(db: D1Database) {
                   id,
                   owner,
                 ),
-                ...parts(resumeState).map((body, part) =>
-                  bind(
-                    "INSERT INTO task_chunks(task_id,slot,part,body) SELECT ?,'state',?,? WHERE EXISTS(SELECT 1 FROM background_tasks WHERE id=? AND owner_id=? AND status IN ('paused','failed'))",
-                    id,
-                    part,
-                    body,
-                    id,
-                    owner,
-                  ),
+                ...parts(encodePayload('task-state', resumeState)).map(
+                  (body, part) =>
+                    bind(
+                      "INSERT INTO task_chunks(task_id,slot,part,body) SELECT ?,'state',?,? WHERE EXISTS(SELECT 1 FROM background_tasks WHERE id=? AND owner_id=? AND status IN ('paused','failed'))",
+                      id,
+                      part,
+                      body,
+                      id,
+                      owner,
+                    ),
                 ),
               ];
         await db.batch([

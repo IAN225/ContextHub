@@ -1,4 +1,4 @@
-import { type Workspace } from '../../lib/core/model.ts';
+import { type WorkspaceContext } from '../../lib/core/model.ts';
 import { coverage } from '../../lib/summary/coverage.ts';
 export function ChainMap({
   w,
@@ -6,7 +6,7 @@ export function ChainMap({
   includeInactive = false,
   compact = false,
 }: {
-  w: Workspace;
+  w: WorkspaceContext;
   selectedTurnId?: string;
   includeInactive?: boolean;
   compact?: boolean;

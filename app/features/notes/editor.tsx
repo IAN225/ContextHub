@@ -85,6 +85,10 @@ export function NoteEditor({
     return () => clearTimeout(timer);
   }, [message]);
   async function save() {
+    if (newerVersion) {
+      setMessage('正文已更新，请先核对新版本。');
+      return;
+    }
     const content = { title: d.title.trim() || '无标题 Note', body: d.body };
     const saved = await p.commitWith(
       { ...content, baseTitle: content.title, baseBody: content.body },

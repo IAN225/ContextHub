@@ -26,3 +26,5 @@ Thumbs.db
 *.tar.gz
 *.sqlite*
 __pycache__/
+
+app/production/

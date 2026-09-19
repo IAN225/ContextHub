@@ -2,7 +2,7 @@ import {
   type Note,
   type Summary,
   type Turn,
-  type Workspace,
+  type WorkspaceContext,
 } from './core/model.ts';
 import { summaryWorkspace } from './summary/engines.ts';
 
@@ -46,7 +46,7 @@ export function createMemorySearch() {
     }
     return documents;
   }
-  return (workspaces: Workspace[], options: SearchOptions) => {
+  return (workspaces: WorkspaceContext[], options: SearchOptions) => {
     const needle = options.query.trim().toLowerCase();
     const items: MemorySearchHit[] = [];
     let total = 0;

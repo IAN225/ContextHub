@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
+import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
+import { workspaceApplication } from '../lib/application/server/workspaces.ts';
 import { attachmentMarker } from '../lib/attachments.ts';
 import { type Attachment } from '../lib/core/model.ts';
 import { manageMcp } from '../lib/mcp/server/management.ts';
 import { mcpRepository } from '../lib/mcp/server/repository.ts';
 import { messageMedia } from '../lib/message-media.ts';
+import { sqliteDatabase } from '../lib/server/sqlite.ts';
 import { type HubState } from '../lib/state/contracts.ts';
 import { applyHubCommand } from '../lib/state/hub-reducer.ts';
 import { normalizeHubState } from '../lib/state/validation.ts';
@@ -15,33 +17,7 @@ import { joinHub, splitHub } from '../lib/storage/records.ts';
 import { groupTurns } from '../lib/transcript/turns.ts';
 import { removeWorkspaceData } from '../lib/workspace-lifecycle.ts';
 import { blankWorkspace } from '../lib/workspaces/create.ts';
-function sqliteD1(db: DatabaseSync) {
-  return {
-    prepare(sql: string) {
-      const statement = db.prepare(sql);
-      const bind = (...args: SQLInputValue[]) => ({
-        _run: () => ({ meta: { changes: statement.run(...args).changes } }),
-        first: async () => statement.get(...args) ?? null,
-        all: async () => ({ results: statement.all(...args) }),
-        run: async () => ({
-          meta: { changes: statement.run(...args).changes },
-        }),
-      });
-      return { bind, ...bind() };
-    },
-    async batch(statements: { _run: () => unknown }[]) {
-      db.exec('BEGIN');
-      try {
-        const result = statements.map((s) => s._run());
-        db.exec('COMMIT');
-        return result;
-      } catch (error) {
-        db.exec('ROLLBACK');
-        throw error;
-      }
-    },
-  } as unknown as D1Database;
-}
+import { migrateAccounts } from '../scripts/server/account-migrations.mjs';
 function database() {
   const db = new DatabaseSync(':memory:');
   for (const name of readdirSync(new URL('../drizzle/', import.meta.url))
@@ -139,9 +115,17 @@ test('workspace preferences survive storage and deletion preserves other workspa
 });
 test('workspace removal revokes only owner-scoped access and rejects cross-origin requests', async () => {
   const db = database(),
-    repo = mcpRepository(sqliteD1(db));
+    repo = mcpRepository(
+      sqliteDatabase(db),
+      workspaceApplication(sqliteDatabase(db)),
+    );
   try {
+    migrateAccounts(db);
+    db.exec('UPDATE instance_settings SET activated_at=1');
     for (const owner of ['a', 'b']) {
+      db.prepare(
+        "INSERT INTO users(id,username,password_hash,password_salt,role,created_at) VALUES(?,?,?,'fixture','user',1)",
+      ).run(owner, owner, 'fixture');
       await repo.accountSession(owner);
       for (const wid of ['remove', 'keep']) {
         db.prepare('INSERT INTO mcp_workspaces VALUES(?,?,?,?)').run(

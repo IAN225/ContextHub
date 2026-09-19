@@ -1,81 +1,76 @@
 'use client';
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
-import { purgeTrash, trashCounts } from './recycle-bin';
-import type { StorageEntry } from './repository';
-import { type HubCommand, type WorkspaceCommand } from './state/contracts.ts';
-import { createEmptyHubState } from './state/empty.ts';
-import { applyHubCommand } from './state/hub-reducer.ts';
-import { normalizeHubState } from './state/validation.ts';
-import { usePersistent } from './store';
-import { removeWorkspaceData } from './workspace-lifecycle';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { createApplicationSession } from './application/client-session';
+import { trashCounts } from './recycle-bin';
+import { accountRepository, type StorageEntry } from './repository';
+import type { HubCommand, WorkspaceCommand } from './state/contracts';
 export type CommitWorkspaceCommand = (
   command: WorkspaceCommand,
   companion?: StorageEntry,
 ) => Promise<boolean>;
-
 export function useHub() {
-  const [initial] = useState(createEmptyHubState);
-  const [data, update, persistence] = usePersistent('hub-state-v1', initial, {
-    normalize: normalizeHubState,
-  });
-  const dispatch = useCallback(
-    (command: HubCommand) => {
-      update((current) => applyHubCommand(current, command));
-    },
-    [update],
-  );
-  const commitValue = persistence.commit;
-  const commit = useCallback(
-    (command: HubCommand, companion?: StorageEntry) =>
-      commitValue(
-        (current) => applyHubCommand(current, command),
-        companion ? [companion] : [],
-      ),
-    [commitValue],
-  );
-  const latest = useRef(data);
-  useLayoutEffect(() => {
-    latest.current = data;
-  }, [data]);
-  const transact = persistence.transact;
-  const removeWorkspace = useCallback(
-    (id: string) => transact((current) => removeWorkspaceData(current, id)),
-    [transact],
-  );
-  const cleanup = useCallback(
-    async (mode: 'expired' | 'all') => {
-      const at = Date.now();
-      const counts = trashCounts(latest.current, at);
-      if (!(mode === 'all' ? counts.total : counts.expired)) return 0;
-      let count = 0;
-      const saved = await transact((current) => {
-        const result = purgeTrash(current, mode, at);
-        count = result.count;
-        return { value: result.state, companions: result.drafts };
-      });
-      if (!saved) throw new Error('回收站清理未能保存，请稍后重试。');
-      return count;
-    },
-    [transact],
+  const [session] = useState(() => createApplicationSession());
+  const state = useSyncExternalStore(
+    session.subscribe,
+    session.getSnapshot,
+    session.getServerSnapshot,
   );
   useEffect(() => {
-    if (!persistence.ready) return;
-    const sweep = () => {
-      void cleanup('expired').catch(() => {});
+    void session.refresh();
+    const timer = setInterval(() => {
+      void session.refresh();
+    }, 2500);
+    const focus = () => {
+      void session.refresh();
     };
-    sweep();
-    const timer = setInterval(sweep, 60 * 60 * 1000);
-    window.addEventListener('focus', sweep);
+    window.addEventListener('focus', focus);
     return () => {
       clearInterval(timer);
-      window.removeEventListener('focus', sweep);
+      window.removeEventListener('focus', focus);
     };
-  }, [persistence.ready, cleanup]);
-  return { data, persistence, dispatch, commit, cleanup, removeWorkspace };
+  }, [session]);
+  const commit = useCallback(
+    async (command: HubCommand, companion?: StorageEntry) => {
+      if (!companion) return session.commit(command);
+      return accountRepository.commitEntry!(companion, (revision, applied) =>
+        session.commit(command, { ...companion, revision }, applied),
+      );
+    },
+    [session],
+  );
+  const dispatch = useCallback(
+    (command: HubCommand) => {
+      void commit(command);
+    },
+    [commit],
+  );
+  const removeWorkspace = useCallback(
+    (id: string) =>
+      session.commit({ type: 'workspace/delete', workspaceId: id }),
+    [session],
+  );
+  const cleanup = useCallback(
+    async (mode: 'all' | 'expired') => {
+      const count = trashCounts(session.getSnapshot().data);
+      if (!(await session.commit({ type: 'trash/purge', mode })))
+        throw new Error('清理失败，请重试。');
+      return mode === 'all' ? count.total : count.expired;
+    },
+    [session],
+  );
+  return {
+    data: state.data,
+    dispatch,
+    commit,
+    cleanup,
+    removeWorkspace,
+    persistence: {
+      ready: state.ready,
+      saved: state.saved,
+      busy: state.busy,
+      error: state.error,
+      retry: () => session.retry(),
+    },
+    refresh: session.refresh,
+  };
 }

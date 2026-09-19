@@ -29,6 +29,7 @@ export type BackgroundTask = {
   updated_at: number;
 };
 export type TaskRecord = BackgroundTask & {
+  generation?: number;
   owner_id: string;
   request_hash: string;
   connection_hash: string | null;

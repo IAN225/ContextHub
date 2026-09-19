@@ -128,13 +128,11 @@ export type SummaryTrack = Pick<
   | 'firstComplete'
 >;
 
-export type Workspace = {
+type WorkspaceData = {
   appearance?: WorkspaceAppearance;
   reme?: SummaryTrack;
   summaryTab?: SummaryEngine;
   memoryEngine?: SummaryEngine;
-  /** Present only on scoped task/UI views, never on canonical workspaces. */
-  summaryEngine?: SummaryEngine;
   id: string;
   name: string;
   platform: string;
@@ -153,9 +151,17 @@ export type Workspace = {
   firstComplete?: boolean;
 };
 
+/** Canonical account data cannot accept an engine projection. */
+export type Workspace = WorkspaceData & { summaryEngine?: never };
+export type SummaryView = WorkspaceData & { summaryEngine: SummaryEngine };
+/** Shared read-only calculations also accept versioned task snapshots. */
+export type WorkspaceContext = WorkspaceData & {
+  summaryEngine?: SummaryEngine;
+};
 export type UploadChannel = 'api' | 'link' | 'manual' | 'workbench';
 
 export type Upload = {
+  summaryEngine?: SummaryEngine;
   id: string;
   title: string;
   source: string;

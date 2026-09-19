@@ -20,7 +20,7 @@ import { Markdown } from '../../components/shared/markdown.tsx';
 import { PageTitle } from '../../components/shared/page-title.tsx';
 import { Picker } from '../../components/shared/picker.tsx';
 import { Switch } from '../../components/ui/switch.tsx';
-import { type Summary, type Workspace } from '../../lib/core/model.ts';
+import { type Summary, type WorkspaceContext } from '../../lib/core/model.ts';
 import { formatDate } from '../../lib/format-date.ts';
 import { type SendWorkspaceCommand } from '../../lib/state/contracts.ts';
 import { estimateInput } from '../../lib/summary/contracts.ts';
@@ -35,14 +35,14 @@ import { useSummaryTask } from './use-summary-task.ts';
 import { SummaryWorkbench } from './workbench.tsx';
 export function SummaryEnginePage({
   w,
-  active,
   onCommand,
   onCommit,
+  onRefresh,
   pendingCount,
   onReview,
 }: {
-  w: Workspace;
-  active: boolean;
+  w: WorkspaceContext;
+  onRefresh: () => Promise<void>;
   onCommand: SendWorkspaceCommand;
   onCommit: CommitWorkspaceCommand;
   pendingCount: number;
@@ -52,7 +52,7 @@ export function SummaryEnginePage({
     [modal, setModal] = useState(''),
     [creating, setCreating] = useState(false),
     [restore, setRestore] = useState<Summary | null>(null);
-  const task = useSummaryTask(w, active, onCommand, onCommit, setSelected);
+  const task = useSummaryTask(w);
   const { running, message } = task;
   const c = coverage(w),
     s = w.summaries.find((s) => s.id === selected) ?? c.active;
@@ -391,7 +391,12 @@ export function SummaryEnginePage({
         </article>
       </div>
       {modal === 'settings' && (
-        <ModelSettings w={w} onCommit={onCommit} onClose={() => setModal('')} />
+        <ModelSettings
+          w={w}
+          onRefresh={onRefresh}
+          onCommit={onCommit}
+          onClose={() => setModal('')}
+        />
       )}{' '}
       {restore && (
         <RestoreDialog

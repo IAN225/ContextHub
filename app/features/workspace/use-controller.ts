@@ -14,7 +14,6 @@ import {
 } from '../../lib/core/model.ts';
 import { inboxUploads, pendingUploads } from '../../lib/imports/queue.ts';
 import { useDeliveryInbox } from '../../lib/imports/use-delivery-inbox.ts';
-import { mcpRequest } from '../../lib/mcp/client.ts';
 import { useMcp } from '../../lib/mcp/use-mcp.ts';
 import type { StorageEntry } from '../../lib/repository.ts';
 import { type WorkspaceCommand } from '../../lib/state/contracts.ts';
@@ -23,8 +22,15 @@ import { useHub } from '../../lib/use-hub.ts';
 import { blankWorkspace } from '../../lib/workspaces/create.ts';
 import { useJournalNavigation } from './use-navigation.ts';
 export function useWorkspaceController() {
-  const { data, persistence, dispatch, commit, cleanup, removeWorkspace } =
-    useHub();
+  const {
+    data,
+    persistence,
+    dispatch,
+    commit,
+    cleanup,
+    removeWorkspace,
+    refresh,
+  } = useHub();
   const [emptyWorkspace] = useState(() => ({
     ...blankWorkspace('尚未创建工作区'),
     id: 'empty-workspace',
@@ -75,24 +81,12 @@ export function useWorkspaceController() {
   const noteNotifications = data.noteNotifications ?? [];
   const directImports = pendingUploads(data.uploads, 'manual');
   const candidates = pendingUploads(data.uploads, 'workbench', w.id);
-  const receiveDeliveries = useCallback(
-    (uploads: Upload[]) => commit({ type: 'upload/receive', uploads }),
-    [commit],
-  );
-  const deliveryInbox = useDeliveryInbox(
-    persistence.ready && modal !== 'data',
-    receiveDeliveries,
-  );
+  const deliveryInbox = useDeliveryInbox(persistence.ready && modal !== 'data');
   const background = useBackgroundTasks(
     data,
     persistence.ready && modal !== 'data',
-    commit,
   );
-  const mcp = useMcp(
-    data,
-    persistence.ready && persistence.saved && modal !== 'data',
-    commit,
-  );
+  const mcp = useMcp(persistence.ready && modal !== 'data');
   function notify(text: string) {
     setNotice(text);
   }
@@ -178,6 +172,12 @@ export function useWorkspaceController() {
     setModal('turn');
   }
   async function saveTurn(turn: Turn, companion: StorageEntry) {
+    if (
+      editing &&
+      JSON.stringify(w.turns.find((t) => t.id === editing.id)) !==
+        JSON.stringify(editing)
+    )
+      throw new Error('原文已更新，请保留草稿后重新打开编辑。');
     const origin = currentView.current;
     const saved = await commitWorkspace(
       { type: 'turn/save', turn, insert: !editing, afterId },
@@ -191,15 +191,6 @@ export function useWorkspaceController() {
   }
 
   async function deleteWorkspace() {
-    for (const task of background.tasks.filter(
-      (t) =>
-        t.workspace_id === w.id &&
-        !['cancelled', 'completed', 'failed'].includes(t.status),
-    ))
-      await background.control(task.id, 'cancel');
-    await mcpRequest('remove-workspace', {
-      workspaceId: w.id,
-    });
     const saved = await removeWorkspace(w.id);
     if (saved) {
       mcp.refresh();
@@ -225,6 +216,7 @@ export function useWorkspaceController() {
     return saved;
   }
   return {
+    refresh,
     deleteWorkspace,
     createWorkspace,
     data,

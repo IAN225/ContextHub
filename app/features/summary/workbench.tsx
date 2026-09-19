@@ -8,7 +8,7 @@ import {
 } from '../../components/shared/persistence-status.tsx';
 import { Picker } from '../../components/shared/picker.tsx';
 import { TextEditor } from '../../components/shared/text-editor.tsx';
-import { type Workspace } from '../../lib/core/model.ts';
+import { type WorkspaceContext } from '../../lib/core/model.ts';
 import { usePersistent } from '../../lib/store.ts';
 import { planWorkbench } from '../../lib/summary/planning.ts';
 import { useTaskQueue } from '../../lib/tasks/use-background-tasks.ts';
@@ -17,7 +17,7 @@ export function SummaryWorkbench({
   pendingCount,
   onReview,
 }: {
-  w: Workspace;
+  w: WorkspaceContext;
   pendingCount: number;
   onReview: () => void;
 }) {

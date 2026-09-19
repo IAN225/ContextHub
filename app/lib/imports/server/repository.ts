@@ -1,4 +1,6 @@
+import type { WorkspaceApplication } from '../../application/server/workspaces.ts';
 import { type Upload } from '../../core/model.ts';
+import type { SQLiteDatabase } from '../../server/sqlite.ts';
 import { ImportError } from '../contracts.ts';
 
 export type Owner = { id: string; key_hash: string | null };
@@ -23,121 +25,111 @@ export interface ImportRepository {
   acknowledge(ownerId: string, ids: string[]): Promise<void>;
 }
 
-export function createD1ImportRepository(db: D1Database): ImportRepository {
+export function createImportRepository(
+  db: SQLiteDatabase,
+  application: WorkspaceApplication,
+): ImportRepository {
+  const sql = db.raw;
+  const ownerRow = (id: string) =>
+    sql
+      .prepare('SELECT id,key_hash FROM import_owners WHERE id=?')
+      .get(id) as Owner;
   return {
     async accountOwner(id) {
-      await db
+      application.requireOwner(id);
+      sql
         .prepare(
           'INSERT INTO import_owners(id,session_hash,key_hash,created_at) VALUES(?,?,NULL,?) ON CONFLICT(id) DO NOTHING',
         )
-        .bind(id, 'account:' + id, Date.now())
-        .run();
-      return (await db
-        .prepare('SELECT id,key_hash FROM import_owners WHERE id=?')
-        .bind(id)
-        .first<Owner>())!;
+        .run(id, 'account:' + id, Date.now());
+      return ownerRow(id);
     },
-    findOwner: (sessionHash) =>
-      db
-        .prepare(
-          'SELECT id, key_hash FROM import_owners WHERE session_hash = ?',
-        )
-        .bind(sessionHash)
-        .first<Owner>(),
-    findDeliveryOwner: (keyHash) =>
-      db
-        .prepare('SELECT id, key_hash FROM import_owners WHERE key_hash = ?')
-        .bind(keyHash)
-        .first<Owner>(),
-    async createOwner(id, sessionHash, keyHash) {
-      await db
-        .prepare(
-          'INSERT INTO import_owners (id, session_hash, key_hash, created_at) VALUES (?, ?, ?, ?)',
-        )
-        .bind(id, sessionHash, keyHash, Date.now())
-        .run();
+    async findOwner(hash) {
+      const owner = sql
+        .prepare('SELECT id,key_hash FROM import_owners WHERE session_hash=?')
+        .get(hash) as Owner | null;
+      return owner ?? null;
     },
-    async rotateKey(ownerId, keyHash) {
-      await db
-        .prepare('UPDATE import_owners SET key_hash = ? WHERE id = ?')
-        .bind(keyHash, ownerId)
-        .run();
+    async findDeliveryOwner(hash) {
+      const owner = sql
+        .prepare('SELECT id,key_hash FROM import_owners WHERE key_hash=?')
+        .get(hash) as Owner | null;
+      if (owner) {
+        try {
+          application.requireOwner(owner.id);
+        } catch {
+          return null;
+        }
+      }
+      return owner ?? null;
+    },
+    async createOwner() {
+      throw new ImportError('UNAUTHORIZED', '请使用账号登录。', 401);
+    },
+    async rotateKey(id, key) {
+      application.requireOwner(id);
+      sql
+        .prepare('UPDATE import_owners SET key_hash=? WHERE id=?')
+        .run(key, id);
     },
     async enqueue(owner, requestKey, contentHash, upload) {
-      const body = JSON.stringify(upload);
-      // Quotas, key revocation, and idempotency are checked in the same SQLite write.
-      await db
-        .prepare(`INSERT INTO import_deliveries
-        (id, owner_id, request_key, content_hash, upload_json, byte_length, created_at)
-        SELECT ?, ?, ?, ?, ?, ?, ?
-        WHERE EXISTS (SELECT 1 FROM import_owners WHERE id = ? AND key_hash = ?)
-          AND (SELECT COUNT(*) FROM import_deliveries WHERE owner_id = ? AND acknowledged_at IS NULL) < 100
-          AND (SELECT COALESCE(SUM(byte_length), 0) FROM import_deliveries WHERE owner_id = ? AND acknowledged_at IS NULL) + ? <= 20971520
-        ON CONFLICT(owner_id, request_key) DO NOTHING`)
-        .bind(
-          upload.id,
-          owner.id,
-          requestKey,
-          contentHash,
-          body,
-          new TextEncoder().encode(body).length,
-          Date.now(),
-          owner.id,
-          owner.key_hash,
-          owner.id,
-          owner.id,
-          new TextEncoder().encode(body).length,
-        )
-        .run();
-      const receipt = await db
-        .prepare(
-          'SELECT id, content_hash, acknowledged_at FROM import_deliveries WHERE owner_id = ? AND request_key = ?',
-        )
-        .bind(owner.id, requestKey)
-        .first<Receipt>();
-      if (receipt) {
-        if (receipt.content_hash !== contentHash)
-          throw new ImportError(
-            'IDEMPOTENCY_CONFLICT',
-            '相同投递编号对应了不同内容，请使用新的 Idempotency-Key。',
-            409,
-          );
-        return receipt;
-      }
-      const active = await db
-        .prepare('SELECT id FROM import_owners WHERE id = ? AND key_hash = ?')
-        .bind(owner.id, owner.key_hash)
-        .first();
-      if (!active)
-        throw new ImportError(
-          'INVALID_KEY',
-          '投递 Key 已失效，请更新客户端配置。',
-          401,
+      return db.transaction(() => {
+        const snapshot = application.read(owner.id);
+        if (ownerRow(owner.id)?.key_hash !== owner.key_hash)
+          throw new ImportError('INVALID_KEY', '投递密钥已失效。', 401);
+        const prior = sql
+          .prepare(
+            'SELECT id,content_hash,acknowledged_at FROM import_deliveries WHERE owner_id=? AND request_key=?',
+          )
+          .get(owner.id, requestKey) as Receipt | undefined;
+        if (prior) {
+          if (prior.content_hash !== contentHash)
+            throw new ImportError(
+              'IDEMPOTENCY_CONFLICT',
+              '投递编号已用于不同内容。',
+              409,
+            );
+          return { ...prior };
+        }
+        const pending = snapshot.state.uploads.filter(
+          (u) => u.channel === 'api',
         );
+        if (
+          pending.length >= 200 ||
+          new TextEncoder().encode(JSON.stringify(pending)).length +
+            new TextEncoder().encode(JSON.stringify(upload)).length >
+            20 * 1024 * 1024
+        )
+          throw new ImportError(
+            'INBOX_FULL',
+            '待处理收件已达上限，请归档或删除后重试。',
+            507,
+          );
+        application.apply(owner.id, snapshot, { type: 'upload/add', upload });
+        const at = Date.now();
+        sql
+          .prepare(
+            'INSERT INTO import_deliveries(id,owner_id,request_key,content_hash,upload_json,byte_length,created_at,acknowledged_at) VALUES(?,?,?,?,NULL,0,?,?)',
+          )
+          .run(upload.id, owner.id, requestKey, contentHash, at, at);
+        return {
+          id: upload.id,
+          content_hash: contentHash,
+          acknowledged_at: at,
+        };
+      });
+    },
+    async pending(owner) {
+      return application
+        .read(owner)
+        .state.uploads.filter((u) => u.channel === 'api');
+    },
+    async acknowledge() {
       throw new ImportError(
-        'INBOX_FULL',
-        '待接收内容已达上限，请打开 Context Hub 接收后重试。',
-        507,
+        'UPGRADE_REQUIRED',
+        '服务已升级，请刷新页面。',
+        426,
       );
-    },
-    async pending(ownerId) {
-      const rows = await db
-        .prepare(
-          'SELECT upload_json FROM import_deliveries WHERE owner_id = ? AND acknowledged_at IS NULL ORDER BY created_at, id LIMIT 5',
-        )
-        .bind(ownerId)
-        .all<{ upload_json: string }>();
-      return rows.results.map((r) => JSON.parse(r.upload_json) as Upload);
-    },
-    async acknowledge(ownerId, ids) {
-      if (!ids.length) return;
-      // Keep just the receipt for retries; remove the server's conversation copy.
-      await db
-        .prepare(
-          `UPDATE import_deliveries SET upload_json = NULL, byte_length = 0, acknowledged_at = COALESCE(acknowledged_at, ?) WHERE owner_id = ? AND id IN (${ids.map(() => '?').join(',')})`,
-        )
-        .bind(Date.now(), ownerId, ...ids)
-        .run();
     },
   };
 }

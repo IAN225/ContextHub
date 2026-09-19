@@ -1,6 +1,7 @@
 import { randomId } from './browser-compat.ts';
 import type { DataRepository, StorageEntry } from './repository.ts';
 import { CLIENT_PROTOCOL } from './storage/protocol.ts';
+import { RECORD_PREFIX } from './storage/records.ts';
 type RecordEntry = StorageEntry & { revision: number };
 type ReadResult = { generation: number; entry: RecordEntry };
 type ListResult = { generation: number; entries: RecordEntry[] };
@@ -61,6 +62,7 @@ export function createCloudRepository(
     remember(result.generation);
     for (const entry of result.entries) {
       if (
+        !entry.key.startsWith(RECORD_PREFIX) &&
         revisions.has(entry.key) &&
         revisions.get(entry.key) !== entry.revision
       )
@@ -106,6 +108,13 @@ export function createCloudRepository(
     pending.delete(fingerprint);
   }
   return {
+    commitEntry: (entry, action) =>
+      serial(async () => {
+        if (!revisions.has(entry.key)) await read(entry.key);
+        return action(revisions.get(entry.key) ?? 0, (revision) =>
+          revisions.set(entry.key, revision),
+        );
+      }),
     flush: async () => {
       await queue;
       if (pending.size)

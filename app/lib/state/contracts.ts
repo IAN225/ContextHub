@@ -60,6 +60,14 @@ type WorkspaceCommandBody =
       editor: string;
       at: string;
     }
+  | {
+      type: 'note/replace';
+      noteId: string;
+      field: 'title' | 'body';
+      value: string;
+      editor: string;
+      at: string;
+    }
   | { type: 'note/star'; noteId: string; at: string }
   | { type: 'note/status'; noteId: string; status: Status; at: string }
   | { type: 'summary/config'; patch: Partial<Config> }

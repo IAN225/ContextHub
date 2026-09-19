@@ -1,5 +1,9 @@
 import { attachmentContext } from '../attachments.ts';
-import { type Summary, type Turn, type Workspace } from '../core/model.ts';
+import {
+  type Summary,
+  type Turn,
+  type WorkspaceContext,
+} from '../core/model.ts';
 import {
   estimateInput,
   fitsBudget,
@@ -25,7 +29,7 @@ export type SummaryPlan = {
 };
 // Exact semantic snapshot: an edit/restore/retain/config change while a model is
 // running must not advance a stale watermark. Unrelated notebook names are free.
-export function summaryRevision(w: Workspace) {
+export function summaryRevision(w: WorkspaceContext) {
   return JSON.stringify({
     ...(w.summaryEngine === 'reme'
       ? { engine: 'reme', strategy: REME_STRATEGY_VERSION }
@@ -56,7 +60,7 @@ export function summaryRevision(w: Workspace) {
       .map((n) => ({ id: n.id, title: n.title, star: n.star })),
   });
 }
-export function selectCompressionBatch(w: Workspace, c = coverage(w)) {
+export function selectCompressionBatch(w: WorkspaceContext, c = coverage(w)) {
   const count = w.config.batch;
   const tokenMode = w.config.batchMode === 'tokens';
   const tokenLimit = w.config.batchTokens ?? 16000;
@@ -88,7 +92,7 @@ export function selectCompressionBatch(w: Workspace, c = coverage(w)) {
   }
   return { batch, input };
 }
-export function planCompression(w: Workspace): SummaryPlan | null {
+export function planCompression(w: WorkspaceContext): SummaryPlan | null {
   if (!w.config.configured || !w.config.modelEnabled)
     throw new SummaryError('MODEL_NOT_CONFIGURED', '请先保存摘要模型配置。');
   const c = coverage(w);
@@ -113,7 +117,7 @@ export function planCompression(w: Workspace): SummaryPlan | null {
   };
 }
 export function planWorkbench(
-  w: Workspace,
+  w: WorkspaceContext,
   turns: Turn[],
   previous?: Summary,
   instruction = '',
@@ -172,10 +176,10 @@ export function checkpointFromResult(
     },
   };
 }
-export function applyGeneratedCheckpoint(
-  w: Workspace,
+export function applyGeneratedCheckpoint<T extends WorkspaceContext>(
+  w: T,
   generated: GeneratedCheckpoint,
-): Workspace {
+): T {
   if (w.summaries.some((s) => s.id === generated.summary.id)) return w;
   if (summaryRevision(w) !== generated.expected)
     throw new SummaryError(

@@ -1,17 +1,18 @@
 import { accountModelFetcher } from '@/lib/account/model-fetch';
 import { accountContext, type AccountEnvironment } from '@/lib/account/server';
+import { modelSettingsService } from '@/lib/application/server/model-settings';
+import { applicationDatabase, env } from '@/lib/application/server/runtime';
+import type { SqlDatabase } from '@/lib/server/database';
 import { parseSummaryEngine } from '@/lib/summary/engines';
 import type { SummaryEnvironment } from '@/lib/summary/server/config';
 import { createSummaryHandler } from '@/lib/summary/server/handlers';
-import { summarySettingsRepository } from '@/lib/summary/server/settings';
-import { env } from 'cloudflare:workers';
 const handleSummary = createSummaryHandler();
 async function handle(
   request: Request,
   context: { params: Promise<{ action: string }> },
 ) {
   const bindings = env as SummaryEnvironment &
-    AccountEnvironment & { DB: D1Database };
+    AccountEnvironment & { DB: SqlDatabase };
   const account = accountContext(request, bindings);
   if (account instanceof Response) return account;
   let engine;
@@ -30,7 +31,7 @@ async function handle(
     (await context.params).action,
     bindings,
     accountModelFetcher(bindings),
-    summarySettingsRepository(bindings.DB, account ?? undefined, engine),
+    modelSettingsService(applicationDatabase(), account!, engine),
     (account ?? 'local') + ':' + engine,
   );
 }

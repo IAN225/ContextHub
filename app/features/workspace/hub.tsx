@@ -48,7 +48,6 @@ export function Hub() {
     deliveries,
     noteNotifications,
     background,
-    mcp,
   } = controller;
   if (!persistence.ready)
     return (
@@ -180,10 +179,10 @@ export function Hub() {
           }
           onClick={() => navigate('inbox')}
         />
-        {(notice || mcp.received) && (
+        {notice && (
           <output className="journal-toast">
             <Check size={16} />
-            {notice || mcp.received}
+            {notice}
           </output>
         )}
       </WorkspaceThemeRoot>
