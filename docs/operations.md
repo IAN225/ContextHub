@@ -12,15 +12,11 @@ sudo systemctl restart contexthub
 
 Docker 部署使用 docker compose ps 与 docker compose logs --tail 100。内部应用和数据库不需要额外开放公网端口。
 
-管理员在网页“管理员设置”管理用户与证书。证书可选择 Caddy 自动申请续期，或已有 HTTPS 入口。源码部署使用已有反向代理时加 --external-https，代理转发到 127.0.0.1:4080，并保留 Host、设置 X-Forwarded-Proto: https。
+管理员在首页“设置”管理用户与证书。证书可选择 Caddy 自动申请续期，或已有 HTTPS 入口。源码部署使用已有反向代理时加 --external-https，代理转发到 127.0.0.1:4080，并保留 Host、设置 X-Forwarded-Proto: https。
 
 无域名时访问 `http://服务器IP:8080`；网页不依赖 HTTPS，MCP 公开接口只接受 HTTPS。源码部署可用 `--port` 修改网页端口；Docker 修改 `.env` 中的 `CONTEXT_HUB_PORT` 后运行部署脚本。维护端口 4310 与内部应用端口不需要开放公网。
 
 ## 更新
-
-开发与部署按同一条发布链路验证：先在开发电脑（包括 Windows）修改代码，在 `app/` 运行 `pnpm typecheck`、`pnpm lint`、`pnpm test` 和 `pnpm build`；提交并推送 GitHub 后，服务器从仓库拉取同一版本，再运行下方标准部署命令。交互验收访问实际部署域名，Windows 开发电脑不启动网站预览。不要绕过 GitHub 将本机修改直接覆盖到运行目录。
-
-本地构建检查不能代替服务器部署检查；部署脚本仍负责备份、迁移、健康检查和失败恢复。源码安装脚本面向 Ubuntu/Debian，应用的开发、测试和构建不限定在 Ubuntu 上进行。
 
 在检出的 GitHub 仓库根目录拉取新版本，然后执行对应的部署命令。源码目录应与 `/opt/contexthub/app` 运行目录分开。
 
@@ -58,13 +54,13 @@ sudo python3 deploy/upgrade.py source --recover /var/backups/contexthub/upgrade-
 
 ### 数据结构与后续版本
 
-账号 SQLite 使用顺序迁移及迁移校验记录；启动前检查账号版本、D1 已执行迁移、迁移文件校验和与数据库完整性。历史迁移不可修改或删除，新变更追加新迁移。高版本数据库由低版本新启动器读取时会被拒绝。
+账号与业务表统一保存在 `.wrangler/server/accounts.sqlite`。SQLite 使用顺序迁移及迁移校验记录；启动前检查账号版本、旧 D1 已执行迁移、迁移文件校验和与数据库完整性。历史迁移不可修改或删除，新变更追加新迁移。高版本数据库由低版本新启动器读取时会被拒绝。
 
 `account_records` 中每个账号的原文、附件、Note 正文、Note 历史、摘要、摘要设置、列表顺序和连接配置分别保存为独立记录；关系使用稳定 ID。各记录包含类型及格式版本。前端和个人 JSON 备份仍使用聚合视图，内部转换层负责拆分、重组和只提交变化的记录。以后改变存储形状时，必须追加对应格式转换和数据库迁移，不能只修改 TypeScript 类型。
 
-MCP 镜像、后台任务状态和任务结果使用各自带版本的数据封套，传输类型按版本固定在 `app/lib/storage/payload-v1.ts`、`payload-v2.ts`，与页面的 Workspace 类型分开。升级可读取原先没有封套的记录，未知新版本会被拒绝处理。后续发布若改变字段语义，应新增版本和转换器，并验证旧的排队任务与未接收结果；不以清空数据库代替迁移。
+历史 MCP 快照、后台任务状态和任务结果使用带版本的数据封套，传输类型按版本固定在 `app/lib/storage/payload-v1.ts`、`payload-v2.ts`，与页面的 Workspace 类型分开。升级可读取原先没有封套的记录，未知新版本会被拒绝处理。后续发布若改变字段语义，应新增版本和转换器，并验证旧的排队任务与未接收结果；不以清空数据库代替迁移。
 
-模块可以分别开发，当前仍整体构建、发布一个应用。MCP / 任务数据库与账号数据库仍通过事件及接收回执协调，并非跨库单事务。普通模块功能更新可保留现有数据库运行；结构变化需要该版本明确提供迁移。
+模块可以分别开发，当前仍整体构建、发布一个应用。Web、MCP 和后台任务共用账号数据库中的应用事务；普通模块功能更新可保留现有数据库运行，结构变化需要该版本提供迁移。
 
 ## 忘记密码
 
@@ -118,6 +114,6 @@ sudo python3 deploy/backup.py restore /path/to/contexthub.tar.gz --mode docker
 sudo bash deploy/docker.sh
 ```
 
-恢复前校验清单与 SHA-256，拒绝不安全归档路径。目标已有数据时默认拒绝覆盖；--replace-existing 会先将原文件保留到 /var/backups/contexthub/before-restore-\*。恢复后服务保持停止，部署命令负责启动。使用外部 HTTPS 时，源码备份与恢复均加 --skip-caddy。
+恢复前校验清单与 SHA-256，拒绝不安全归档路径、链接、重复路径、超过 100,000 个条目或解包后超过 32 GiB 的归档。这是恢复工具的保护上限，不是已验证的实例容量。目标已有数据时默认拒绝覆盖；--replace-existing 会先将原文件保留到 /var/backups/contexthub/before-restore-\*。恢复后服务保持停止，部署命令负责启动。使用外部 HTTPS 时，源码备份与恢复均加 --skip-caddy。
 
 默认 Compose 项目名为 contexthub，自定义项目要保持 --project 或 COMPOSE_PROJECT_NAME 一致。更换域名后需重新配置 HTTPS，第三方客户端可能要求重新授权。

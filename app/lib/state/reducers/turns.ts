@@ -1,4 +1,4 @@
-import { preserveFetchedAttachments } from '../../attachments.ts';
+import { preserveFetchedAttachments } from '../../attachments/content.ts';
 import { type Workspace } from '../../core/model.ts';
 import { type WorkspaceCommand } from '../contracts.ts';
 

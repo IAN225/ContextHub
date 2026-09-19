@@ -1,20 +1,12 @@
 'use client';
 import { useState } from 'react';
-import { type Workspace } from '../../lib/core/model.ts';
-import { type SendWorkspaceCommand } from '../../lib/state/contracts.ts';
+import { type WorkspaceContext } from '../../lib/core/model.ts';
 import type { GeneratedCheckpoint } from '../../lib/summary/planning.ts';
 import { taskLabels } from '../../lib/tasks/contracts.ts';
 import { useTaskQueue } from '../../lib/tasks/use-background-tasks.ts';
-import type { CommitWorkspaceCommand } from '../../lib/use-hub.ts';
 
 // A chapter is now a controller/view of a durable job, not the job's owner.
-export function useSummaryTask(
-  w: Workspace,
-  _active: boolean,
-  onCommand: SendWorkspaceCommand,
-  _onCommit: CommitWorkspaceCommand,
-  _onSelect: (id: string | null) => void,
-) {
+export function useSummaryTask(w: WorkspaceContext) {
   const queue = useTaskQueue();
   const [error, setError] = useState('');
   const current = queue?.tasks.find(
@@ -41,7 +33,7 @@ export function useSummaryTask(
     unsaved,
     saving: queue?.submitting ?? false,
     message: current
-      ? `${taskLabels[current.status]} · 已生成 ${current.step} 个检查点${current.step > current.acknowledged ? '，等待接收' : ''}`
+      ? `${taskLabels[current.status]} · 已生成 ${current.step} 个检查点${current.step > current.acknowledged ? '，结果提交中' : ''}`
       : '',
     error:
       error ||
@@ -52,8 +44,6 @@ export function useSummaryTask(
     toggle() {
       if (!queue) return;
       if (running && current) {
-        if (w.config.auto)
-          onCommand({ type: 'summary/config', patch: { auto: false } });
         act(() => queue.control(current.id, 'pause'));
       } else if (current && ['paused', 'failed'].includes(current.status))
         act(() => queue.control(current.id, 'resume'));
@@ -64,7 +54,7 @@ export function useSummaryTask(
         act(() => queue.control(current.id, 'pause'));
     },
     retrySave() {
-      if (queue && current) queue.retryReceive(current.id);
+      if (queue && current) queue.refreshTask(current.id);
     },
     discardResult() {
       if (queue && current) act(() => queue.control(current.id, 'cancel'));

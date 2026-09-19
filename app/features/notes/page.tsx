@@ -3,14 +3,12 @@ import { Star, StickyNote } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Empty } from '../../components/shared/empty.tsx';
 import { PageTitle } from '../../components/shared/page-title.tsx';
-import { SaveStatus } from '../../components/shared/persistence-status.tsx';
 import { Segments } from '../../components/shared/segments.tsx';
 import { now, uid } from '../../lib/core/identity.ts';
 import { type Note, type Workspace } from '../../lib/core/model.ts';
 import { formatDate } from '../../lib/format-date.ts';
 import { type SendWorkspaceCommand } from '../../lib/state/contracts.ts';
-import { usePersistent } from '../../lib/store.ts';
-import type { CommitWorkspaceCommand } from '../../lib/use-hub.ts';
+import type { CommitWorkspaceCommand } from '../../lib/application/use-hub.ts';
 import { NoteActions } from './actions.tsx';
 import { NoteEditor } from './editor.tsx';
 export function NotesPage({
@@ -28,24 +26,18 @@ export function NotesPage({
     [freshId, setFreshId] = useState<string>(),
     [creating, setCreating] = useState(false),
     [error, setError] = useState('');
-  // Recover any draft from the old new-note dialog into the shared editor.
-  const [oldDraft, , draft] = usePersistent(`new-note-${w.id}`, {
-    title: '',
-    body: '',
-    star: false,
-  });
   const creation = useRef(false);
   async function createNote() {
-    if (creation.current || !draft.ready || draft.busy) return;
+    if (creation.current) return;
     creation.current = true;
     setCreating(true);
     setError('');
     const at = now();
     const note: Note = {
       id: `note-${uid().slice(0, 8)}`,
-      title: oldDraft.title,
-      body: oldDraft.body,
-      star: oldDraft.star,
+      title: '',
+      body: '',
+      star: false,
       status: 'normal',
       createdAt: at,
       updatedAt: at,
@@ -54,10 +46,7 @@ export function NotesPage({
       versions: [],
     };
     try {
-      const saved = await draft.commitWith(
-        { title: '', body: '', star: false },
-        (entry) => onCommit({ type: 'note/create', note }, entry),
-      );
+      const saved = await onCommit({ type: 'note/create', note });
       if (!saved) {
         setError('新笔记未能保存，请重试。');
         return;
@@ -115,14 +104,9 @@ export function NotesPage({
           onCreate={() => {
             void createNote();
           }}
-          creating={creating || !draft.ready || draft.busy}
+          creating={creating}
         />
       </div>
-      {draft.error && (
-        <p className="error-text">
-          <SaveStatus state={draft}>{null}</SaveStatus>
-        </p>
-      )}
       {error && (
         <p className="error-text" role="alert">
           {error}

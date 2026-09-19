@@ -1,5 +1,9 @@
-import { attachmentContext } from '../attachments.ts';
-import { type Summary, type Turn, type Workspace } from '../core/model.ts';
+import { attachmentContext } from '../attachments/content.ts';
+import {
+  type Summary,
+  type Turn,
+  type WorkspaceContext,
+} from '../core/model.ts';
 import { generationConfig, SummaryError } from './contracts.ts';
 // Independently written strategy inspired by ReMeLight context checkpoints.
 // This does not embed the Python engine or its file-based memory service.
@@ -13,7 +17,7 @@ export const remeSections = [
   '关键细节与来源',
 ];
 export function composeRemeInput(
-  w: Workspace,
+  w: WorkspaceContext,
   turns: Turn[],
   previous?: Summary,
 ) {

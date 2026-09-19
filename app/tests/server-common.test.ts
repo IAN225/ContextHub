@@ -2,25 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { digest, randomSecret } from '../lib/server/crypto.ts';
 import { discardRequestBody, readTextBody } from '../lib/server/body.ts';
-import {
-  managementOwner,
-  requireManagementRequest as importGuard,
-} from '../lib/imports/server/auth.ts';
+import { requireManagementRequest as importGuard } from '../lib/imports/server/auth.ts';
 import { readLimitedBody as importBody } from '../lib/imports/server/http.ts';
-import type { ImportRepository } from '../lib/imports/server/repository.ts';
 import {
-  owner as mcpOwner,
   requireManagementRequest as mcpGuard,
   readLimitedBody as mcpBody,
   json,
 } from '../lib/mcp/server/http.ts';
-import type { McpRepository } from '../lib/mcp/server/repository.ts';
 import {
-  owner as taskOwner,
   requireManagementRequest as taskGuard,
   body as taskBody,
 } from '../lib/tasks/server/http.ts';
-import type { TaskRepository } from '../lib/tasks/server/repository.ts';
 import { createSummaryHandler } from '../lib/summary/server/handlers.ts';
 import { readSummaryBody } from '../lib/summary/server/service.ts';
 
@@ -33,44 +25,6 @@ test('shared crypto keeps SHA-256 and 256-bit prefixed secrets', async () => {
     second = randomSecret('ch_delivery_');
   assert.match(first, /^ch_delivery_[a-f0-9]{64}$/);
   assert.notEqual(first, second);
-});
-
-test('session owners use only their own cookie and pass hashes to repositories', async () => {
-  const secrets = ['a'.repeat(64), 'b'.repeat(64), 'c'.repeat(64)];
-  const seen: string[] = [];
-  const session = async (hash: string) => {
-    seen.push(hash);
-    return 'owner';
-  };
-  const mcp = { session } as McpRepository;
-  const tasks = { session } as TaskRepository;
-  const imports = {
-    findOwner: async (hash: string) => {
-      seen.push(hash);
-      return { id: 'owner', key_hash: null };
-    },
-  } as ImportRepository;
-  const request = new Request('https://hub.test', {
-    headers: {
-      cookie: `ignored=1; context_hub_mcp=${secrets[0]}; context_hub_tasks=${secrets[1]}; context_hub_import_session=${secrets[2]}`,
-    },
-  });
-  assert.equal(await mcpOwner(request, mcp), 'owner');
-  assert.equal(await taskOwner(request, tasks), 'owner');
-  assert.equal((await managementOwner(request, imports))?.id, 'owner');
-  assert.deepEqual(seen, await Promise.all(secrets.map(digest)));
-  for (const cookie of [
-    '',
-    'context_hub_mcp=bad',
-    `context_hub_mcp=${'A'.repeat(64)}`,
-    `prefix_context_hub_mcp=${secrets[0]}`,
-  ]) {
-    const invalid = new Request('https://hub.test', { headers: { cookie } });
-    assert.equal(await mcpOwner(invalid, mcp), undefined);
-    assert.equal(await taskOwner(invalid, tasks), undefined);
-    assert.equal(await managementOwner(invalid, imports), null);
-  }
-  assert.equal(seen.length, 3);
 });
 
 test('management policy preserves GET handling and rejects cross-site/missing-origin mutations', async () => {

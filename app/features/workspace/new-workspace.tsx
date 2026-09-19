@@ -1,6 +1,6 @@
 'use client';
-import type { StorageEntry } from '@/lib/repository';
-import { usePersistent } from '@/lib/store';
+import type { StorageEntry } from '@/lib/storage/account-repository';
+import { usePersistent } from '@/lib/storage/use-persistent';
 import { Plus } from 'lucide-react';
 import { Button } from '../../components/shared/button.tsx';
 import { Modal } from '../../components/shared/modal.tsx';

@@ -1,6 +1,6 @@
 import { type Turn, type Upload, type Workspace } from '../core/model.ts';
 import { uploadChannel } from '../imports/queue.ts';
-import { validAppearance } from '../workspace-appearance.ts';
+import { validAppearance } from '../workspaces/appearance.ts';
 import { type HubState } from './contracts.ts';
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -195,6 +195,11 @@ export function normalizeHubState(raw: unknown): HubState {
       item.channel === undefined ||
         (typeof item.channel === 'string' &&
           ['api', 'link', 'manual', 'workbench'].includes(item.channel)),
+    );
+    requireShape(
+      item.summaryEngine === undefined ||
+        item.summaryEngine === 'custom' ||
+        item.summaryEngine === 'reme',
     );
     const upload = item as unknown as Upload;
     const channel = uploadChannel(upload);

@@ -4,7 +4,6 @@ import {
   type Config,
   type Note,
   type Status,
-  type Token,
   type Turn,
   type Upload,
   type Workspace,
@@ -12,7 +11,7 @@ import {
 import type { McpEvent } from '../mcp/contracts.ts';
 import { type SummaryEngine } from '../summary/engines.ts';
 import { type GeneratedCheckpoint } from '../summary/planning.ts';
-import { type WorkspaceAppearance } from '../workspace-appearance.ts';
+import { type WorkspaceAppearance } from '../workspaces/appearance.ts';
 
 export type NoteNotification = {
   id: string;
@@ -60,6 +59,14 @@ type WorkspaceCommandBody =
       editor: string;
       at: string;
     }
+  | {
+      type: 'note/replace';
+      noteId: string;
+      field: 'title' | 'body';
+      value: string;
+      editor: string;
+      at: string;
+    }
   | { type: 'note/star'; noteId: string; at: string }
   | { type: 'note/status'; noteId: string; status: Status; at: string }
   | { type: 'summary/config'; patch: Partial<Config> }
@@ -71,10 +78,7 @@ type WorkspaceCommandBody =
     }
   | { type: 'summary/generated'; generated: GeneratedCheckpoint }
   | { type: 'summary/restore'; summaryId: string; mode: 'keep' | 'rewind' }
-  | { type: 'memory/set'; blocks: Block[] }
-  | { type: 'token/create'; token: Token }
-  | { type: 'token/revoke'; tokenId: string }
-  | { type: 'token/rotate'; tokenId: string; token: Token };
+  | { type: 'memory/set'; blocks: Block[] };
 
 export type HubCommand =
   | { type: 'notification/read'; notificationId: string }

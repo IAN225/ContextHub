@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
+import { DatabaseSync } from 'node:sqlite';
 import { test } from 'node:test';
+import { taskService } from '../lib/application/server/tasks.ts';
+import { workspaceApplication } from '../lib/application/server/workspaces.ts';
 import { type Workspace } from '../lib/core/model.ts';
 import type { McpRepository } from '../lib/mcp/server/repository.ts';
 import { callMcpTool } from '../lib/mcp/server/tools.ts';
 import { mcpWorkspace } from '../lib/mcp/snapshot.ts';
-import { createMemorySearch } from '../lib/memory-search.ts';
+import { createMemorySearch } from '../lib/memory/search.ts';
 import { memoryText } from '../lib/memory/compose.ts';
+import { sqliteDatabase } from '../lib/server/sqlite.ts';
 import { normalizeHubState } from '../lib/state/validation.ts';
 import { applyWorkspaceCommand } from '../lib/state/workspace-reducer.ts';
 import { decodePayload, encodePayload } from '../lib/storage/payload.ts';
@@ -27,10 +30,10 @@ import { summarySettingsRepository } from '../lib/summary/server/settings.ts';
 import type { SummaryTaskResult, TaskRecord } from '../lib/tasks/contracts.ts';
 import { taskHandler } from '../lib/tasks/server/handlers.ts';
 import type { TaskEnvironment } from '../lib/tasks/server/http.ts';
-import { taskRepository } from '../lib/tasks/server/repository.ts';
 import { summaryTaskWorkspace } from '../lib/tasks/snapshot.ts';
 import { groupTurns } from '../lib/transcript/turns.ts';
 import { blankWorkspace } from '../lib/workspaces/create.ts';
+import { migrateAccounts } from '../scripts/server/account-migrations.mjs';
 
 function fixture() {
   const w = blankWorkspace('两种摘要');
@@ -63,33 +66,6 @@ function generate(w: Workspace, engine: 'custom' | 'reme') {
     engine + '-checkpoint',
     '2026-09-15',
   );
-}
-function sqliteD1(db: DatabaseSync) {
-  return {
-    prepare(sql: string) {
-      const statement = db.prepare(sql);
-      const bind = (...args: SQLInputValue[]) => ({
-        _run: () => ({ meta: { changes: statement.run(...args).changes } }),
-        first: async () => statement.get(...args) ?? null,
-        all: async () => ({ results: statement.all(...args) }),
-        run: async () => ({
-          meta: { changes: statement.run(...args).changes },
-        }),
-      });
-      return { bind, ...bind() };
-    },
-    async batch(statements: { _run: () => unknown }[]) {
-      db.exec('BEGIN');
-      try {
-        const result = statements.map((s) => s._run());
-        db.exec('COMMIT');
-        return result;
-      } catch (error) {
-        db.exec('ROLLBACK');
-        throw error;
-      }
-    },
-  } as unknown as D1Database;
 }
 function database() {
   const db = new DatabaseSync(':memory:');
@@ -290,7 +266,7 @@ test('MCP default and explicit overrides pair the correct summary and raw window
 test('model secrets remain separate per account and engine', async (t) => {
   const db = database();
   t.after(() => db.close());
-  const binding = sqliteD1(db);
+  const binding = sqliteDatabase(db);
   for (const [owner, engine, key] of [
     ['a', 'custom', 'custom-secret'],
     ['a', 'reme', 'reme-secret'],
@@ -328,8 +304,20 @@ test('model secrets remain separate per account and engine', async (t) => {
 test('both strategies enqueue independently and run serially with strategy-specific model credentials', async (t) => {
   const db = database();
   t.after(() => db.close());
-  const repo = taskRepository(sqliteD1(db)),
+  migrateAccounts(db);
+  db.exec(
+    "INSERT INTO users(id,username,role,password_salt,password_hash,created_at) VALUES('account-a','tester','admin','salt','hash',1); UPDATE instance_settings SET activated_at=1",
+  );
+  const app = workspaceApplication(sqliteDatabase(db));
+  const repo = taskService(sqliteDatabase(db), app),
     w = fixture();
+  const initial = app.read('account-a');
+  app.execute('account-a', {
+    id: 'seed-workspace-00001',
+    generation: initial.generation,
+    expected: initial.revisions,
+    command: { type: 'workspace/create', workspace: w },
+  });
   const env: TaskEnvironment = {
     CONTEXT_HUB_TASK_RUNNER_KEY: 'synthetic-runner',
   };
@@ -340,6 +328,17 @@ test('both strategies enqueue independently and run serially with strategy-speci
     CONTEXT_HUB_SUMMARY_PROTOCOL: 'openai',
     CONTEXT_HUB_SUMMARY_API_KEY: engine + '-secret',
   });
+  db.prepare('INSERT INTO account_summary_settings VALUES(?,?,?)').run(
+    'account-a',
+    JSON.stringify(await connection('account-a', 'custom')),
+    'custom-revision',
+  );
+  db.prepare('INSERT INTO summary_engine_settings VALUES(?,?,?,?)').run(
+    'account:account-a',
+    'reme',
+    JSON.stringify(await connection('account-a', 'reme')),
+    'reme-revision',
+  );
   const fetcher = (async (_url, init) => {
     const body = JSON.parse(String(init?.body));
     calls.push(body.model);
@@ -415,4 +414,9 @@ test('both strategies enqueue independently and run serially with strategy-speci
   assert.deepEqual(new Set(calls), new Set(['custom', 'reme']));
   assert.equal(updated.summaries.length, 1);
   assert.equal(updated.reme?.summaries.length, 1);
+  assert.equal(app.read('account-a').state.workspaces[0].summaries.length, 1);
+  assert.equal(
+    app.read('account-a').state.workspaces[0].reme?.summaries.length,
+    1,
+  );
 });

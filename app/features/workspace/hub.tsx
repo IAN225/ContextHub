@@ -48,7 +48,6 @@ export function Hub() {
     deliveries,
     noteNotifications,
     background,
-    mcp,
   } = controller;
   if (!persistence.ready)
     return (
@@ -105,7 +104,7 @@ export function Hub() {
                 void persistence.retry();
               }}
             >
-              重试保存
+              重试
             </Button>
           </div>
         )}
@@ -157,7 +156,7 @@ export function Hub() {
                         void persistence.retry();
                       }}
                     >
-                      重试保存
+                      重试
                     </Button>
                   </div>
                 )}
@@ -180,10 +179,10 @@ export function Hub() {
           }
           onClick={() => navigate('inbox')}
         />
-        {(notice || mcp.received) && (
+        {notice && (
           <output className="journal-toast">
             <Check size={16} />
-            {notice || mcp.received}
+            {notice}
           </output>
         )}
       </WorkspaceThemeRoot>

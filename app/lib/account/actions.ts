@@ -6,7 +6,7 @@ import {
 } from './client.ts';
 export async function accountAction(action: string, data: object = {}) {
   if (['logout', 'password'].includes(action)) {
-    const { accountRepository } = await import('../repository');
+    const { accountRepository } = await import('../storage/account-repository');
     await accountRepository.flush?.();
   }
   const response = await fetch('/api/account/' + action, {

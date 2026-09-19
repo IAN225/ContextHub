@@ -1,11 +1,19 @@
 import { type Workspace } from '../../core/model.ts';
+import { saveNote } from '../../notes/operations.ts';
 import { type WorkspaceCommand } from '../contracts.ts';
 
 export function applyNotes(
   w: Workspace,
   command: Extract<
     WorkspaceCommand,
-    { type: 'note/create' | 'note/save' | 'note/star' | 'note/status' }
+    {
+      type:
+        | 'note/create'
+        | 'note/save'
+        | 'note/replace'
+        | 'note/star'
+        | 'note/status';
+    }
   >,
 ): Workspace {
   switch (command.type) {
@@ -20,21 +28,31 @@ export function applyNotes(
         ...w,
         notes: w.notes.map((n) =>
           n.id === command.noteId
-            ? {
-                ...n,
-                title: command.title.trim() || '无标题 Note',
-                body: command.body,
-                editor: command.editor,
-                updatedAt: command.at,
-                versions: [
-                  { title: n.title, body: n.body, time: n.updatedAt },
-                  ...n.versions,
-                ].slice(0, 5),
-              }
+            ? saveNote(n, command, { trimTitle: true, recordUnchanged: true })
             : n,
         ),
       };
     }
+    case 'note/replace':
+      if (!w.notes.some((n) => n.id === command.noteId))
+        throw new Error('Note 已不存在。');
+      return {
+        ...w,
+        notes: w.notes.map((n) =>
+          n.id === command.noteId
+            ? saveNote(
+                n,
+                {
+                  title: command.field === 'title' ? command.value : n.title,
+                  body: command.field === 'body' ? command.value : n.body,
+                  editor: command.editor,
+                  at: command.at,
+                },
+                { trimTitle: false, recordUnchanged: false },
+              )
+            : n,
+        ),
+      };
     case 'note/star':
       return {
         ...w,

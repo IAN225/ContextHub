@@ -1,15 +1,7 @@
-import {
-  randomBytes,
-  scrypt as derive,
-  timingSafeEqual,
-  createHash,
-} from 'node:crypto';
-import { promisify } from 'node:util';
+import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 
-const scrypt = promisify(derive);
-const digest = (value) => createHash('sha256').update(value).digest('hex');
 export async function openAccessStore(directory) {
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const path = join(directory, 'access.json');
@@ -62,73 +54,11 @@ export async function openAccessStore(directory) {
     get bootstrapAdmin() {
       return state.admin && { ...state.admin };
     },
-    get initialized() {
-      return !!state.admin;
-    },
     get access() {
       return state.access && structuredClone(state.access);
     },
     get gatewayKey() {
       return state.gatewayKey;
-    },
-    async initialize(password) {
-      if (
-        typeof password !== 'string' ||
-        password.length < 12 ||
-        password.length > 256
-      )
-        throw new Error('管理员密码需要 12–256 个字符。');
-      const salt = randomBytes(32).toString('hex');
-      const hash = (await scrypt(password, salt, 64)).toString('hex');
-      await update((value) => {
-        if (value.admin) throw new Error('管理员已设置，请登录。');
-        value.admin = { salt, hash };
-        return value;
-      });
-    },
-    async login(password, local) {
-      if (typeof password !== 'string' || password.length > 256) return null;
-      const admin = state.admin;
-      const computed = await scrypt(
-        password,
-        admin?.salt ?? 'uninitialized',
-        64,
-      );
-      if (!admin || !timingSafeEqual(computed, Buffer.from(admin.hash, 'hex')))
-        return null;
-      const token = randomBytes(32).toString('hex');
-      await update((value) => {
-        value.sessions = value.sessions
-          .filter((s) => s.expiresAt > Date.now())
-          .slice(-31);
-        value.sessions.push({
-          hash: digest(token),
-          local,
-          expiresAt: Date.now() + 12 * 3600000,
-        });
-        return value;
-      });
-      return token;
-    },
-    authenticated(token, local) {
-      return (
-        typeof token === 'string' &&
-        /^[a-f0-9]{64}$/.test(token) &&
-        state.sessions.some(
-          (s) =>
-            s.hash === digest(token) &&
-            s.local === local &&
-            s.expiresAt > Date.now(),
-        )
-      );
-    },
-    async logout(token) {
-      await update((value) => {
-        value.sessions = value.sessions.filter(
-          (s) => s.hash !== digest(token ?? ''),
-        );
-        return value;
-      });
     },
     async saveAccess(access) {
       await update((value) => ({ ...value, access }));

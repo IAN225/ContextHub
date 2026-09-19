@@ -345,35 +345,12 @@
     gap: 2px;
     flex-wrap: nowrap;
   }
-  .reader-actions .admin-entry-button {
-    width: 32px;
-    height: 36px;
-    padding: 0;
-    justify-content: center;
-    border: 0;
-    background: transparent;
-    color: var(--ui-muted, #8b9380);
-  }
   .journal-reader-header .back-to-shelf,
   .reader-actions > .icon-button {
     width: 32px;
     height: 36px;
     padding: 0;
     justify-content: center;
-  }
-  .reader-actions .admin-entry-button:hover {
-    background: var(--ui-subtle, #e9eddf);
-    color: var(--ui-accent, #536947);
-  }
-  .reader-actions .admin-entry-button > span {
-    display: none;
-  }
-  .reader-actions .admin-entry-error {
-    position: fixed;
-    top: 48px;
-    left: 8px;
-    right: 8px;
-    width: auto;
   }
   .journal-reader {
     padding: 0;

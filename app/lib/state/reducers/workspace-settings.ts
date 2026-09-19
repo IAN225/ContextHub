@@ -1,5 +1,5 @@
 import { type Workspace } from '../../core/model.ts';
-import { validAppearance } from '../../workspace-appearance.ts';
+import { validAppearance } from '../../workspaces/appearance.ts';
 import { type WorkspaceCommand } from '../contracts.ts';
 
 export function applyWorkspaceSettings(

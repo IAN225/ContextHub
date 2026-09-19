@@ -1,5 +1,6 @@
-import { managementGuard } from '../../server/request.ts';
+import { discardRequestBody } from '../../server/body.ts';
 import { digest } from '../../server/crypto.ts';
+import { managementGuard } from '../../server/request.ts';
 import {
   MAX_SUMMARY_BYTES,
   SummaryError,
@@ -110,7 +111,7 @@ export function createSummaryHandler() {
           stored ? publicSummarySettings(stored) : summaryConnectionStatus(env),
           { headers },
         );
-      if (!['generate', 'probe'].includes(action) || request.method !== 'POST')
+      if (action !== 'probe' || request.method !== 'POST')
         throw new SummaryError('NOT_FOUND', '未知摘要操作。', 404);
       if (!request.headers.get('content-type')?.includes('application/json'))
         throw new SummaryError('JSON_REQUIRED', '请使用 JSON 请求。', 415);
@@ -163,7 +164,6 @@ export function createSummaryHandler() {
             request.signal,
             fetcher,
           );
-          if (action !== 'probe') return Response.json(result, { headers });
           const { protocol, thinking } = readSummaryConnection(env);
           const fallback = {
             openai: 'max_completion_tokens',
@@ -211,18 +211,7 @@ export function createSummaryHandler() {
       cache.set(key, { fingerprint, at: Date.now(), response });
       return cachedResponse(await response);
     } catch (error) {
-      // Drain rejected request bodies for local Wrangler's HTTP proxy reuse.
-      if (!request.bodyUsed) {
-        try {
-          await readSummaryBody(
-            request,
-            8 * 1024 * 1024,
-            AbortSignal.timeout(2000),
-          );
-        } catch {
-          /* No body retained. */
-        }
-      }
+      await discardRequestBody(request);
       return errorResponse(error);
     }
   };

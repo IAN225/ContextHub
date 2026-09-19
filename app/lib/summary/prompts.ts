@@ -1,9 +1,9 @@
-import { attachmentContext } from '../attachments.ts';
+import { attachmentContext } from '../attachments/content.ts';
 import {
   type Block,
   type Summary,
   type Turn,
-  type Workspace,
+  type WorkspaceContext,
 } from '../core/model.ts';
 import { memoryNotes } from '../memory/compose.ts';
 import {
@@ -30,7 +30,7 @@ export const defaultSummaryPrompt: Block[] = [
   },
 ];
 export function composeSummaryInput(
-  w: Workspace,
+  w: WorkspaceContext,
   turns: Turn[],
   previous?: Summary,
   instruction = '',

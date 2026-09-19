@@ -12,13 +12,12 @@
 }
 .callout {
   line-height: 1.8;
-  border: 1px solid var(--ui-border, #354b41);
+  border: 1px solid var(--ui-border, #dce7cc);
   padding: 13px var(--space-4);
   border-radius: 6px;
   margin: 0;
   background: var(--ui-subtle, #f0f5e7);
   color: var(--ui-muted, #819366);
-  border-color: var(--ui-border, #dce7cc);
   font-size: 13px;
 }
 .form-grid {

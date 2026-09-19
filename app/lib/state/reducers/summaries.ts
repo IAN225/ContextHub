@@ -1,10 +1,10 @@
-import { type Workspace } from '../../core/model.ts';
+import { type WorkspaceContext } from '../../core/model.ts';
 import { applyGeneratedCheckpoint } from '../../summary/planning.ts';
 import { restoreSummary } from '../../summary/restore.ts';
 import { type WorkspaceCommand } from '../contracts.ts';
 
-export function applySummaries(
-  w: Workspace,
+export function applySummaries<T extends WorkspaceContext>(
+  w: T,
   command: Extract<
     WorkspaceCommand,
     {
@@ -15,7 +15,7 @@ export function applySummaries(
         | 'summary/restore';
     }
   >,
-): Workspace {
+): T {
   switch (command.type) {
     case 'summary/config': {
       const config = { ...w.config, ...command.patch };

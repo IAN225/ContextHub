@@ -28,3 +28,45 @@
   border: 1px solid #be9b85;
   color: #8b4435;
 }
+
+@media (max-width: 760px) {
+  .admin-entry-button {
+    width: 32px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    color: var(--ui-muted, #8b9380);
+  }
+  .admin-entry-button:hover {
+    background: var(--ui-subtle, #e9eddf);
+    color: var(--ui-accent, #536947);
+  }
+  .admin-entry-button > span {
+    display: none;
+  }
+  .admin-entry-error {
+    position: fixed;
+    top: 48px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+  }
+  .admin-entry-home .admin-entry-button {
+    border-radius: 5px;
+    color: #7e8676;
+  }
+  .admin-entry-home .admin-entry-button:hover {
+    color: #425c34;
+  }
+  .admin-entry-home .admin-entry-error {
+    top: 60px;
+  }
+}
+@media (max-width: 480px) {
+  .admin-entry-home .admin-entry-button {
+    width: 28px;
+    flex-shrink: 0;
+  }
+}

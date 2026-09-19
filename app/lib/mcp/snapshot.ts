@@ -1,4 +1,4 @@
-import { attachmentContext } from '../attachments.ts';
+import { attachmentContext } from '../attachments/content.ts';
 import { type Note, type Workspace } from '../core/model.ts';
 import type { WorkspaceSnapshotV2 } from '../storage/payload-v2.ts';
 import { summaryTrack, summaryWorkspace } from '../summary/engines.ts';

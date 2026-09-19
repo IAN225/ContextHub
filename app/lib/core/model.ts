@@ -1,5 +1,5 @@
 import { type SummaryEngine } from '../summary/engines.ts';
-import type { WorkspaceAppearance } from '../workspace-appearance.ts';
+import type { WorkspaceAppearance } from '../workspaces/appearance.ts';
 
 export type Status = 'normal' | 'deprecated' | 'trash';
 
@@ -85,7 +85,8 @@ export type Block = {
   noteIds?: string[];
 };
 
-export type Token = {
+// Historical backup data only; active credentials live in the server token repository.
+type LegacyToken = {
   id: string;
   name: string;
   value: string;
@@ -128,13 +129,11 @@ export type SummaryTrack = Pick<
   | 'firstComplete'
 >;
 
-export type Workspace = {
+type WorkspaceData = {
   appearance?: WorkspaceAppearance;
   reme?: SummaryTrack;
   summaryTab?: SummaryEngine;
   memoryEngine?: SummaryEngine;
-  /** Present only on scoped task/UI views, never on canonical workspaces. */
-  summaryEngine?: SummaryEngine;
   id: string;
   name: string;
   platform: string;
@@ -147,15 +146,23 @@ export type Workspace = {
   retainTokens?: number;
   notes: Note[];
   blocks: Block[];
-  tokens: Token[];
+  tokens: LegacyToken[];
   config: Config;
   started: boolean;
   firstComplete?: boolean;
 };
 
+/** Canonical account data cannot accept an engine projection. */
+export type Workspace = WorkspaceData & { summaryEngine?: never };
+export type SummaryView = WorkspaceData & { summaryEngine: SummaryEngine };
+/** Shared read-only calculations also accept versioned task snapshots. */
+export type WorkspaceContext = WorkspaceData & {
+  summaryEngine?: SummaryEngine;
+};
 export type UploadChannel = 'api' | 'link' | 'manual' | 'workbench';
 
 export type Upload = {
+  summaryEngine?: SummaryEngine;
   id: string;
   title: string;
   source: string;

@@ -16,13 +16,13 @@ export function WorkspacePanels({
 }) {
   const {
     data,
+    refresh,
     persistence,
     dispatch,
     deleteWorkspace,
     page,
     visitedPages,
     home,
-    modal,
     setModal,
     w,
     onWorkspaceCommand,
@@ -64,12 +64,7 @@ export function WorkspacePanels({
             ) : panel === 'summary' ? (
               <SummaryPage
                 w={w}
-                active={
-                  !home &&
-                  page === 'summary' &&
-                  persistence.ready &&
-                  modal !== 'data'
-                }
+                onRefresh={refresh}
                 onCommand={onWorkspaceCommand}
                 onCommit={commitWorkspace}
                 pendingCount={candidates.length}

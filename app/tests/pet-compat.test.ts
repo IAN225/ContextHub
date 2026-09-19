@@ -2,7 +2,7 @@ import { strToU8, zipSync } from 'fflate';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { parseBackup } from '../lib/backup.ts';
+import { parseBackup } from '../lib/storage/backup.ts';
 import { importCompatiblePetPack, type PetCrop } from '../lib/pets/codex.ts';
 import { frameIndex, petLimits } from '../lib/pets/contracts.ts';
 import { normalizePetPreferences } from '../lib/pets/package.ts';

@@ -1,7 +1,7 @@
 import { accountContext, type AccountEnvironment } from '@/lib/account/server';
+import { env } from '@/lib/application/server/runtime';
 import { importResponse, manageImports } from '@/lib/imports/server/handlers';
 import { importRepository } from '@/lib/imports/server/runtime';
-import { env } from 'cloudflare:workers';
 async function handle(
   request: Request,
   context: { params: Promise<{ action: string }> },

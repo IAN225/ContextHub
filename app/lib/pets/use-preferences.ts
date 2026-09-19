@@ -1,5 +1,5 @@
 'use client';
-import { usePersistent } from '../store';
+import { usePersistent } from '../storage/use-persistent';
 import { PET_PREFERENCES_KEY, defaultPetPreferences } from './contracts';
 import { normalizePetPreferences } from './package';
 export function usePetPreferences() {

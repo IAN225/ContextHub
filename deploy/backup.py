@@ -17,6 +17,8 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 FORMAT = 'contexthub-backup-v1'
+MAX_FILES = 100000
+MAX_EXPANDED_BYTES = 32 * 1024 * 1024 * 1024
 
 
 def run(*args, check=True):
@@ -61,16 +63,22 @@ def pack(paths, output, mode):
 def unpack(archive_path, staging):
     """Reject traversal, links, unexpected files and corruption before touching live state."""
     with tarfile.open(archive_path, 'r:gz') as archive:
-        members = archive.getmembers()
+        members = []
         seen = set()
-        for member in members:
+        total = 0
+        for member in archive:
             name = member.name
             parts = PurePosixPath(name).parts
             if (not parts or name.startswith('/') or '\\' in name or
                     '..' in parts or name in seen or
                     not (member.isfile() or member.isdir())):
                 raise ValueError('Unsafe or duplicate archive entry.')
-            seen.add(name)
+            canonical = PurePosixPath(name).as_posix()
+            total += member.size
+            if canonical != name.rstrip('/') or canonical in seen or len(members) >= MAX_FILES or total > MAX_EXPANDED_BYTES:
+                raise ValueError('Backup exceeds limits or contains ambiguous paths.')
+            seen.add(canonical)
+            members.append(member)
         info = archive.getmember('manifest.json')
         if not info.isfile() or info.size > 16 * 1024 * 1024:
             raise ValueError('Invalid backup manifest.')

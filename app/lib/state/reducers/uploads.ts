@@ -1,5 +1,6 @@
-import { preserveFetchedAttachments } from '../../attachments.ts';
+import { preserveFetchedAttachments } from '../../attachments/content.ts';
 import { deliveryTriggerTurn } from '../../imports/delivery-review.ts';
+import { summaryTrack, summaryWorkspace } from '../../summary/engines.ts';
 import { restoreSummary } from '../../summary/restore.ts';
 import { type HubCommand, type HubState } from '../contracts.ts';
 
@@ -119,11 +120,19 @@ export function applyUploads(
         covered: upload.covered ?? [],
         createdAt: command.at,
       };
-      const next = restoreSummary(
-        { ...current, summaries: [...current.summaries, summary].slice(-30) },
+      const scoped = summaryWorkspace(
+        current,
+        upload.summaryEngine ?? 'custom',
+      );
+      const restored = restoreSummary(
+        { ...scoped, summaries: [...scoped.summaries, summary].slice(-30) },
         summary.id,
         command.mode,
       );
+      const next =
+        upload.summaryEngine === 'reme'
+          ? { ...current, reme: summaryTrack(restored) }
+          : { ...current, ...summaryTrack(restored) };
       return {
         ...state,
         uploads: state.uploads.filter((u) => u.id !== upload.id),

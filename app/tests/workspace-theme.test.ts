@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import {
   workspacePalette,
   workspaceThemeClass,
-} from '../lib/workspace-theme.ts';
+} from '../lib/workspaces/theme.ts';
 function rgb(hex: string) {
   return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
 }

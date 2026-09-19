@@ -1,4 +1,8 @@
-import { type SummaryTrack, type Workspace } from '../core/model.ts';
+import {
+  type SummaryTrack,
+  type SummaryView,
+  type WorkspaceContext,
+} from '../core/model.ts';
 export type SummaryEngine = 'custom' | 'reme';
 export const summaryEngines: SummaryEngine[] = ['custom', 'reme'];
 export const engineLabels = {
@@ -34,7 +38,7 @@ export function emptyRemeTrack(): SummaryTrack {
     firstComplete: false,
   };
 }
-export function summaryTrack(w: Workspace): SummaryTrack {
+export function summaryTrack(w: WorkspaceContext): SummaryTrack {
   const {
     summaries,
     activeId,
@@ -60,10 +64,10 @@ export function summaryTrack(w: Workspace): SummaryTrack {
 }
 // Scoped views feed the planner/UI. Never persist a projection as a workspace.
 export function summaryWorkspace(
-  w: Workspace,
+  w: WorkspaceContext,
   engine: SummaryEngine,
-): Workspace {
-  if (w.summaryEngine === engine) return w;
+): SummaryView {
+  if (w.summaryEngine === engine) return { ...w, summaryEngine: engine };
   if (w.summaryEngine === 'reme')
     throw new Error('不能将实验摘要视图作为自定义摘要读取。');
   return engine === 'custom'

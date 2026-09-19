@@ -1,7 +1,5 @@
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
-import { writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createMcpGateway } from '../mcp-gateway.mjs';
 
@@ -41,7 +39,7 @@ export function createRuntime(root, directory, key, onFailure = () => {}) {
           const exited = new Promise((resolve) =>
             current.once('exit', resolve),
           );
-          // The application and Workerd children have a dedicated process group.
+          // The application and task runner children have a dedicated process group.
           try {
             process.kill(-current.pid, 'SIGTERM');
           } catch {
@@ -71,13 +69,7 @@ export function createRuntime(root, directory, key, onFailure = () => {}) {
   }
   async function configure(origin) {
     await stop();
-    const envFile = join(directory, 'runtime.env');
-    await writeFile(
-      envFile,
-      `CONTEXT_HUB_ACCOUNT_MODE=1\nCONTEXT_HUB_MCP_PUBLIC_ORIGIN=${origin ?? ''}\nCONTEXT_HUB_MCP_GATEWAY_KEY=${key}\n`,
-      { mode: 0o600 },
-    );
-    child = spawn(process.execPath, ['scripts/start-worker.mjs'], {
+    child = spawn(process.execPath, ['scripts/start-application.mjs'], {
       cwd: root,
       windowsHide: true,
       detached: process.platform !== 'win32',
@@ -85,7 +77,10 @@ export function createRuntime(root, directory, key, onFailure = () => {}) {
       env: {
         ...process.env,
         CONTEXT_HUB_ENABLE_MCP_PUBLIC: '1',
-        CONTEXT_HUB_MCP_ENV_FILE: envFile,
+        CONTEXT_HUB_SERVER_DATA_DIR: directory,
+        CONTEXT_HUB_ACCOUNT_MODE: '1',
+        CONTEXT_HUB_MCP_PUBLIC_ORIGIN: origin ?? '',
+        CONTEXT_HUB_MCP_GATEWAY_KEY: key,
       },
     });
     let failure = false,
@@ -107,7 +102,7 @@ export function createRuntime(root, directory, key, onFailure = () => {}) {
         await response.body?.cancel();
         healthy = response.ok;
       } catch {
-        /* Wait for Workerd to become ready. */
+        /* Wait for the application to become ready. */
       }
       if (healthy && !failure) {
         if (origin) {

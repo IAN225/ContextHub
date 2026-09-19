@@ -1,10 +1,30 @@
 import {
+  decodeAuxiliary,
+  encodeAuxiliary,
+} from '../../lib/storage/auxiliary.ts';
+import { createEmptyHubState } from '../../lib/state/empty.ts';
+import { normalizeHubState } from '../../lib/state/validation.ts';
+import {
   HUB_KEY,
   RECORD_PREFIX,
   decodeRecord,
+  joinHub,
 } from '../../lib/storage/records.ts';
 import { AccountError, hash } from './account-credentials.mjs';
 export function accountRecords({ db, lifecycle, transaction }) {
+  function storedValue(key, raw) {
+    try {
+      const value = JSON.parse(raw);
+      return key.startsWith(RECORD_PREFIX) || key === HUB_KEY
+        ? value
+        : decodeAuxiliary(key, value);
+    } catch {
+      throw new AccountError(
+        '存储格式无法读取，请检查数据或使用匹配的应用版本。',
+        426,
+      );
+    }
+  }
   function record(id, key) {
     const row = db
       .prepare(
@@ -14,7 +34,9 @@ export function accountRecords({ db, lifecycle, transaction }) {
     return {
       key,
       revision: row?.revision ?? 0,
-      ...(row?.value_json != null ? { value: JSON.parse(row.value_json) } : {}),
+      ...(row?.value_json != null
+        ? { value: storedValue(key, row.value_json) }
+        : {}),
     };
   }
   return {
@@ -34,7 +56,7 @@ export function accountRecords({ db, lifecycle, transaction }) {
           .all(id)
           .map((row) => ({
             key: row.record_key,
-            value: JSON.parse(row.value_json),
+            value: storedValue(row.record_key, row.value_json),
             revision: row.revision,
           }));
         return { generation: user.generation, entries };
@@ -63,6 +85,8 @@ export function accountRecords({ db, lifecycle, transaction }) {
           entry.revision < 0
         )
           throw new AccountError('存储条目无效。');
+        if (input.mode === 'write' && entry.key.startsWith(RECORD_PREFIX))
+          throw new AccountError('请使用工作区操作接口保存业务数据。', 426);
         if (entry.key === HUB_KEY)
           throw new AccountError('存储格式已升级，请刷新页面后再保存。', 426);
         if (entry.key.startsWith(RECORD_PREFIX) && entry.value !== undefined) {
@@ -70,6 +94,14 @@ export function accountRecords({ db, lifecycle, transaction }) {
             decodeRecord(entry.value);
           } catch {
             throw new AccountError('存储版本不兼容。', 426);
+          }
+        }
+        if (!entry.key.startsWith(RECORD_PREFIX)) {
+          try {
+            if (entry.value !== undefined)
+              encodeAuxiliary(entry.key, entry.value);
+          } catch {
+            throw new AccountError('偏好或草稿格式无效。');
           }
         }
         seen.add(entry.key);
@@ -134,6 +166,24 @@ export function accountRecords({ db, lifecycle, transaction }) {
             )
           )
             throw new AccountError('云端数据已变化，请重新预览恢复。', 409);
+          const restored = normalizeHubState(
+            joinHub(input.entries) ?? createEmptyHubState(),
+          );
+          if (restored.workspaces.some((w) => w.summaryEngine !== undefined))
+            throw new AccountError('备份包含无效的摘要投影。');
+          db.prepare(
+            "UPDATE background_tasks SET status='cancelled',lease=NULL,lease_until=NULL,acknowledged=step WHERE owner_id=?",
+          ).run(id);
+          db.prepare(
+            'UPDATE mcp_tokens SET revoked_at=COALESCE(revoked_at,?) WHERE owner_id=?',
+          ).run(Date.now(), id);
+          db.prepare('UPDATE import_owners SET key_hash=NULL WHERE id=?').run(
+            id,
+          );
+          db.prepare(
+            'UPDATE mcp_oauth_requests SET denied=1,consumed=1 WHERE owner_id=?',
+          ).run(id);
+          db.prepare('DELETE FROM mcp_workspaces WHERE owner_id=?').run(id);
           db.prepare('DELETE FROM account_records WHERE user_id=?').run(id);
           generation++;
           db.prepare('UPDATE users SET generation=? WHERE id=?').run(
@@ -146,7 +196,13 @@ export function accountRecords({ db, lifecycle, transaction }) {
         );
         const entries = input.entries.map((entry) => {
           const json =
-            entry.value === undefined ? null : JSON.stringify(entry.value);
+            entry.value === undefined
+              ? null
+              : JSON.stringify(
+                  entry.key.startsWith(RECORD_PREFIX)
+                    ? entry.value
+                    : encodeAuxiliary(entry.key, entry.value),
+                );
           const current = db
             .prepare(
               'SELECT value_json,revision FROM account_records WHERE user_id=? AND record_key=?',

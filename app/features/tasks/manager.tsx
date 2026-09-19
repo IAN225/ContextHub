@@ -120,9 +120,9 @@ export function BackgroundTaskManager({ onClose }: { onClose: () => void }) {
                 {queue.problems[task.id] && (
                   <Button
                     disabled={busy}
-                    onClick={() => queue.retryReceive(task.id)}
+                    onClick={() => queue.refreshTask(task.id)}
                   >
-                    重试接收
+                    刷新状态
                   </Button>
                 )}
                 {(task.status !== 'completed' ||

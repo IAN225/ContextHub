@@ -1,7 +1,7 @@
-import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { splitHub, HUB_KEY } from '../../lib/storage/records.ts';
-export const ACCOUNT_SCHEMA_VERSION = 4;
+import { readFileSync } from 'node:fs';
+import { HUB_KEY, splitHub } from '../../lib/storage/records.ts';
+export const ACCOUNT_SCHEMA_VERSION = 5;
 const base = readFileSync(
   new URL('./account-schema.sql', import.meta.url),
   'utf8',
@@ -18,6 +18,8 @@ const migrations = [
   {
     version: 2,
     name: 'activation',
+    checksum:
+      '9f4de15f50d06b89485054aeee744d29f1663bfdc787021e5680978fa7428686',
     apply(db) {
       const columns = db
         .prepare('PRAGMA table_info(users)')
@@ -39,6 +41,8 @@ const migrations = [
   {
     version: 3,
     name: 'independent-records',
+    checksum:
+      'a1a6fdccea3e8e432bc9fc7b7654e6b10b0730c03ed0bcd0ea9533efc81f530c',
     apply(db) {
       const insert = db.prepare(
         'INSERT INTO account_records(user_id,record_key,value_json,revision,updated_at) VALUES(?,?,?,?,?)',
@@ -69,10 +73,20 @@ const migrations = [
   {
     version: 4,
     name: 'optional-password-setup-and-admin-recovery',
+    checksum:
+      'f1404f28036eedba3654aad220790f93db2023efc989bed718e07f02d2d92668',
     apply(db) {
       db.exec(
         'ALTER TABLE users ADD COLUMN password_setup_pending INTEGER NOT NULL DEFAULT 0; UPDATE users SET password_setup_pending=1 WHERE must_change_password=1; CREATE TABLE admin_password_recovery(user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, iv BLOB NOT NULL, tag BLOB NOT NULL, ciphertext BLOB NOT NULL)',
       );
+    },
+  },
+  {
+    version: 5,
+    name: 'server-authority',
+    source: 'UPDATE users SET generation=generation+1;',
+    apply(db) {
+      db.exec(this.source);
     },
   },
 ];
@@ -86,14 +100,16 @@ export function migrateAccounts(db) {
       'CREATE TABLE IF NOT EXISTS account_migrations(version INTEGER PRIMARY KEY, name TEXT NOT NULL, checksum TEXT NOT NULL, applied_at INTEGER NOT NULL)',
     );
     for (const migration of migrations) {
-      const checksum = createHash('sha256')
-        .update(
-          (migration.source ?? migration.apply.toString()).replace(
-            /\r\n/g,
-            '\n',
-          ),
-        )
-        .digest('hex');
+      const checksum =
+        migration.checksum ??
+        createHash('sha256')
+          .update(
+            (migration.source ?? migration.apply.toString()).replace(
+              /\r\n/g,
+              '\n',
+            ),
+          )
+          .digest('hex');
       const recorded = db
         .prepare('SELECT checksum FROM account_migrations WHERE version=?')
         .get(migration.version);

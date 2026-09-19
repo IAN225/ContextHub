@@ -17,8 +17,8 @@ import {
 } from '../../components/shared/persistence-status.tsx';
 import { Picker } from '../../components/shared/picker.tsx';
 import { type Workspace } from '../../lib/core/model.ts';
-import { createMemorySearch } from '../../lib/memory-search.ts';
-import { usePersistent } from '../../lib/store.ts';
+import { createMemorySearch } from '../../lib/memory/search.ts';
+import { usePersistent } from '../../lib/storage/use-persistent.ts';
 export function SearchPage({
   workspaces,
 }: {

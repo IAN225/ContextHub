@@ -3,7 +3,7 @@ import { createContext, useContext, type ReactNode } from 'react';
 import {
   workspaceThemeClass,
   type WorkspaceTone,
-} from '../../lib/workspace-theme.ts';
+} from '../../lib/workspaces/theme.ts';
 const ThemeContext = createContext<WorkspaceTone | undefined>(undefined);
 export function WorkspaceThemeProvider({
   tone,

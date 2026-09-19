@@ -2,7 +2,10 @@
 import { Download, Paperclip, RotateCcw } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
-import { attachmentLabels, attachmentStatus } from '../../lib/attachments.ts';
+import {
+  attachmentLabels,
+  attachmentStatus,
+} from '../../lib/attachments/content.ts';
 import { type Attachment } from '../../lib/core/model.ts';
 import { useTaskQueue } from '../../lib/tasks/use-background-tasks.ts';
 import { Button } from './button.tsx';

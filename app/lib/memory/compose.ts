@@ -1,10 +1,10 @@
-import { attachmentContext } from '../attachments.ts';
-import { type Block, type Workspace } from '../core/model.ts';
+import { attachmentContext } from '../attachments/content.ts';
+import { type Block, type WorkspaceContext } from '../core/model.ts';
 import { coverage } from '../summary/coverage.ts';
 import { summaryWorkspace, type SummaryEngine } from '../summary/engines.ts';
 
 export function memoryText(
-  w: Workspace,
+  w: WorkspaceContext,
   blocks = w.blocks,
   engine: SummaryEngine = w.summaryEngine ?? w.memoryEngine ?? 'custom',
 ) {
@@ -35,7 +35,7 @@ export function memoryText(
     .join('\n\n');
 }
 
-export function memoryNotes(w: Workspace, b: Block) {
+export function memoryNotes(w: WorkspaceContext, b: Block) {
   if (!b.custom) return w.notes.filter((n) => n.star && n.status === 'normal');
   return [...new Set(b.noteIds ?? [])].flatMap((id) => {
     const note = w.notes.find((n) => n.id === id && n.status === 'normal');

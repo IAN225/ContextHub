@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useBlockReorder } from '../../components/shared/use-block-reorder.ts';
 import { useWorkspaceThemeClass } from '../../components/theme/workspace-theme.tsx';
 import { uid } from '../../lib/core/identity.ts';
-import { type Block, type Workspace } from '../../lib/core/model.ts';
+import { type Block, type WorkspaceContext } from '../../lib/core/model.ts';
 import { memoryBlockLabel, memoryText } from '../../lib/memory/compose.ts';
 import { engineLabels, type SummaryEngine } from '../../lib/summary/engines.ts';
 import { MemoryBlockCard } from './block-card.tsx';
@@ -15,7 +15,7 @@ export function MemoryComposer({
   onChange,
   onEngineChange,
 }: {
-  w: Workspace;
+  w: WorkspaceContext;
   onEngineChange: (engine: SummaryEngine) => void;
   onChange: (blocks: Block[]) => void;
 }) {

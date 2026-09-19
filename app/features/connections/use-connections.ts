@@ -4,7 +4,7 @@ import { type Workspace } from '../../lib/core/model.ts';
 import type { PublicMcpToken } from '../../lib/mcp/contracts.ts';
 import { oauthConnectionProfiles } from '../../lib/mcp/oauth-clients.ts';
 import type { McpConnection } from '../../lib/mcp/use-mcp.ts';
-import { usePersistent } from '../../lib/store.ts';
+import { usePersistent } from '../../lib/storage/use-persistent.ts';
 export function useConnections({
   w,
   active,

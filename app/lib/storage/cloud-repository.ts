@@ -1,6 +1,7 @@
-import { randomId } from './browser-compat.ts';
-import type { DataRepository, StorageEntry } from './repository.ts';
-import { CLIENT_PROTOCOL } from './storage/protocol.ts';
+import { randomId } from '../browser-compat.ts';
+import type { DataRepository, StorageEntry } from './account-repository.ts';
+import { CLIENT_PROTOCOL } from './protocol.ts';
+import { RECORD_PREFIX } from './records.ts';
 type RecordEntry = StorageEntry & { revision: number };
 type ReadResult = { generation: number; entry: RecordEntry };
 type ListResult = { generation: number; entries: RecordEntry[] };
@@ -10,6 +11,11 @@ type WriteResult = {
 };
 class CloudRepositoryError extends Error {
   override name = 'CloudRepositoryError';
+  readonly status: number;
+  constructor(message: string, status = 0) {
+    super(message);
+    this.status = status;
+  }
 }
 export function createCloudRepository(
   fetcher: typeof fetch = fetch,
@@ -40,6 +46,7 @@ export function createCloudRepository(
     if (!response.ok)
       throw new CloudRepositoryError(
         value.error ?? '云端保存失败，请稍后重试。',
+        response.status,
       );
     return value;
   }
@@ -61,6 +68,7 @@ export function createCloudRepository(
     remember(result.generation);
     for (const entry of result.entries) {
       if (
+        !entry.key.startsWith(RECORD_PREFIX) &&
         revisions.has(entry.key) &&
         revisions.get(entry.key) !== entry.revision
       )
@@ -99,13 +107,32 @@ export function createCloudRepository(
     const fingerprint = JSON.stringify(data);
     const commitId = pending.get(fingerprint) ?? randomId();
     pending.set(fingerprint, commitId);
-    const result = await request<WriteResult>('', { ...data, commitId });
+    let result: WriteResult;
+    try {
+      result = await request<WriteResult>('', { ...data, commitId });
+    } catch (error) {
+      if (
+        error instanceof CloudRepositoryError &&
+        error.status >= 400 &&
+        error.status < 500 &&
+        error.status !== 408
+      )
+        pending.delete(fingerprint);
+      throw error;
+    }
     generation = result.generation;
     for (const entry of result.entries)
       revisions.set(entry.key, entry.revision);
     pending.delete(fingerprint);
   }
   return {
+    commitEntry: (entry, action) =>
+      serial(async () => {
+        if (!revisions.has(entry.key)) await read(entry.key);
+        return action(revisions.get(entry.key) ?? 0, (revision) =>
+          revisions.set(entry.key, revision),
+        );
+      }),
     flush: async () => {
       await queue;
       if (pending.size)

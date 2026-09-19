@@ -1,4 +1,4 @@
-import type { DataRepository, StorageEntry } from '../repository.ts';
+import type { DataRepository, StorageEntry } from './account-repository.ts';
 import {
   HUB_KEY,
   joinHub,
@@ -20,6 +20,11 @@ export function createEntityRepository(store: DataRepository): DataRepository {
     return (baseline ??= await store.entries());
   }
   return {
+    commitEntry: (entry, action) =>
+      serial(() => {
+        if (!store.commitEntry) throw new Error('存储接口需要更新。');
+        return store.commitEntry(entry, action);
+      }),
     read: (key) =>
       serial(async () =>
         key === HUB_KEY

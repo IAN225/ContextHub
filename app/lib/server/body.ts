@@ -11,9 +11,13 @@ export async function readTextBody(
   limit: number,
   options: BodyOptions,
 ) {
-  if (options.signal?.aborted) throw options.aborted!();
-  if (Number(response.headers.get('content-length')) > limit)
-    throw options.tooLarge();
+  if (
+    options.signal?.aborted ||
+    Number(response.headers.get('content-length')) > limit
+  ) {
+    await response.body?.cancel().catch(() => {});
+    throw options.signal?.aborted ? options.aborted!() : options.tooLarge();
+  }
   const reader = response.body?.getReader();
   if (!reader) return '';
   let cancel: (() => void) | undefined;

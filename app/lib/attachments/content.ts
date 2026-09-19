@@ -1,6 +1,6 @@
-import { sha256Hex } from './browser-compat.ts';
-import { uid } from './core/identity.ts';
-import { type Attachment } from './core/model.ts';
+import { sha256Hex } from '../browser-compat.ts';
+import { uid } from '../core/identity.ts';
+import { type Attachment } from '../core/model.ts';
 
 export const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 export const MAX_ATTACHMENT_TEXT = 128 * 1024;

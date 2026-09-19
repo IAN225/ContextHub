@@ -1,4 +1,4 @@
-import type { Repository, StorageEntry } from './repository.ts';
+import type { Repository, StorageEntry } from './account-repository.ts';
 const storageError = (failure: unknown, fallback: string) =>
   failure instanceof Error && failure.name === 'CloudRepositoryError'
     ? failure.message

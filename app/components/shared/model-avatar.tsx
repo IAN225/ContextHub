@@ -1,5 +1,5 @@
 import { Bot, MessageCircle, Orbit, Sparkles } from 'lucide-react';
-import type { WorkspaceAppearance } from '../../lib/workspace-appearance.ts';
+import type { WorkspaceAppearance } from '../../lib/workspaces/appearance.ts';
 export function ModelAvatar({
   value,
 }: {

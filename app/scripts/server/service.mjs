@@ -1,15 +1,15 @@
-import { send, body } from './http.mjs';
-import { proxy } from './proxy.mjs';
-import { createAccessController } from './access-controller.mjs';
-import { isIP } from 'node:net';
 import { existsSync } from 'node:fs';
+import { isIP } from 'node:net';
 import { CLIENT_PROTOCOL } from '../../lib/storage/protocol.ts';
+import { createAccessController } from './access-controller.mjs';
 import {
-  createAccountHttp,
   accountToken,
+  createAccountHttp,
   setAccountCookie,
 } from './account-http.mjs';
+import { body, send } from './http.mjs';
 import { createModelProxy } from './model-proxy.mjs';
+import { proxy } from './proxy.mjs';
 
 import { accessInput } from './tls.mjs';
 
@@ -22,25 +22,17 @@ const publicMcp = (path) =>
   );
 const publicDelivery = (path) =>
   /^\/v1\/(models|chat\/completions|messages|responses)$/.test(path);
-const cookieName = (local) => (local ? 'ch_server_local' : '__Host-ch_server');
-function cookie(req, local) {
-  return req.headers.cookie
-    ?.split(';')
-    .map((s) => s.trim())
-    .find((s) => s.startsWith(`${cookieName(local)}=`))
-    ?.split('=')[1];
-}
 // Browser-origin checks happen before translating authenticated traffic to the
 // existing loopback application. Public MCP retains its separate bounded gateway.
 export function createServerService(store, runtime, options = {}) {
   const accounts = options.accounts;
-  const accountHttp = accounts && createAccountHttp(accounts);
+  if (!accounts) throw new Error('Account storage is required.');
+  const accountHttp = createAccountHttp(accounts);
   const modelProxy = createModelProxy(store.gatewayKey);
   const appPort = options.appPort ?? 3000;
   const mcpPort = options.mcpPort ?? 3001;
   const access = createAccessController(store, runtime, options);
   const { status, check, begin, challenges } = access;
-  const attempts = new Map();
   function handler(local, publicHttp = false) {
     return async (req, res) => {
       try {
@@ -90,14 +82,14 @@ export function createServerService(store, runtime, options = {}) {
         if (local && url.pathname === '/healthz' && req.method === 'GET')
           return send(res, options.isReady?.() === false ? 503 : 200, {
             ok: options.isReady?.() !== false,
-            schema: 4,
+            schema: 5,
             protocol: CLIENT_PROTOCOL,
           });
         if (options.maintenanceFile && existsSync(options.maintenanceFile)) {
           res.setHeader('Retry-After', '30');
           return send(res, 503, { error: '服务正在升级，请稍后重试。' });
         }
-        if (local && accounts && url.pathname === '/internal/model') {
+        if (local && url.pathname === '/internal/model') {
           if (!accounts.state().activated)
             return send(res, 503, { error: '服务尚未激活。' });
           return modelProxy(req, res);
@@ -108,9 +100,8 @@ export function createServerService(store, runtime, options = {}) {
             ? send(res, 200, { nonce })
             : send(res, 404, { error: '验证请求已失效。' });
         }
-        const token = cookie(req, local);
-        const userToken = accounts && accountToken(req, local);
-        const user = accounts?.user(userToken);
+        const userToken = accountToken(req, local);
+        const user = accounts.user(userToken);
         if (
           user &&
           url.pathname.startsWith('/api/') &&
@@ -120,22 +111,18 @@ export function createServerService(store, runtime, options = {}) {
           return send(res, 426, {
             error: '服务已升级，请先复制未保存内容，再刷新页面。',
           });
-        const maintenance =
-          !accounts && local && store.authenticated(token, local);
-        const authenticated = accounts
-          ? user?.role === 'admin' &&
-            !user.mustChangePassword &&
-            accounts.state().activated
-          : store.authenticated(token, local);
+        const authenticated =
+          user?.role === 'admin' &&
+          !user.mustChangePassword &&
+          accounts.state().activated;
         if (
-          accountHttp &&
-          (await accountHttp(req, res, {
+          await accountHttp(req, res, {
             url,
             origin,
             local,
             user,
             token: userToken,
-          }))
+          })
         )
           return;
         const staticAsset =
@@ -147,7 +134,6 @@ export function createServerService(store, runtime, options = {}) {
           (['/login', '/register', '/activate'].includes(url.pathname) ||
             staticAsset);
         if (
-          accounts &&
           (!accounts.state().activated || user?.mustChangePassword) &&
           !accountPage
         ) {
@@ -170,9 +156,7 @@ export function createServerService(store, runtime, options = {}) {
           if (req.method === 'GET' && action === 'status')
             return send(res, 200, {
               enabled: true,
-              initialized: accounts
-                ? accounts.list().length > 0
-                : store.initialized,
+              initialized: accounts.list().length > 0,
               authenticated,
               localSetup: local && !publicHttp,
               ...(authenticated ? status() : {}),
@@ -186,57 +170,17 @@ export function createServerService(store, runtime, options = {}) {
             return send(res, 403, {
               error: '请从当前服务器页面操作。',
             });
-          if (accounts && ['setup', 'login'].includes(action))
+          if (['setup', 'login'].includes(action))
             return send(res, 403, { error: '请使用账号登录页面。' });
-          if (['setup', 'login'].includes(action)) {
-            const key = `${local}:${req.socket.remoteAddress}`;
-            const at = Date.now();
-            for (const [id, item] of attempts)
-              if (item.until < at) attempts.delete(id);
-            const limit = attempts.get(key) ?? {
-              count: 0,
-              until: at + 10 * 60000,
-            };
-            attempts.set(key, limit);
-            if (++limit.count > 10)
-              return send(res, 429, {
-                error: '尝试次数过多，请十分钟后重试。',
-              });
-            const input = await body(req);
-            if (action === 'setup') {
-              if (!local || publicHttp)
-                return send(res, 403, {
-                  error: '首次设置仅允许通过 SSH 转发的本机入口完成。',
-                });
-              await store.initialize(input.password);
-              if (accounts && !accounts.list().length)
-                await accounts.create('admin', input.password, 'admin');
-            }
-            const session = await store.login(input.password, local);
-            if (!session) return send(res, 401, { error: '密码不正确。' });
-            res.setHeader(
-              'Set-Cookie',
-              `${cookieName(local)}=${session}; Path=/; HttpOnly; SameSite=Strict; Max-Age=43200${local ? '' : '; Secure'}`,
-            );
-            return send(res, 200, { ok: true });
-          }
           if (!authenticated)
             return send(res, user ? 403 : 401, {
               error: '仅管理员可以配置服务器。',
             });
-          if (accounts && user && req.headers['x-context-hub-user'] !== user.id)
+          if (user && req.headers['x-context-hub-user'] !== user.id)
             return send(res, 409, { error: '登录账号已变化，请刷新页面。' });
-          if (action === 'logout' && accounts && user) {
+          if (action === 'logout' && user) {
             accounts.logout(userToken);
             setAccountCookie(res, '', local);
-            return send(res, 200, { ok: true });
-          }
-          if (action === 'logout') {
-            await store.logout(token);
-            res.setHeader(
-              'Set-Cookie',
-              `${cookieName(local)}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${local ? '' : '; Secure'}`,
-            );
             return send(res, 200, { ok: true });
           }
           if (action === 'configure') {
@@ -272,15 +216,11 @@ export function createServerService(store, runtime, options = {}) {
             return send(res, 403, { error: '请求来源无效。' });
           return proxy(req, res, appPort, { management: true, secure: !local });
         }
-        const loginPage =
-          ['GET', 'HEAD'].includes(req.method) &&
-          ((accounts ? accountPage : url.pathname === '/server') ||
-            staticAsset);
-        if (!(accounts ? user || maintenance : authenticated) && !loginPage) {
+        if (!user && !accountPage) {
           if (url.pathname.startsWith('/api/'))
             return send(res, 401, { error: '管理员会话已失效，请重新登录。' });
           res.writeHead(302, {
-            Location: accounts ? '/login' : '/server',
+            Location: '/login',
             'Cache-Control': 'no-store',
           });
           return res.end();
@@ -290,16 +230,11 @@ export function createServerService(store, runtime, options = {}) {
           req.headers.origin !== origin
         )
           return send(res, 403, { error: '请求来源无效。' });
-        if (
-          accounts &&
-          ['/server', '/admin'].includes(url.pathname) &&
-          !authenticated
-        )
+        if (['/server', '/admin'].includes(url.pathname) && !authenticated)
           return send(res, 403, { error: '仅管理员可以访问服务器管理。' });
-        if (accounts && url.pathname.startsWith('/api/tasks/runner-'))
+        if (url.pathname.startsWith('/api/tasks/runner-'))
           return send(res, 403, { error: '执行器接口不接受公网请求。' });
         if (
-          accounts &&
           user &&
           url.pathname.startsWith('/api/') &&
           req.headers['x-context-hub-user'] !== user.id

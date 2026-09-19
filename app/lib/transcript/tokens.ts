@@ -1,4 +1,4 @@
-import { attachmentContext } from '../attachments.ts';
+import { attachmentContext } from '../attachments/content.ts';
 import { type Turn } from '../core/model.ts';
 import { estimateTextTokens } from '../token-budget.ts';
 

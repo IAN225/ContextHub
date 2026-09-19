@@ -11,7 +11,6 @@ WorkingDirectory=/opt/contexthub/app
 # Replace this absolute path if Node is installed elsewhere.
 ExecStart=/usr/local/bin/node /opt/contexthub/app/scripts/start-server.mjs
 Environment=HOME=/var/lib/contexthub
-Environment=WRANGLER_SEND_METRICS=false
 Environment=CONTEXT_HUB_SERVER_DATA_DIR=/opt/contexthub/app/.wrangler/server
 UMask=0077
 Restart=on-failure
@@ -22,7 +21,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
-ReadWritePaths=/opt/contexthub/app/.wrangler /var/lib/contexthub /opt/contexthub/app/dist/server/.wrangler /opt/contexthub/app/node_modules/.mf
+ReadWritePaths=/opt/contexthub/app/.wrangler /var/lib/contexthub
 
 [Install]
 WantedBy=multi-user.target

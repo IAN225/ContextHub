@@ -3,7 +3,6 @@ import {
   SummaryError,
   type SummaryConnectionInput,
   type SummaryInput,
-  type SummaryResult,
 } from './contracts.ts';
 
 export async function summaryRequest<T>(
@@ -46,8 +45,3 @@ export async function summaryRequest<T>(
   }
   return result as T;
 }
-export const requestSummary = (
-  input: SummaryInput,
-  signal?: AbortSignal,
-  requestId?: string,
-) => summaryRequest<SummaryResult>('generate', input, signal, requestId);

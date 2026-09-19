@@ -23,8 +23,8 @@ import {
   type Workspace,
 } from '../../lib/core/model.ts';
 import { formatDate } from '../../lib/format-date.ts';
-import type { StorageEntry } from '../../lib/repository.ts';
-import { usePersistent } from '../../lib/store.ts';
+import type { StorageEntry } from '../../lib/storage/account-repository.ts';
+import { usePersistent } from '../../lib/storage/use-persistent.ts';
 export type NoteContent = { title: string; body: string; editor: string };
 export function NoteEditor({
   note,
@@ -85,6 +85,10 @@ export function NoteEditor({
     return () => clearTimeout(timer);
   }, [message]);
   async function save() {
+    if (newerVersion) {
+      setMessage('正文已更新，请先核对新版本。');
+      return;
+    }
     const content = { title: d.title.trim() || '无标题 Note', body: d.body };
     const saved = await p.commitWith(
       { ...content, baseTitle: content.title, baseBody: content.body },

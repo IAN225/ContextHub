@@ -1,4 +1,4 @@
-import { workspaceTones } from './workspace-appearance.ts';
+import { workspaceTones } from './appearance.ts';
 export type WorkspaceTone = keyof typeof workspaceTones;
 export function workspaceThemeClass(tone?: WorkspaceTone) {
   return tone ? 'workspace-theme tone-' + tone : '';

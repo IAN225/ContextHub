@@ -5,7 +5,7 @@ import { Button } from '../../components/shared/button.tsx';
 import { Checkbox } from '../../components/ui/checkbox.tsx';
 import { type Turn } from '../../lib/core/model.ts';
 import { formatDate } from '../../lib/format-date.ts';
-import { messageMedia } from '../../lib/message-media.ts';
+import { messageMedia } from '../../lib/attachments/message-media.ts';
 export function UploadTurnPreview({
   turns,
   checked,

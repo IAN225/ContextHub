@@ -1,8 +1,8 @@
-import { type Turn, type Workspace } from '../core/model.ts';
+import { type Turn, type WorkspaceContext } from '../core/model.ts';
 import { estimateTurnTokens } from '../transcript/tokens.ts';
 
 // A recent window is always a chronological suffix, independent of batch progress.
-export function selectRetentionWindow(w: Workspace, turns: Turn[]) {
+export function selectRetentionWindow(w: WorkspaceContext, turns: Turn[]) {
   if (w.retainMode !== 'tokens')
     return turns.slice(Math.max(0, turns.length - w.retain));
   const limit = w.retainTokens ?? 8000;
@@ -20,7 +20,7 @@ export function selectRetentionWindow(w: Workspace, turns: Turn[]) {
   return result.reverse();
 }
 
-export function coverage(w: Workspace) {
+export function coverage(w: WorkspaceContext) {
   const active = w.summaries.find((s) => s.id === w.activeId);
   const included = new Set(active?.covered ?? []);
   const at = w.turns.findIndex((t) => t.id === w.watermark);

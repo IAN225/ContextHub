@@ -72,7 +72,7 @@ export const mcpTools = [
   tool(
     'note_create',
     '创建 Note',
-    '在当前授权工作区创建 Note，必须明确设置 star。内容持久化到本机服务，网页打开后接收。',
+    '在当前授权工作区创建 Note，必须明确设置 star。成功后直接保存到账号记录。',
     {
       title: text('标题', 200),
       body: text('正文'),

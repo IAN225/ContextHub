@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { createPersistentSession } from './persistent-session';
-import { accountRepository, type Repository } from './repository';
+import { accountRepository, type Repository } from './account-repository';
 
 export function usePersistent<T>(
   key: string,

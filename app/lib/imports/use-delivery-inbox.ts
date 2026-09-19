@@ -1,14 +1,10 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { type Upload } from '../core/model.ts';
-import { usePersistent } from '../store';
+import { usePersistent } from '../storage/use-persistent';
 import { importRequest } from './client';
 
 export const DELIVERY_CONNECTION_KEY = 'delivery-connection-v1';
-export function useDeliveryInbox(
-  ready: boolean,
-  receive: (uploads: Upload[]) => Promise<boolean>,
-) {
+export function useDeliveryInbox(ready: boolean) {
   const [, , connectionSave] = usePersistent(DELIVERY_CONNECTION_KEY, {
     connected: false,
   });
@@ -28,20 +24,11 @@ export function useDeliveryInbox(
       running = true;
       clearTimeout(timer);
       try {
-        const { uploads } = await importRequest<{ uploads: Upload[] }>(
-          'inbox',
+        await importRequest<{ enabled: boolean }>(
+          'delivery',
           undefined,
           controller.signal,
         );
-        if (uploads.length) {
-          if (!(await receive(uploads)))
-            throw new Error('收件保存失败，稍后自动重试。');
-          await importRequest(
-            'ack',
-            { ids: uploads.map((u) => u.id) },
-            controller.signal,
-          );
-        }
         if (!controller.signal.aborted) setError('');
       } catch (e) {
         if (!controller.signal.aborted)
@@ -68,6 +55,6 @@ export function useDeliveryInbox(
       window.removeEventListener('focus', refresh);
       window.removeEventListener('context-hub-delivery-refresh', refresh);
     };
-  }, [ready, receive]);
+  }, [ready]);
   return { error, activate };
 }

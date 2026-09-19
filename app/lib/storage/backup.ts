@@ -1,9 +1,11 @@
-import { dataUrlBytes, MAX_ATTACHMENT_TEXT } from './attachments.ts';
-import { PET_PREFERENCES_KEY } from './pets/contracts.ts';
-import { normalizePetPreferences } from './pets/package.ts';
-import type { DataRepository, StorageEntry } from './repository.ts';
-import { type HubState } from './state/contracts.ts';
-import { normalizeHubState } from './state/validation.ts';
+import {
+  validateAttachments as attachments,
+  validateBlocks as blocks,
+} from './value-validation.ts';
+import { validateAuxiliary } from './auxiliary.ts';
+import type { DataRepository, StorageEntry } from './account-repository.ts';
+import { type HubState } from '../state/contracts.ts';
+import { normalizeHubState } from '../state/validation.ts';
 
 export const BACKUP_LIMIT = 100 * 1024 * 1024;
 export type HubBackup = {
@@ -24,128 +26,6 @@ function unique(items: { id: string }[]) {
     items.every((item) => typeof item.id === 'string' && item.id.length > 0),
   );
   check(new Set(items.map((item) => item.id)).size === items.length);
-}
-function fields(value: Record<string, unknown>, keys: string[], type: string) {
-  for (const key of keys)
-    check(value[key] === undefined || typeof value[key] === type);
-}
-function blocks(value: unknown) {
-  check(Array.isArray(value));
-  for (const b of value) {
-    check(object(b) && typeof b.id === 'string');
-    check(['text', 'summary', 'recent', 'stars'].includes(String(b.type)));
-    fields(b, ['text'], 'string');
-    fields(b, ['custom'], 'boolean');
-    check(b.windowLength === undefined || Number.isFinite(b.windowLength));
-    check(
-      b.noteIds === undefined ||
-        (Array.isArray(b.noteIds) &&
-          b.noteIds.every((id) => typeof id === 'string')),
-    );
-  }
-}
-function attachments(value: unknown) {
-  check(Array.isArray(value));
-  for (const a of value) {
-    check(
-      object(a) &&
-        ['id', 'name', 'type', 'url'].every(
-          (key) => typeof a[key] === 'string',
-        ),
-    );
-    fields(a, ['sourceUrl', 'reference', 'sha256', 'text', 'error'], 'string');
-    check(
-      a.status === undefined ||
-        (typeof a.status === 'string' &&
-          ['stored', 'remote', 'missing', 'failed'].includes(a.status)),
-    );
-    check(
-      a.size === undefined || (Number.isInteger(a.size) && Number(a.size) >= 0),
-    );
-    check(
-      a.text === undefined ||
-        (typeof a.text === 'string' &&
-          new TextEncoder().encode(a.text).length <= MAX_ATTACHMENT_TEXT),
-    );
-    check(
-      /^(data:|https?:\/\/)/i.test(String(a.url)) ||
-        (a.url === '' && ['missing', 'failed'].includes(String(a.status))),
-    );
-    if (String(a.url).startsWith('data:')) dataUrlBytes(String(a.url));
-    if (a.status === 'stored') check(String(a.url).startsWith('data:'));
-  }
-}
-function draft(key: string, value: unknown) {
-  if (key === 'context-hub-inbox-pet-position') {
-    check(
-      object(value) && Number.isFinite(value.x) && Number.isFinite(value.y),
-    );
-    return;
-  }
-  if (key.startsWith('model-probes-')) {
-    check(Array.isArray(value));
-    for (const probe of value)
-      check(
-        object(probe) &&
-          ['field', 'status', 'detail'].every(
-            (field) => typeof probe[field] === 'string',
-          ),
-      );
-    return;
-  }
-  check(object(value));
-  fields(
-    value,
-    [
-      'title',
-      'body',
-      'editor',
-      'source',
-      'name',
-      'platform',
-      'ttl',
-      'workspaceName',
-      'query',
-      'scope',
-      'kind',
-      'limit',
-      'tab',
-      'link',
-      'protocol',
-      'json',
-      'text',
-      'format',
-      'summaryId',
-      'instruction',
-      'provider',
-      'baseUrl',
-      'model',
-      'system',
-      'thinking',
-      'outputField',
-    ],
-    'string',
-  );
-  fields(
-    value,
-    ['star', 'connected', 'configured', 'modelEnabled', 'auto', 'review'],
-    'boolean',
-  );
-  for (const field of ['from', 'to', 'batch', 'budget', 'maxOutput'])
-    check(value[field] === undefined || Number.isFinite(value[field]));
-  if (value.messages !== undefined) {
-    check(Array.isArray(value.messages));
-    check(
-      value.messages.every(
-        (message) =>
-          object(message) &&
-          typeof message.role === 'string' &&
-          typeof message.content === 'string',
-      ),
-    );
-  }
-  if (value.attachments !== undefined) attachments(value.attachments);
-  if (value.promptBlocks !== undefined) blocks(value.promptBlocks);
 }
 export function backupState(backup: HubBackup) {
   return normalizeHubState(
@@ -168,20 +48,11 @@ export function validateBackup(raw: unknown): HubBackup {
         !entry.key.startsWith('__') &&
         entry.value !== undefined,
     );
-    check(
-      entry.key === HUB_KEY ||
-        entry.key === 'delivery-connection-v1' ||
-        entry.key === PET_PREFERENCES_KEY ||
-        entry.key === 'search-draft' ||
-        entry.key === 'context-hub-inbox-pet-position' ||
-        /^(turn-draft-|note-draft-|new-note-|model-draft-|model-probes-|workbench-|connection-draft-|import-draft|new-workspace-draft)/.test(
-          entry.key,
-        ),
-    );
-    check(object(entry.value) || Array.isArray(entry.value));
-    if (entry.key === PET_PREFERENCES_KEY)
-      return { key: entry.key, value: normalizePetPreferences(entry.value) };
-    if (entry.key !== HUB_KEY) draft(entry.key, entry.value);
+    if (entry.key !== HUB_KEY)
+      return {
+        key: entry.key,
+        value: validateAuxiliary(entry.key, entry.value),
+      };
     return { key: entry.key, value: entry.value };
   });
   check(new Set(entries.map((entry) => entry.key)).size === entries.length);
@@ -225,7 +96,7 @@ export function validateBackup(raw: unknown): HubBackup {
         ),
       );
     }
-    draft('model-draft', w.config);
+    validateAuxiliary('model-draft-validation', w.config);
     blocks(w.blocks);
     check(
       w.tokens.every(

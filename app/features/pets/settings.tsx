@@ -12,7 +12,7 @@ import {
 } from '../../lib/pets/contracts.ts';
 import { readPetFile } from '../../lib/pets/import-client.ts';
 import { usePetPreferences } from '../../lib/pets/use-preferences.ts';
-import { accountRepository } from '../../lib/repository.ts';
+import { accountRepository } from '../../lib/storage/account-repository.ts';
 import { PetFramePlayer } from './frame-player.tsx';
 export function PetSettings() {
   const [preferences, , saved] = usePetPreferences();

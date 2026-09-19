@@ -2,7 +2,7 @@
 import { ArrowRight, ArrowUpRight } from 'lucide-react';
 import { ChainMap } from '../../components/shared/coverage-map.tsx';
 import { type Workspace } from '../../lib/core/model.ts';
-import { workspaceThemeClass } from '../../lib/workspace-theme.ts';
+import { workspaceThemeClass } from '../../lib/workspaces/theme.ts';
 export function WorkspaceCard({
   w,
   index: i,
