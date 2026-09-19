@@ -7,7 +7,7 @@ const fresh = process.argv[2] === 'create';
 let cookie, user;
 if (fresh) {
   const password = (
-    await readFile(directory + '/initial-admin-password.txt', 'utf8')
+    await readFile(directory + '/admin-password.txt', 'utf8')
   ).trimEnd();
   const response = await fetch(base + '/api/account/login', {
     method: 'POST',
