@@ -72,7 +72,7 @@ def source_drill(temp):
     run('systemctl', 'start', SERVICE)
     wait_health(8088)
     assert fixture('source', 'verify') == changed
-    stage = temp / 'bad-stage'
+    stage = temp / 'bad-stage' / 'app'
     shutil.copytree(PREFIX / 'app', stage / 'production', ignore=shutil.ignore_patterns('.wrangler'))
     (stage / 'production/scripts/schema-check.mjs').write_text("throw new Error('Injected migration failure');\n")
     run('python3', 'deploy/upgrade.py', 'source', '--prefix', PREFIX, '--service', SERVICE,
@@ -97,7 +97,9 @@ def wait_health(port):
     import urllib.request
     for _ in range(60):
         try:
-            with urllib.request.urlopen('http://127.0.0.1:' + str(port) + '/login', timeout=2) as r:
+            request = urllib.request.Request('http://127.0.0.1:' + str(port) + '/login',
+                                             headers={'Host': '192.0.2.1:' + str(port)})
+            with urllib.request.urlopen(request, timeout=2) as r:
                 if r.status == 200:
                     return
         except Exception:
