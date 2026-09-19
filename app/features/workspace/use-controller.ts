@@ -1,25 +1,17 @@
 'use client';
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { now, uid } from '../../lib/core/identity.ts';
-import {
-  type Turn,
-  type Upload,
-  type Workspace,
-} from '../../lib/core/model.ts';
+import { type Upload, type Workspace } from '../../lib/core/model.ts';
 import { inboxUploads, pendingUploads } from '../../lib/imports/queue.ts';
 import { useDeliveryInbox } from '../../lib/imports/use-delivery-inbox.ts';
 import { useMcp } from '../../lib/mcp/use-mcp.ts';
-import type { StorageEntry } from '../../lib/repository.ts';
+import type { StorageEntry } from '../../lib/storage/account-repository.ts';
 import { type WorkspaceCommand } from '../../lib/state/contracts.ts';
 import { useBackgroundTasks } from '../../lib/tasks/use-background-tasks.ts';
-import { useHub } from '../../lib/use-hub.ts';
+import { useHub } from '../../lib/application/use-hub.ts';
 import { blankWorkspace } from '../../lib/workspaces/create.ts';
+import { useViewScope } from '../../lib/client/use-view-scope';
+import { useTurnEditor } from './use-turn-editor';
 import { useJournalNavigation } from './use-navigation.ts';
 export function useWorkspaceController() {
   const {
@@ -50,8 +42,6 @@ export function useWorkspaceController() {
     navigate,
   } = navigationState;
   const [modal, setModal] = useState(''),
-    [afterId, setAfterId] = useState<string | null>(null),
-    [editing, setEditing] = useState<Turn | undefined>(),
     [notice, setNotice] = useState('');
   const w =
     data.workspaces.find((w) => w.id === workspaceId) ??
@@ -68,10 +58,9 @@ export function useWorkspaceController() {
       commit({ type: 'workspace', workspaceId: w.id, command }, companion),
     [commit, w.id],
   );
-  const currentView = useRef({ workspaceId, modal, page, home });
-  useLayoutEffect(() => {
-    currentView.current = { workspaceId, modal, page, home };
-  }, [workspaceId, modal, page, home]);
+  const captureView = useViewScope(
+    JSON.stringify([workspaceId, modal, page, home]),
+  );
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(''), 4500);
@@ -94,9 +83,9 @@ export function useWorkspaceController() {
     dispatch({ type: 'upload/update', upload: next });
   }
   async function importConversation(u: Upload) {
-    const origin = currentView.current;
+    const isCurrent = captureView();
     const saved = await commit({ type: 'upload/add', upload: u });
-    if (saved && currentView.current === origin) {
+    if (saved && isCurrent()) {
       if (inboxUploads([u]).length) {
         navigate('inbox');
         setModal('');
@@ -113,7 +102,7 @@ export function useWorkspaceController() {
     target: string,
     excludedTriggerId?: string,
   ) {
-    const origin = currentView.current;
+    const isCurrent = captureView();
     const fresh =
       target === 'new'
         ? blankWorkspace(u.title, u.turns[0]?.source ?? '导入')
@@ -126,10 +115,10 @@ export function useWorkspaceController() {
       excludedTriggerId,
     });
     if (!saved) {
-      notify('归档失败，待归档内容已保留。');
+      if (isCurrent()) notify('归档失败，待归档内容已保留。');
       return false;
     }
-    if (currentView.current === origin) {
+    if (isCurrent()) {
       openWorkspace(fresh?.id ?? target);
       setModal('');
       notify('对话已归档。');
@@ -141,7 +130,7 @@ export function useWorkspaceController() {
     target: Workspace,
     mode: 'keep' | 'rewind',
   ) {
-    const origin = currentView.current;
+    const isCurrent = captureView();
     const saved = await commit({
       type: 'upload/summary',
       uploadId: u.id,
@@ -150,10 +139,10 @@ export function useWorkspaceController() {
       at: now(),
     });
     if (!saved) {
-      notify('摘要保存失败，候选内容已保留。');
+      if (isCurrent()) notify('摘要保存失败，候选内容已保留。');
       return false;
     }
-    if (currentView.current === origin) {
+    if (isCurrent()) {
       setWorkspaceId(target.id);
       navigate('summary');
       setModal('');
@@ -161,40 +150,23 @@ export function useWorkspaceController() {
     }
     return true;
   }
-  function edit(t: Turn) {
-    setEditing(t);
-    setAfterId(null);
-    setModal('turn');
-  }
-  function insert(id: string | null) {
-    setEditing(undefined);
-    setAfterId(id);
-    setModal('turn');
-  }
-  async function saveTurn(turn: Turn, companion: StorageEntry) {
-    if (
-      editing &&
-      JSON.stringify(w.turns.find((t) => t.id === editing.id)) !==
-        JSON.stringify(editing)
-    )
-      throw new Error('原文已更新，请保留草稿后重新打开编辑。');
-    const origin = currentView.current;
-    const saved = await commitWorkspace(
-      { type: 'turn/save', turn, insert: !editing, afterId },
-      companion,
-    );
-    if (saved && currentView.current === origin) {
+  const editor = useTurnEditor(
+    w,
+    commitWorkspace,
+    captureView,
+    () => setModal('turn'),
+    () => {
       setModal('');
       notify('完整轮次已保存。');
-    }
-    return saved;
-  }
+    },
+  );
 
   async function deleteWorkspace() {
+    const isCurrent = captureView();
     const saved = await removeWorkspace(w.id);
     if (saved) {
       mcp.refresh();
-      transition(() => setHome(true));
+      if (isCurrent()) transition(() => setHome(true));
     }
     return saved;
   }
@@ -203,13 +175,13 @@ export function useWorkspaceController() {
     platform: string,
     companion: StorageEntry,
   ) {
-    const origin = currentView.current;
+    const isCurrent = captureView();
     const x = blankWorkspace(name, platform);
     const saved = await commit(
       { type: 'workspace/create', workspace: x },
       companion,
     );
-    if (saved && currentView.current === origin) {
+    if (saved && isCurrent()) {
       setModal('');
       openWorkspace(x.id);
     }
@@ -236,8 +208,6 @@ export function useWorkspaceController() {
     navigate,
     modal,
     setModal,
-    afterId,
-    editing,
     notice,
     w,
     onWorkspaceCommand,
@@ -254,9 +224,7 @@ export function useWorkspaceController() {
     removeUpload,
     importUpload,
     applySummary,
-    edit,
-    insert,
-    saveTurn,
+    ...editor,
   };
 }
 

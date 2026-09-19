@@ -104,7 +104,7 @@ export function Hub() {
                 void persistence.retry();
               }}
             >
-              重试保存
+              重试
             </Button>
           </div>
         )}
@@ -156,7 +156,7 @@ export function Hub() {
                         void persistence.retry();
                       }}
                     >
-                      重试保存
+                      重试
                     </Button>
                   </div>
                 )}

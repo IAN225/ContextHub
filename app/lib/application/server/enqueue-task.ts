@@ -1,4 +1,4 @@
-import { attachmentStatus } from '../../attachments.ts';
+import { attachmentStatus } from '../../attachments/content.ts';
 import { type Attachment } from '../../core/model.ts';
 import { digest } from '../../server/crypto.ts';
 import { coverage } from '../../summary/coverage.ts';

@@ -28,3 +28,6 @@ Thumbs.db
 __pycache__/
 
 app/production/
+
+app/test-results/
+app/playwright-report/

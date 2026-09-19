@@ -438,7 +438,7 @@ test('browser commands cannot submit task checkpoints or projections and indepen
 test('the cloud draft adapter accepts an atomic command receipt and can save the next edit', () =>
   fixture(async (f) => {
     const { createCloudRepository } =
-      await import('../lib/cloud-repository.ts');
+      await import('../lib/storage/cloud-repository.ts');
     const { createEntityRepository } =
       await import('../lib/storage/repository.ts');
     const store = createEntityRepository(

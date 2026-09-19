@@ -1,6 +1,6 @@
 import { type Turn, type Upload, type Workspace } from '../core/model.ts';
 import { uploadChannel } from '../imports/queue.ts';
-import { validAppearance } from '../workspace-appearance.ts';
+import { validAppearance } from '../workspaces/appearance.ts';
 import { type HubState } from './contracts.ts';
 
 function record(value: unknown): value is Record<string, unknown> {

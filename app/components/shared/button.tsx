@@ -1,30 +1,27 @@
 'use client';
-import { type ReactNode } from 'react';
+import type { ComponentProps } from 'react';
+import { Button as BaseButton } from '../ui/button';
 
-export function Button({
-  children,
-  onClick,
-  primary = false,
-  disabled = false,
-  className = '',
-  title,
-}: {
-  children: ReactNode;
-  onClick?: () => void;
+type Props = Omit<
+  ComponentProps<typeof BaseButton>,
+  'variant' | 'size' | 'unstyled' | 'className'
+> & {
   primary?: boolean;
-  disabled?: boolean;
   className?: string;
-  title?: string;
-}) {
+};
+// Keep the workspace appearance while sharing native semantics, refs and render composition.
+export function Button({
+  primary = false,
+  className = '',
+  type = 'button',
+  ...props
+}: Props) {
   return (
-    <button
-      type="button"
-      title={title}
-      disabled={disabled}
-      onClick={onClick}
-      className={`button ${primary ? 'primary' : ''} ${className}`}
-    >
-      {children}
-    </button>
+    <BaseButton
+      {...props}
+      type={type}
+      unstyled
+      className={'button ' + (primary ? 'primary ' : '') + className}
+    />
   );
 }

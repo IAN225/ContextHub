@@ -1,4 +1,4 @@
-import { attachmentContext } from '../attachments.ts';
+import { attachmentContext } from '../attachments/content.ts';
 import { type Block, type WorkspaceContext } from '../core/model.ts';
 import { coverage } from '../summary/coverage.ts';
 import { summaryWorkspace, type SummaryEngine } from '../summary/engines.ts';

@@ -23,8 +23,8 @@ import {
   type Workspace,
 } from '../../lib/core/model.ts';
 import { formatDate } from '../../lib/format-date.ts';
-import type { StorageEntry } from '../../lib/repository.ts';
-import { usePersistent } from '../../lib/store.ts';
+import type { StorageEntry } from '../../lib/storage/account-repository.ts';
+import { usePersistent } from '../../lib/storage/use-persistent.ts';
 export type NoteContent = { title: string; body: string; editor: string };
 export function NoteEditor({
   note,

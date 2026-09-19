@@ -3,8 +3,8 @@ import {
   type Summary,
   type Turn,
   type WorkspaceContext,
-} from './core/model.ts';
-import { summaryWorkspace } from './summary/engines.ts';
+} from '../core/model.ts';
+import { summaryWorkspace } from '../summary/engines.ts';
 
 type SearchDocument = {
   id: string;

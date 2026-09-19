@@ -1,4 +1,4 @@
-import { attachmentContext } from '../attachments.ts';
+import { attachmentContext } from '../attachments/content.ts';
 import {
   type Block,
   type Summary,

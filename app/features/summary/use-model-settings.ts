@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { type Config, type WorkspaceContext } from '../../lib/core/model.ts';
-import { usePersistent } from '../../lib/store.ts';
+import { usePersistent } from '../../lib/storage/use-persistent.ts';
 import { summaryRequest } from '../../lib/summary/client.ts';
 import {
   generationConfig,
@@ -13,7 +13,7 @@ import {
   defaultSummarySystem,
 } from '../../lib/summary/prompts.ts';
 import { useSummaryConnection } from '../../lib/summary/use-connection.ts';
-import type { CommitWorkspaceCommand } from '../../lib/use-hub.ts';
+import type { CommitWorkspaceCommand } from '../../lib/application/use-hub.ts';
 export function useModelSettings({
   w,
   onCommit,

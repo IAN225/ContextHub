@@ -8,7 +8,7 @@ import { now, uid } from '../../lib/core/identity.ts';
 import { type Note, type Workspace } from '../../lib/core/model.ts';
 import { formatDate } from '../../lib/format-date.ts';
 import { type SendWorkspaceCommand } from '../../lib/state/contracts.ts';
-import type { CommitWorkspaceCommand } from '../../lib/use-hub.ts';
+import type { CommitWorkspaceCommand } from '../../lib/application/use-hub.ts';
 import { NoteActions } from './actions.tsx';
 import { NoteEditor } from './editor.tsx';
 export function NotesPage({

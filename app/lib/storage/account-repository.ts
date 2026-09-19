@@ -24,11 +24,11 @@ let selected: Promise<DataRepository> | undefined;
 async function repository(): Promise<DataRepository> {
   if (!selected)
     selected = (async () => {
-      const { getAccountStatus } = await import('./account/client');
+      const { getAccountStatus } = await import('../account/client');
       const status = await getAccountStatus();
       if (!status.user) throw new Error('请先登录。');
       const { createCloudRepository } = await import('./cloud-repository');
-      const { createEntityRepository } = await import('./storage/repository');
+      const { createEntityRepository } = await import('./repository');
       return createEntityRepository(createCloudRepository());
     })().catch((error) => {
       selected = undefined;

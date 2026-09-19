@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { usePersistent } from '../store';
+import { usePersistent } from '../storage/use-persistent';
 import { importRequest } from './client';
 
 export const DELIVERY_CONNECTION_KEY = 'delivery-connection-v1';

@@ -6,12 +6,12 @@ import { Modal } from '../../components/shared/modal.tsx';
 import { ModelAvatar } from '../../components/shared/model-avatar.tsx';
 import { PageTitle } from '../../components/shared/page-title.tsx';
 import { type Workspace } from '../../lib/core/model.ts';
-import type { CommitWorkspaceCommand } from '../../lib/use-hub.ts';
+import type { CommitWorkspaceCommand } from '../../lib/application/use-hub.ts';
 import {
   modelAvatars,
   workspaceTones,
   type WorkspaceAppearance,
-} from '../../lib/workspace-appearance.ts';
+} from '../../lib/workspaces/appearance.ts';
 export function WorkspaceSettings({
   w,
   onCommit,

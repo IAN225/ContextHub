@@ -18,3 +18,11 @@ jobs:
       - run: python3 -m py_compile deploy/backup.py deploy/upgrade.py && shellcheck deploy/install.sh deploy/docker.sh
       - run: docker compose config --quiet && docker build -t contexthub:check .
       - run: bash deploy/check-container.sh
+      - run: pnpm exec playwright install --with-deps chromium
+        working-directory: app
+      - run: bash deploy/check-browser.sh
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-check-failure
+          path: app/test-results/

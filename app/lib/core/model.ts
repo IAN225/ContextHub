@@ -1,5 +1,5 @@
 import { type SummaryEngine } from '../summary/engines.ts';
-import type { WorkspaceAppearance } from '../workspace-appearance.ts';
+import type { WorkspaceAppearance } from '../workspaces/appearance.ts';
 
 export type Status = 'normal' | 'deprecated' | 'trash';
 

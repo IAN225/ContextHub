@@ -1,7 +1,7 @@
 'use client';
 import { Settings2 } from 'lucide-react';
 import { useState } from 'react';
-import { accountRepository } from '../../lib/repository.ts';
+import { accountRepository } from '../../lib/storage/account-repository.ts';
 import { useAccount } from '../providers/account.tsx';
 /** Flush account writes before leaving the journal; server routes also enforce the role. */
 export function AdminLink({ saved }: { saved: boolean }) {

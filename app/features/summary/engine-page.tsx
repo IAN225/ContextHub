@@ -28,7 +28,7 @@ import { coverage } from '../../lib/summary/coverage.ts';
 import { engineLabels } from '../../lib/summary/engines.ts';
 import { selectCompressionBatch } from '../../lib/summary/planning.ts';
 import { estimateTurnTokens } from '../../lib/transcript/tokens.ts';
-import type { CommitWorkspaceCommand } from '../../lib/use-hub.ts';
+import type { CommitWorkspaceCommand } from '../../lib/application/use-hub.ts';
 import { ModelSettings } from './model-settings.tsx';
 import { RestoreDialog } from './restore-dialog.tsx';
 import { useSummaryTask } from './use-summary-task.ts';

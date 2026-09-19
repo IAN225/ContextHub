@@ -1,3 +1,4 @@
+'use client';
 import { Button as ButtonPrimitive } from '@base-ui/react/button';
 import { cva, type VariantProps } from 'class-variance-authority';
 
@@ -44,12 +45,16 @@ function Button({
   className,
   variant = 'default',
   size = 'default',
+  unstyled = false,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props &
+  VariantProps<typeof buttonVariants> & { unstyled?: boolean }) {
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={
+        unstyled ? className : cn(buttonVariants({ variant, size, className }))
+      }
       {...props}
     />
   );

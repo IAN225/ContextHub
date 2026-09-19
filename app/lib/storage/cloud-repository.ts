@@ -1,7 +1,7 @@
-import { randomId } from './browser-compat.ts';
-import type { DataRepository, StorageEntry } from './repository.ts';
-import { CLIENT_PROTOCOL } from './storage/protocol.ts';
-import { RECORD_PREFIX } from './storage/records.ts';
+import { randomId } from '../browser-compat.ts';
+import type { DataRepository, StorageEntry } from './account-repository.ts';
+import { CLIENT_PROTOCOL } from './protocol.ts';
+import { RECORD_PREFIX } from './records.ts';
 type RecordEntry = StorageEntry & { revision: number };
 type ReadResult = { generation: number; entry: RecordEntry };
 type ListResult = { generation: number; entries: RecordEntry[] };

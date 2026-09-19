@@ -3,9 +3,9 @@ import {
   attachmentLabels,
   attachmentStatus,
   fingerprintAttachment,
-} from '@/lib/attachments';
-import type { StorageEntry } from '@/lib/repository';
-import { usePersistent } from '@/lib/store';
+} from '@/lib/attachments/content';
+import type { StorageEntry } from '@/lib/storage/account-repository';
+import { usePersistent } from '@/lib/storage/use-persistent';
 import { Check, ImagePlus, Paperclip, X } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';

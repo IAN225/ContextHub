@@ -1,4 +1,4 @@
-import { attachmentRevision } from '../../attachments.ts';
+import { attachmentRevision } from '../../attachments/content.ts';
 import { type Turn } from '../../core/model.ts';
 import { type HubCommand, type HubState } from '../contracts.ts';
 

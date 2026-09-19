@@ -8,7 +8,7 @@ import {
 import { builtinPet } from '../../lib/pets/builtin.ts';
 import { petState } from '../../lib/pets/contracts.ts';
 import { usePetPreferences } from '../../lib/pets/use-preferences.ts';
-import { accountRepository } from '../../lib/repository.ts';
+import { accountRepository } from '../../lib/storage/account-repository.ts';
 import { PetFramePlayer } from '../pets/index.ts';
 
 const positionKey = 'context-hub-inbox-pet-position';

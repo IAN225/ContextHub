@@ -2,8 +2,12 @@ import { strToU8, zipSync } from 'fflate';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { createBackup, parseBackup, restoreBackup } from '../lib/backup.ts';
-import { createPersistentSession } from '../lib/persistent-session.ts';
+import {
+  createBackup,
+  parseBackup,
+  restoreBackup,
+} from '../lib/storage/backup.ts';
+import { createPersistentSession } from '../lib/storage/persistent-session.ts';
 import {
   defaultPetPreferences,
   frameIndex,
@@ -20,7 +24,7 @@ import type {
   DataRepository,
   Repository,
   StorageEntry,
-} from '../lib/repository.ts';
+} from '../lib/storage/account-repository.ts';
 import { createEmptyHubState } from '../lib/state/empty.ts';
 import { createEntityRepository } from '../lib/storage/repository.ts';
 const asset = (path: string) =>

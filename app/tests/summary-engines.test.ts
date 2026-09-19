@@ -8,7 +8,7 @@ import { type Workspace } from '../lib/core/model.ts';
 import type { McpRepository } from '../lib/mcp/server/repository.ts';
 import { callMcpTool } from '../lib/mcp/server/tools.ts';
 import { mcpWorkspace } from '../lib/mcp/snapshot.ts';
-import { createMemorySearch } from '../lib/memory-search.ts';
+import { createMemorySearch } from '../lib/memory/search.ts';
 import { memoryText } from '../lib/memory/compose.ts';
 import { sqliteDatabase } from '../lib/server/sqlite.ts';
 import { normalizeHubState } from '../lib/state/validation.ts';

@@ -1,4 +1,4 @@
-import { CLIENT_PROTOCOL } from '../storage/protocol.ts';
+import { accountFetch } from './fetch';
 export type AccountUser = {
   id: string;
   username: string;
@@ -58,30 +58,18 @@ function bindAccountFetch(user: string) {
   }
   boundUser = user;
   const original = window.fetch.bind(window);
-  window.fetch = async (input, init) => {
-    const url = new URL(
-      input instanceof Request ? input.url : String(input),
-      window.location.href,
-    );
-    if (
-      url.origin !== window.location.origin ||
-      !url.pathname.startsWith('/api/')
-    )
-      return original(input, init);
-    const headers = new Headers(
-      init?.headers ?? (input instanceof Request ? input.headers : undefined),
-    );
-    headers.set('X-Context-Hub-User', user);
-    headers.set('X-Context-Hub-Version', CLIENT_PROTOCOL);
-    const response = await original(input, {
-      ...init,
-      headers,
-      cache: 'no-store',
-    });
-    if (response.status === 426)
-      window.dispatchEvent(new Event('account-version-changed'));
-    if (response.status === 401)
-      window.dispatchEvent(new Event('account-session-ended'));
-    return response;
-  };
+  window.fetch = accountFetch(
+    original,
+    user,
+    window.location.origin,
+    (reason) => {
+      window.dispatchEvent(
+        new Event(
+          reason === 'outdated'
+            ? 'account-version-changed'
+            : 'account-session-ended',
+        ),
+      );
+    },
+  );
 }

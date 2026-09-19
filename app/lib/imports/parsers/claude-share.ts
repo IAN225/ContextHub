@@ -2,7 +2,7 @@ import {
   attachmentFromReference,
   attachmentMarker,
   parseMediaBlock,
-} from '../../attachments.ts';
+} from '../../attachments/content.ts';
 import { type Message } from '../../core/model.ts';
 import {
   ImportError,

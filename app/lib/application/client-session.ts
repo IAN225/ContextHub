@@ -5,6 +5,7 @@ import type {
   ApplicationCommand,
   CommandRequest,
 } from './contracts.ts';
+class CommandRejected extends Error {}
 export function createApplicationSession(fetcher: typeof fetch = fetch) {
   let current: AccountSnapshot = {
     state: createEmptyHubState(),
@@ -29,10 +30,9 @@ export function createApplicationSession(fetcher: typeof fetch = fetch) {
     view = { ...view, ...patch };
     listeners.forEach((fn) => fn());
   };
-  async function request(
-    input?: CommandRequest,
-  ): Promise<
+  async function request(input?: CommandRequest): Promise<
     AccountSnapshot & {
+      etag?: string | null;
       receipt?: { count: number; companionRevision?: number };
     }
   > {
@@ -47,13 +47,33 @@ export function createApplicationSession(fetcher: typeof fetch = fetch) {
       ...(input ? { body: JSON.stringify(input) } : {}),
     });
     if (response.status === 304) return current;
-    if (!input && response.ok) etag = response.headers.get('etag');
+
     if (input) etag = null;
-    const value = (await response.json()) as { error?: string };
-    if (!response.ok) throw new Error(value.error ?? '工作区操作失败。');
-    return value as AccountSnapshot & {
+    const value = (await response.json()) as AccountSnapshot & {
+      error?: string;
+    };
+    if (!response.ok) {
+      const ErrorType =
+        response.status >= 400 &&
+        response.status < 500 &&
+        response.status !== 408
+          ? CommandRejected
+          : Error;
+      throw new ErrorType(value.error ?? '工作区操作失败。');
+    }
+    return {
+      ...value,
+      etag: response.headers.get('etag'),
+    } as AccountSnapshot & {
       receipt?: { count: number; companionRevision?: number };
     };
+  }
+  function rejected(error: unknown) {
+    if (error instanceof CommandRejected) {
+      pending = undefined;
+      applied = undefined;
+      etag = null;
+    }
   }
   async function refresh() {
     if (view.busy || pending) return;
@@ -61,6 +81,7 @@ export function createApplicationSession(fetcher: typeof fetch = fetch) {
     try {
       const next = await request();
       if (version !== refreshVersion || view.busy || pending) return;
+      etag = next.etag ?? etag;
       if (view.ready && next.generation !== current.generation)
         throw new Error('账号数据已恢复，请刷新页面。');
       if (
@@ -105,6 +126,7 @@ export function createApplicationSession(fetcher: typeof fetch = fetch) {
       publish({ data: next.state, saved: true });
       return true;
     } catch (error) {
+      rejected(error);
       publish({ error: error instanceof Error ? error.message : '保存失败。' });
       return false;
     } finally {
@@ -143,6 +165,7 @@ export function createApplicationSession(fetcher: typeof fetch = fetch) {
         applied = undefined;
         publish({ data: next.state, saved: true, error: '' });
       } catch (error) {
+        rejected(error);
         publish({
           error: error instanceof Error ? error.message : '保存失败。',
         });

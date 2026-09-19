@@ -1,4 +1,4 @@
-import { preserveFetchedAttachments } from '../../attachments.ts';
+import { preserveFetchedAttachments } from '../../attachments/content.ts';
 import { deliveryTriggerTurn } from '../../imports/delivery-review.ts';
 import { summaryTrack, summaryWorkspace } from '../../summary/engines.ts';
 import { restoreSummary } from '../../summary/restore.ts';

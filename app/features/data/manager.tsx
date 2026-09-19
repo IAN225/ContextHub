@@ -12,10 +12,10 @@ import {
   parseBackup,
   restoreBackup,
   type HubBackup,
-} from '../../lib/backup.ts';
+} from '../../lib/storage/backup.ts';
 import { mcpRequest } from '../../lib/mcp/client.ts';
 import { trashCounts } from '../../lib/recycle-bin.ts';
-import { accountRepository } from '../../lib/repository.ts';
+import { accountRepository } from '../../lib/storage/account-repository.ts';
 import { type HubState } from '../../lib/state/contracts.ts';
 import { taskRequest } from '../../lib/tasks/client.ts';
 

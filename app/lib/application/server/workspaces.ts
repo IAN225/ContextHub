@@ -6,7 +6,7 @@ import { createEmptyHubState } from '../../state/empty.ts';
 import { applyHubCommand } from '../../state/hub-reducer.ts';
 import { normalizeHubState } from '../../state/validation.ts';
 import { joinHub, RECORD_PREFIX, splitHub } from '../../storage/records.ts';
-import { removeWorkspaceData } from '../../workspace-lifecycle.ts';
+import { removeWorkspaceData } from '../../workspaces/lifecycle.ts';
 import type {
   AccountSnapshot,
   ApplicationCommand,

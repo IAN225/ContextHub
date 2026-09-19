@@ -1,4 +1,7 @@
-import { attachmentMarker, parseMediaBlock } from '../../attachments.ts';
+import {
+  attachmentMarker,
+  parseMediaBlock,
+} from '../../attachments/content.ts';
 import { type Attachment, type Message } from '../../core/model.ts';
 import { groupTurns } from '../../transcript/turns.ts';
 type Row = Record<string, unknown>;

@@ -9,7 +9,7 @@ import {
 import { Picker } from '../../components/shared/picker.tsx';
 import { TextEditor } from '../../components/shared/text-editor.tsx';
 import { type WorkspaceContext } from '../../lib/core/model.ts';
-import { usePersistent } from '../../lib/store.ts';
+import { usePersistent } from '../../lib/storage/use-persistent.ts';
 import { planWorkbench } from '../../lib/summary/planning.ts';
 import { useTaskQueue } from '../../lib/tasks/use-background-tasks.ts';
 export function SummaryWorkbench({

@@ -12,7 +12,7 @@ import {
 import type { McpEvent } from '../mcp/contracts.ts';
 import { type SummaryEngine } from '../summary/engines.ts';
 import { type GeneratedCheckpoint } from '../summary/planning.ts';
-import { type WorkspaceAppearance } from '../workspace-appearance.ts';
+import { type WorkspaceAppearance } from '../workspaces/appearance.ts';
 
 export type NoteNotification = {
   id: string;

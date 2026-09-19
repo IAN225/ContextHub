@@ -1,4 +1,4 @@
-import type { DataRepository, StorageEntry } from '../repository.ts';
+import type { DataRepository, StorageEntry } from './account-repository.ts';
 import {
   HUB_KEY,
   joinHub,

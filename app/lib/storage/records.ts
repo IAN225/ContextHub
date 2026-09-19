@@ -1,4 +1,4 @@
-import type { StorageEntry } from '../repository.ts';
+import type { StorageEntry } from './account-repository.ts';
 // Stable account-scoped keys. A format version belongs to each record, not the UI model.
 export const HUB_KEY = 'hub-state-v1';
 export const RECORD_PREFIX = 'hub.v2/';

@@ -1,7 +1,7 @@
 import {
   attachmentRevision,
   fingerprintAttachment,
-} from '../../attachments.ts';
+} from '../../attachments/content.ts';
 import { type Attachment } from '../../core/model.ts';
 import { type SummaryEngine } from '../../summary/engines.ts';
 import { type SummaryEnvironment } from '../../summary/server/config.ts';

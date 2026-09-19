@@ -14,7 +14,7 @@ import {
   normalizeImportDraft,
 } from '../../lib/imports/draft.ts';
 import { importManual } from '../../lib/imports/manual.ts';
-import { usePersistent } from '../../lib/store.ts';
+import { usePersistent } from '../../lib/storage/use-persistent.ts';
 import { DeliverySettings } from './delivery-settings.tsx';
 import { LinkImport } from './link.tsx';
 import { ManualImport } from './manual.tsx';

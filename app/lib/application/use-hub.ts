@@ -1,9 +1,12 @@
 'use client';
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
-import { createApplicationSession } from './application/client-session';
-import { trashCounts } from './recycle-bin';
-import { accountRepository, type StorageEntry } from './repository';
-import type { HubCommand, WorkspaceCommand } from './state/contracts';
+import { createApplicationSession } from './client-session';
+import { trashCounts } from '../recycle-bin';
+import {
+  accountRepository,
+  type StorageEntry,
+} from '../storage/account-repository';
+import type { HubCommand, WorkspaceCommand } from '../state/contracts';
 export type CommitWorkspaceCommand = (
   command: WorkspaceCommand,
   companion?: StorageEntry,

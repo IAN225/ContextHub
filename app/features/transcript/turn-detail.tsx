@@ -19,7 +19,7 @@ import {
   type Workspace,
 } from '../../lib/core/model.ts';
 import { formatDate } from '../../lib/format-date.ts';
-import { messageMedia } from '../../lib/message-media.ts';
+import { messageMedia } from '../../lib/attachments/message-media.ts';
 import type { TurnCoverageMark } from './timeline.tsx';
 export function TurnDetail({
   current,

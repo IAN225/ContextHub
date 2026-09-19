@@ -13,7 +13,7 @@ import { cloudMode } from '../../lib/account/client.ts';
 import { type WorkspaceContext } from '../../lib/core/model.ts';
 import { engineLabels } from '../../lib/summary/engines.ts';
 import { defaultSummaryPrompt } from '../../lib/summary/prompts.ts';
-import type { CommitWorkspaceCommand } from '../../lib/use-hub.ts';
+import type { CommitWorkspaceCommand } from '../../lib/application/use-hub.ts';
 import { useModelSettings } from './use-model-settings.ts';
 
 export function ModelSettings({

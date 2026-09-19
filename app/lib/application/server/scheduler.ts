@@ -1,4 +1,7 @@
-import { attachmentRevision, attachmentStatus } from '../../attachments.ts';
+import {
+  attachmentRevision,
+  attachmentStatus,
+} from '../../attachments/content.ts';
 import { digest } from '../../server/crypto.ts';
 import type { SQLiteDatabase } from '../../server/sqlite.ts';
 import { coverage } from '../../summary/coverage.ts';
