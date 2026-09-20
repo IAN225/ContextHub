@@ -9,7 +9,11 @@ import { getProtocol } from './protocols.ts';
 
 export function importManual(text: string, title = '', format = 'auto') {
   if (new TextEncoder().encode(text).length > MAX_IMPORT_BYTES)
-    throw new ImportError('TOO_LARGE', '内容超过 2 MB，请分批导入。', 413);
+    throw new ImportError(
+      'TOO_LARGE',
+      '导入内容（含附件）超过 32 MiB 上限。',
+      413,
+    );
   const json =
     format === 'json' || (format === 'auto' && /^[\s]*[[{]/.test(text));
   if (!json)

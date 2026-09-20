@@ -25,7 +25,10 @@ export class ImportError extends Error {
     this.status = status;
   }
 }
-export const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
+// Text has its own budget; encoded media and record metadata use the total budget.
+export const MAX_IMPORT_TEXT_BYTES = 8 * 1024 * 1024;
+export const MAX_IMPORT_BYTES = 32 * 1024 * 1024;
+export const MAX_PENDING_IMPORT_BYTES = 64 * 1024 * 1024;
 export const MAX_MESSAGES = 12000;
 export const record = (v: unknown): Record<string, unknown> =>
   v !== null && typeof v === 'object' && !Array.isArray(v)
@@ -43,14 +46,16 @@ export function createImport(
   if (parsed.messages.length > MAX_MESSAGES)
     throw new ImportError(
       'TOO_MANY_MESSAGES',
-      '消息过多，请分成几份导入。',
+      `单次导入最多支持 ${MAX_MESSAGES.toLocaleString('en-US')} 条消息。`,
       413,
     );
-  if (
-    new TextEncoder().encode(JSON.stringify(parsed.messages)).length >
-    MAX_IMPORT_BYTES
-  )
-    throw new ImportError('TOO_LARGE', '对话超过 2 MB，请分批导入。', 413);
+  const encoder = new TextEncoder();
+  let textBytes = 0;
+  for (const message of parsed.messages) {
+    textBytes += encoder.encode(message.content).length;
+    if (textBytes > MAX_IMPORT_TEXT_BYTES)
+      throw new ImportError('TOO_LARGE', '对话正文超过 8 MiB 上限。', 413);
+  }
   const turns = groupTurns(parsed.messages, plugin.label);
   if (parsed.messages.length && parsed.messages[0].role !== 'user')
     throw new ImportError(
@@ -82,12 +87,10 @@ export function createImport(
     warning: parsed.issues.map((i) => i.message).join('\n') || undefined,
     provenance,
   };
-  if (
-    new TextEncoder().encode(JSON.stringify(upload)).length > MAX_IMPORT_BYTES
-  )
+  if (encoder.encode(JSON.stringify(upload)).length > MAX_IMPORT_BYTES)
     throw new ImportError(
       'TOO_LARGE',
-      '整理后的对话超过 2 MB，请分批导入。',
+      '对话记录（含附件和轮次信息）超过 32 MiB 上限。',
       413,
     );
   return upload;
