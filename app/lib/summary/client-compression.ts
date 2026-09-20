@@ -1,10 +1,7 @@
 import { sha256 } from '@noble/hashes/sha2.js';
-import {
-  type Summary,
-  type Workspace,
-  type WorkspaceContext,
-} from '../core/model.ts';
+import { type Summary, type Workspace } from '../core/model.ts';
 import { SummaryError } from './contracts.ts';
+import { transcriptRange, type TranscriptRange } from '../transcript/range.ts';
 import { emptyClientTrack } from './engines.ts';
 
 export const CLIENT_SUMMARY_VERSION = 'client-v1';
@@ -12,43 +9,6 @@ export const MAX_CLIENT_SUMMARY_BYTES = 256 * 1024;
 const encoder = new TextEncoder();
 const hex = (bytes: Uint8Array) =>
   Array.from(bytes, (v) => v.toString(16).padStart(2, '0')).join('');
-/** Stable, one-based account order; omitted trash/deprecated turns leave gaps. */
-export function* transcriptTurns(w: WorkspaceContext) {
-  for (let index = 0; index < w.turns.length; index++) {
-    const t = w.turns[index];
-    if (t.status !== 'normal') continue;
-    yield {
-      number: index + 1,
-      id: t.id,
-      title: t.title,
-      source: t.source,
-      time: t.time,
-      messages: t.messages.map(
-        ({ role, content, name, callId, attachmentIds }) => ({
-          role,
-          content,
-          name,
-          callId,
-          attachmentIds,
-        }),
-      ),
-      attachments: (t.attachments ?? []).map(({ id, name, type, text }) => ({
-        id,
-        name,
-        type,
-        text,
-      })),
-    };
-  }
-}
-export function sourceRevision(w: WorkspaceContext) {
-  const hash = sha256
-    .create()
-    .update(encoder.encode(JSON.stringify(['transcript-v1', w.id])));
-  for (const turn of transcriptTurns(w))
-    hash.update(encoder.encode(JSON.stringify(turn)));
-  return hex(hash.digest());
-}
 export function clientSummaryState(w: Workspace) {
   const track = w.client ?? emptyClientTrack();
   const active = track.summaries.find((s) => s.id === track.activeId) ?? null;
@@ -69,10 +29,8 @@ export function clientSummaryState(w: Workspace) {
   };
 }
 export type ClientSubmission = {
-  sourceRevision: string;
-  summaryRevision: string;
-  from: number;
-  to: number;
+  source: TranscriptRange;
+  baseSummaryRevision: string;
   id: string;
   title: string;
   text: string;
@@ -84,45 +42,39 @@ export function applyClientSummary(
   w: Workspace,
   input: ClientSubmission,
 ): Workspace {
-  if (input.sourceRevision !== sourceRevision(w))
+  if (
+    input.source.revision !==
+    transcriptRange(w, input.source.from, input.source.to).revision
+  )
     throw new SummaryError(
       'SOURCE_CHANGED',
-      '原文已变化，请重新读取后提交摘要。',
+      '所选范围内的原文已变化，请重新读取该范围后提交摘要。',
       409,
     );
   const current = clientSummaryState(w);
-  if (input.summaryRevision !== current.revision)
+  if (input.baseSummaryRevision !== current.revision)
     throw new SummaryError(
       'SUMMARY_CHANGED',
       '客户端摘要已更新，请合并最新摘要后重新提交。',
       409,
     );
   if (
-    !Number.isSafeInteger(input.from) ||
-    !Number.isSafeInteger(input.to) ||
-    input.from < 1 ||
-    input.to < input.from ||
-    input.to > w.turns.length ||
-    w.turns[input.from - 1].status !== 'normal' ||
-    w.turns[input.to - 1].status !== 'normal'
-  )
-    throw new SummaryError(
-      'INVALID_RANGE',
-      '范围必须使用原文读取返回的正常轮次编号，起点不能晚于终点。',
-    );
-  if (
     !input.text.trim() ||
     encoder.encode(input.text).length > MAX_CLIENT_SUMMARY_BYTES ||
     !input.title.trim() ||
-    input.title.length > 200
+    Array.from(input.title).length > 200
   )
     throw new SummaryError(
       'INVALID_SUMMARY',
       '摘要标题不能为空且不超过 200 字；正文不能为空且不超过 256 KiB。',
     );
+  const selected = w.turns
+    .slice(input.source.from - 1, input.source.to)
+    .filter((t) => t.status === 'normal');
+  if (!selected.length)
+    throw new SummaryError('INVALID_RANGE', '所选范围没有正常原文。');
   const ids = new Set(current.active?.covered ?? []);
-  for (const turn of w.turns.slice(input.from - 1, input.to))
-    if (turn.status === 'normal') ids.add(turn.id);
+  for (const turn of selected) ids.add(turn.id);
   const covered = w.turns
     .filter((t) => t.status === 'normal' && ids.has(t.id))
     .map((t) => t.id);

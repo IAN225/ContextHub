@@ -153,6 +153,7 @@ Docker 部署将最后一行换为 `sudo bash deploy/docker.sh`。自定义安�
 ## 更多文档
 
 - [摘要方案与记忆来源](docs/summary-engines.md)
+- [MCP 工具与客户端压缩](docs/mcp-tools.md)
 - [制作和导入桌宠](docs/pet-packs.md)
 - [部署维护与备份恢复](docs/operations.md)
 - [项目结构、模块边界与开发检查](docs/architecture.md)

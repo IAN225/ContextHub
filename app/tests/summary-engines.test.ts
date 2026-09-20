@@ -201,7 +201,7 @@ test('new and legacy data survive storage and payload roundtrips; unknown versio
     legacy.summaries,
   );
 });
-test('MCP default and explicit overrides pair the correct summary and raw window without mixing engines', async () => {
+test('MCP bootstrap follows user selection; explicit summary reads do not change it', async () => {
   let w = fixture();
   for (const engine of ['custom', 'reme'] as const)
     w = applyWorkspaceCommand(w, {
@@ -229,22 +229,30 @@ test('MCP default and explicit overrides pair the correct summary and raw window
   const current = (await callMcpTool(repo, token, 'memory_bootstrap', {})) as {
     content: string;
     engine: string;
-    recentTurnIds: string[];
+    recent_turn_ids: string[];
   };
   assert.equal(current.engine, 'reme');
   assert.ok(current.content.includes(text));
   assert.ok(!current.content.includes('自定义结果'));
   assert.deepEqual(
-    current.recentTurnIds,
+    current.recent_turn_ids,
     w.turns.slice(-2).map((t) => t.id),
   );
-  const custom = (await callMcpTool(repo, token, 'memory_bootstrap', {
+  await assert.rejects(
+    callMcpTool(repo, token, 'memory_bootstrap', { engine: 'custom' }),
+    /不支持字段 engine/,
+  );
+  const custom = (await callMcpTool(repo, token, 'summary_read', {
     engine: 'custom',
-  })) as typeof current;
+  })) as {
+    engine: string;
+    summary: { text: string };
+    recent_from_turn: number;
+  };
   assert.equal(custom.engine, 'custom');
-  assert.ok(custom.content.includes('自定义结果'));
-  assert.ok(!custom.content.includes(text));
-  assert.deepEqual(custom.recentTurnIds, [w.turns.at(-1)!.id]);
+  assert.ok(custom.summary.text.includes('自定义结果'));
+  assert.equal(custom.recent_from_turn, w.turns.length);
+  assert.equal(w.memoryEngine, 'reme');
   assert.ok(memoryText(w).includes(text));
   const result = createMemorySearch()([w], {
     query: '自定义结果',
@@ -260,7 +268,7 @@ test('MCP default and explicit overrides pair the correct summary and raw window
       'memory_bootstrap',
       {},
     ),
-    /尚未就绪/,
+    /不可读取/,
   );
 });
 test('model secrets remain separate per account and engine', async (t) => {

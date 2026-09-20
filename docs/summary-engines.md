@@ -20,70 +20,68 @@
 
 ## 通过 MCP 客户端压缩
 
-1. 将模型客户端连接到工作区 MCP。在“摘要 → 客户端压缩”点击“复制压缩请求”，发送给模型。
-2. 模型调用 `conversation_read` 读取原文和现有客户端摘要。长对话可下载完整 JSON 到自己的工作区处理。
-3. 模型调用 `summary_submit`，提交完整累积摘要及实际处理的轮次范围。服务器同时保存摘要和覆盖标记，页面自动同步结果。
-4. 要把它用于后续记忆注入，在“记忆包 → 当前活跃摘要”的编辑窗口选择“客户端压缩”。
+1. 将模型客户端连接到工作区 MCP，在“摘要 → 客户端压缩”复制压缩请求。
+2. 调用 `summary_read`，参数 `{"engine":"client"}`。返回 `summary`（旧活跃摘要或 `null`）、`revision` 和 `recent_from_turn`（近期窗口起点或 `null`）。
+3. 选择待压缩的完整轮次范围，通过 `conversation_read` 分页读取或下载。
+4. 合并旧摘要和所选范围内容，以 `summary_submit` 保存完整累积摘要和覆盖标记。
+5. 如需用于记忆注入，在“记忆包 → 当前活跃摘要”中选择“客户端压缩”。提交摘要本身不会切换来源。
 
-需要客户端本身支持 MCP 工具；全文文件的处理还需要其具备下载和本地文件读取能力。没有文件工具时可分页读取完整轮次。
+完整工具参数、返回结构和契约升级说明见 [MCP 工具](mcp-tools.md)。下载需要客户端具有 HTTP 下载和文件读取能力；没有文件工具时可以分页读取。
 
-### 读取与全文下载
+### 原文范围与分页
 
-分页读取：
-
-```json
-{ "mode": "page", "from_turn": 1, "limit": 20 }
-```
-
-`conversation_read` 默认从第 1 轮读取，最多 100 轮且原文返回量不超过 256 KiB。用返回的 `next_turn` 继续读取，直到它为 `null`。单轮超过分页额度时使用全文下载；不会截断一轮的正文。
-
-全文下载：
+以下读取第 1–120 轮的第一页：
 
 ```json
-{ "mode": "download" }
+{ "mode": "page", "from_turn": 1, "to_turn": 120, "offset": 0, "limit": 20 }
 ```
 
-返回 `download.url`，通过 HTTP GET 保存为 JSON 文件即可，无需另外传账号密码或 MCP 密钥。下载地址最多 15 分钟有效，限当前授权工作区；连接吊销、到期或账号停用后失效。该地址本身具有短期读取权限，不应公开分享。原文在签发后变化时，重新调用工具获取新地址。
+起止编号均包含在范围内，编号按全部原文顺序从 1 开始；弃用和回收站轮次跳过。省略 `to_turn` 时固定到本次调用的当前末尾。返回的 `source` 包含确定的 `from_turn`、`to_turn`、`revision`。
 
-文件包含所有正常状态原文的完整消息、角色、轮次编号、消息与附件的关联、附件名称与可用的提取文本，不包含图片和附件二进制文件。弃用和回收站原文不导出，因此轮次编号可能不连续。编号从 1 开始，按仓库原文顺序排列。
+每页最多 100 轮、轮次 JSON 合计最多 256 KiB，不截断单轮。继续读取时固定使用返回的起止范围，并将 `next_offset` 作为下一次 `offset`；它按范围内正常轮次数量计数。保留第一份 `source`，后续页的 `source.revision` 必须相同；变化时应重新读取，不能把不同版本的页拼在一起。单轮超出分页上限时改用下载。
 
-分页和下载文件均包含：
+### 下载
 
-- `source_revision`：此次原文版本。
-- `client_summary.active`：当前客户端摘要及已覆盖的原文 ID；未创建时为 `null`。
-- `client_summary.revision`：此次客户端摘要版本。
-- `client_summary.recentTurnIds`：当前保留窗口中的原文 ID，可用于决定本次压缩范围。
+```json
+{ "mode": "download", "from_turn": 1, "to_turn": 120 }
+```
 
-### 提交摘要
+不传范围即下载当前全部正常原文。下载模式不接受 `offset`、`limit`。工具只返回范围、版本、数量及 `download` 信息，不把摘要全文放进调用结果。
 
-工具名为 `summary_submit`，参数示例：
+通过 `download.url` 执行 HTTP GET，无需另外传账号密码或 MCP 密钥。地址最多 15 分钟有效，也受连接有效期约束；连接吊销、到期、账号停用后失效。地址自身具有短期读取权限，不应公开分享。
+
+JSON 文件使用 `contexthub-transcript` v2，包含 `source`、`base_summary_revision`、`client_summary` 旧摘要和 `turns`。每轮保留消息角色、工具关联、附件 ID、附件名称与可用提取文本，不包含图片或附件二进制文件。
+
+签发后在范围末尾之外追加对话，不影响下载；文件仍只含签发的范围。修改、删除、恢复或重排范围内原文会使旧链接失效。旧摘要在下载前更新时也需重新获取链接，避免混用不同版本的压缩输入。
+
+### 提交完整累积摘要
 
 ```json
 {
-  "from_turn": 1,
-  "to_turn": 120,
-  "source_revision": "读取或下载文件中的 source_revision",
-  "summary_revision": "读取或下载文件中的 client_summary.revision",
+  "source": {
+    "from_turn": 1,
+    "to_turn": 120,
+    "revision": "原样使用 conversation_read 或下载文件返回的范围版本"
+  },
+  "base_summary_revision": "summary_read 的 revision 或下载文件中的同名字段",
   "title": "项目背景与阶段进展",
-  "text": "模型整理后的完整累积摘要正文",
-  "model": "可选的客户端模型名称",
-  "request_id": "compression-2026-09-21-001"
+  "cumulative_summary": "合并旧摘要与本次范围后的完整累积摘要",
+  "model": "可选的生成模型名称",
+  "request_id": "compression-001"
 }
 ```
 
-起止编号均包含在本次范围内，必须是正常状态的原文。服务器将该范围的正常轮次与上一版摘要覆盖的轮次取并集。
+`source` 整体原样使用读取结果；不能读取一个范围后只处理其中一部分却提交整个范围。应先选择正确的范围，再完整读取和整理。服务器将该范围的正常轮次与上一版摘要覆盖范围取并集。
 
-**正文是新的完整累积摘要。** 例如上一版覆盖 1–100 轮，本次处理 101–120 轮时，正文需要合并上一版摘要和这 20 轮的新内容，而不是只上传新片段。摘要正文最多 256 KiB（UTF-8），标题最多 200 字。每次提交新增一个历史检查点并设为客户端方案的活跃摘要，原文仍完整保存。
+例如旧摘要覆盖 1–100 轮，本次范围 101–120 轮，`cumulative_summary` 必须包含旧摘要和新增 20 轮的内容。正文最多 256 KiB（UTF-8）、标题最多 200 个 Unicode 码点。服务端检查版本、范围及大小，无法验证模型是否在语义上遗漏了旧信息。成功提交会新增并激活客户端检查点，最多保留 30 版，原文保持完整。
 
-版本不匹配会返回 `SOURCE_CHANGED` 或 `SUMMARY_CHANGED`，需要重新读取并整理后再提交。网络重试复用同一 `request_id` 和相同参数；修改正文或范围属于新操作，应使用新的编号。成功响应包含保存的摘要 ID、覆盖 ID、原文版本和新摘要版本。
+范围后新增对话不阻止提交；范围内原文变化返回 `SOURCE_CHANGED`，旧摘要变化返回 `SUMMARY_CHANGED`，需要重新读取并整理。网络重试复用同一 `request_id` 和相同参数；修改正文或范围时用新编号。成功返回 `summary_id`、`summary_revision`、`source`、覆盖 ID/数量和用户当前的 `memory_engine`。
 
 ## 记忆注入
 
-在记忆包页打开“当前活跃摘要”组件，选择摘要来源。默认使用自定义压缩，选择随账号保存。提交客户端摘要不会切换记忆来源。
+`memory_bootstrap` 不接受参数，固定使用用户选择的摘要来源。`memory_search` 和 `summary_read` 可以显式选择 `custom`、`reme`、`client`，仅影响本次查找或读取。
 
-`memory_bootstrap` 和 `memory_search` 默认跟随用户的选择，也支持 `engine=custom`、`reme` 或 `client`。记忆包的近期原文与所选方案的处理位置配对；不自动合并不同方案的摘要。尚无摘要时返回 `no_summary`，不会借用另一种方案的内容。
-
-记忆注入返回 `content`、`engine`、`summaryId`、`strategyVersion`、`coveredTurnIds`、`recentTurnIds`、`omittedTurnIds` 和 `status`。覆盖元数据描述默认摘要和近期窗口；用户自定义或移除记忆区块时，以 `content` 为准。
+记忆注入返回 `content`、`engine`、`summary_id`、`strategy_version`、`covered_turn_ids`、`recent_turn_ids`、`omitted_turn_ids`、`status`。尚无活跃摘要时 `status=no_summary`。覆盖元数据描述默认摘要和近期窗口；用户自定义或移除记忆区块时，以 `content` 为准。
 
 ## 存储与升级
 

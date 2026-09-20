@@ -94,7 +94,7 @@ docs/                          设计、运维和审查记录
 - 摘要策略、原文窗口和记忆包保留各自边界。自定义压缩和 ReMeLight 的配置与历史独立；近期原文始终取水位之后最新的完整轮次。界面覆盖条、待压缩批次和 MCP 注入共用领域计算。
 - 账号网络动作位于 `account/actions.ts`，在退出或改密前等待存储写入；账号状态及请求身份绑定位于 `account/client.ts`。存储层只依赖后者。
 - 后台执行器先持久化模型结果，应用服务随后在事务中写入账号记录与应用回执。重启先恢复未提交结果；浏览器仅查询状态、发起操作和显示候选，不负责结果 ACK 或自动入队。
-- MCP 授权管理在 `mcp/server/management.ts`，JSON-RPC 在 `handlers.ts`，工具逻辑在 `tools.ts`，OAuth 流程与仓库独立。共享请求校验由 `http.ts` 提供。
+- MCP 工具契约在 `mcp/catalog.ts`、`schema.ts`、`result-schemas.ts`；输入默认值、校验和输出校验共用这些定义。`server/tools.ts` 只编排幂等与事务，读取、Note 写入、摘要/收件写入分别由 `read-tools.ts`、`notes.ts`、`write-tools.ts` 负责。范围指纹属于 `transcript/range.ts` 领域规则，下载签名和流式响应位于 `server/transcript-download.ts`。授权管理、JSON-RPC 和 OAuth 保持独立。
 - `lib/server/crypto.ts` 统一 SHA-256 和随机密钥；`request.ts` 统一同源管理策略及 Cookie 解析/散列；`body.ts` 统一按字节限量读取、取消信号及请求体丢弃。Cookie 名、仓库查询、错误码/文案仍由各业务适配器指定。MCP 的本机来源限制、投递 Key 授权和任务执行器鉴权是不同策略，不与管理请求混合。
 - 导入的请求体适配在 `imports/server/http.ts`，分享链接抓取仍在 `share-service.ts`。MCP 只为实际分享导入能力依赖该业务；基础工具不再从 imports 借用。Node `IncomingMessage`/`ServerResponse` 继续由 `scripts/server/` 管理，其中账号 JSON 响应复用 `http.mjs` 的 `send()`。
 - 账号密码派生、数据事务分别位于 `account-credentials.mjs`、`account-records.mjs`；会话、角色和审批每次操作仍重新校验。账号 schema 为 5、客户端协议为 5；既有账号业务记录键保持不变。通用记录接口只保存草稿、偏好等辅助数据，业务命令经 `/api/workspaces`。
