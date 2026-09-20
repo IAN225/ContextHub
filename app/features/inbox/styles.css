@@ -144,13 +144,33 @@
   }
 }
 @media (max-width: 800px) {
+  .page-content.page-content-inbox {
+    display: block;
+    overflow-y: auto;
+  }
+  .inbox-chapter:not([hidden]) {
+    display: block;
+  }
+  .inbox-chapter:has(> .inbox-layout) > .note-notifications {
+    max-height: none;
+  }
   .inbox-chapter > .inbox-layout,
   .upload-review-dialog .inbox-layout {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    height: auto;
     gap: 12px;
   }
   .inbox-layout .inbox-list {
     max-height: 112px;
+  }
+  .inbox-layout .inbox-paper {
+    overflow: visible;
+  }
+  .inbox-paper-body {
+    flex: none;
+    overflow: visible;
+    scrollbar-gutter: auto;
+    padding: 12px 0;
   }
 }

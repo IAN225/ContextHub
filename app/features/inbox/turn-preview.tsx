@@ -20,7 +20,7 @@ export function UploadTurnPreview({
   return (
     <>
       <div className="upload-selection">
-        <span>原文预览 · 按完整轮次选择</span>
+        <span>原文预览</span>
         <Button disabled={!checked.length} onClick={onRemoveChecked}>
           <Trash2 size={12} />
           删除所选 {checked.length ? `(${checked.length})` : ''}

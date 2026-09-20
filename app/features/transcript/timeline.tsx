@@ -28,6 +28,10 @@ export function TranscriptTimeline({
     () => new Map(turns.map((turn, i) => [turn.id, i + 1])),
     [turns],
   );
+  const hasDates = useMemo(
+    () => list.some((turn) => Boolean(turn.time)),
+    [list],
+  );
   // Keep the native scroll surface full width. Only its offscreen buttons are
   // omitted; both the moving viewport and the discrete destination stay drawn.
   const indices =
@@ -44,7 +48,7 @@ export function TranscriptTimeline({
         ].sort((a, b) => a - b);
   return (
     <>
-      <div className="timeline">
+      <div className={`timeline${hasDates ? ' has-dates' : ''}`}>
         <input
           type="range"
           className="sr-only"

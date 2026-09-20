@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import { Button } from '../../components/shared/button.tsx';
 import { ChainMap } from '../../components/shared/coverage-map.tsx';
 import { Empty } from '../../components/shared/empty.tsx';
-import { PageTitle } from '../../components/shared/page-title.tsx';
 import { Segments } from '../../components/shared/segments.tsx';
 import {
   type Status,
@@ -79,16 +78,7 @@ export function Transcript({
   }
   return (
     <>
-      <div className="section-heading">
-        <div>
-          <PageTitle>
-            对话原文{' '}
-            <small className="title-count">
-              {w.turns.length.toLocaleString()} 轮
-            </small>
-          </PageTitle>
-        </div>
-      </div>
+      <h2 className="sr-only">对话原文</h2>
       <ChainMap w={w} selectedTurnId={current?.id} includeInactive />
       <div className="timeline-toolbar">
         <Segments

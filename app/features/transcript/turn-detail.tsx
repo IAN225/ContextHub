@@ -1,10 +1,11 @@
 'use client';
 import {
   Archive,
-  ArrowUpRight,
+  Pencil,
+  ArrowUp,
+  ArrowDown,
   Clock,
   Code2,
-  Plus,
   RotateCcw,
   Trash2,
 } from 'lucide-react';
@@ -52,15 +53,10 @@ export function TurnDetail({
   return (
     <div className="turn-detail">
       <div className="detail-top">
-        <div className="turn-badge">{String(actual).padStart(3, '0')}</div>
+        <div className="turn-badge" aria-label={`第 ${actual} 轮`}>
+          {String(actual).padStart(3, '0')}
+        </div>
         <div>
-          <h2>
-            {current.title.includes('[附件引用：')
-              ? media.messages
-                  .find((m) => m.role === 'user')
-                  ?.content.slice(0, 36) || '附件对话'
-              : current.title}
-          </h2>
           <div className="metadata-line">
             <span className="platform-dot" />
             {current.source}
@@ -75,9 +71,9 @@ export function TurnDetail({
             <span className={mark === 'gap' ? 'amber' : 'mint'}>
               {
                 {
-                  recent: '近期原文 · 将随记忆包返回',
+                  recent: '近期原文',
                   covered: '已纳入摘要',
-                  gap: '不在摘要内 · 记忆缺口',
+                  gap: '记忆缺口',
                   pending: '待压缩原文',
                 }[mark]
               }
@@ -86,9 +82,11 @@ export function TurnDetail({
         </div>
         <button
           className="text-button edit-turn"
+          aria-label="编辑原文"
           onClick={() => onEdit(current)}
         >
-          编辑原文 <ArrowUpRight size={14} />
+          <Pencil size={15} />
+          <span>编辑</span>
         </button>
       </div>
       <div className="detail-tabs">
@@ -102,7 +100,6 @@ export function TurnDetail({
           ]}
         />
         <div className="detail-view-options">
-          <span>{current.messages.length} 条消息 · 完整轮次</span>
           {tab === 'preview' &&
             current.messages.some((m) => m.role === 'assistant') && (
               <button
@@ -129,14 +126,14 @@ export function TurnDetail({
                   <Code2 size={16} />
                 )}
               </div>
+              <div className="message-label">
+                {m.role === 'user'
+                  ? 'You'
+                  : m.role === 'assistant'
+                    ? 'Assistant'
+                    : (m.name ?? m.role)}
+              </div>
               <div className="message-body">
-                <div className="message-label">
-                  {m.role === 'user'
-                    ? 'You'
-                    : m.role === 'assistant'
-                      ? 'Assistant'
-                      : (m.name ?? m.role)}
-                </div>
                 {rendered && m.role === 'assistant' ? (
                   <Markdown text={m.content} />
                 ) : (
@@ -191,10 +188,21 @@ export function TurnDetail({
         </div>
       )}
       <div className="detail-footer">
-        <Button onClick={() => onInsert(previousId)}>
-          <Plus size={13} /> 在此轮之前插入
-        </Button>
-        <div>
+        <fieldset className="turn-insert-actions" aria-label="插入轮次">
+          <Button
+            aria-label="在此轮之前插入"
+            onClick={() => onInsert(previousId)}
+          >
+            <ArrowUp size={14} /> 前面插入
+          </Button>
+          <Button
+            aria-label="在此轮之后插入"
+            onClick={() => onInsert(current.id)}
+          >
+            <ArrowDown size={14} /> 后面插入
+          </Button>
+        </fieldset>
+        <fieldset className="turn-status-actions" aria-label="轮次状态">
           {current.status !== 'normal' && (
             <Button onClick={() => status('normal')}>
               <RotateCcw size={14} />
@@ -213,10 +221,7 @@ export function TurnDetail({
               移入回收站
             </Button>
           )}
-          <Button onClick={() => onInsert(current.id)}>
-            <Plus size={13} /> 在此轮之后插入
-          </Button>
-        </div>
+        </fieldset>
       </div>
       {current.status === 'trash' && (
         <p className="callout">

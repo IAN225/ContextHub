@@ -1,12 +1,5 @@
 'use client';
-import {
-  BookOpen,
-  KeyRound,
-  MessageCircle,
-  Plug,
-  RotateCcw,
-  Unplug,
-} from 'lucide-react';
+import { BookOpen, KeyRound, Plug, RotateCcw, Unplug } from 'lucide-react';
 import { Button } from '../../components/shared/button.tsx';
 import { CopyButton } from '../../components/shared/copy-button.tsx';
 import { PageTitle } from '../../components/shared/page-title.tsx';
@@ -21,6 +14,7 @@ import { mcpTools } from '../../lib/mcp/catalog.ts';
 import type { PublicMcpToken } from '../../lib/mcp/contracts.ts';
 import { oauthConnectionProfiles } from '../../lib/mcp/oauth-clients.ts';
 import type { McpConnection } from '../../lib/mcp/use-mcp.ts';
+import { ClientLogo } from './client-logo.tsx';
 import { OAuthConnection } from './oauth.tsx';
 import { useConnections } from './use-connections.ts';
 const connectionExpiry = (token: PublicMcpToken) =>
@@ -108,13 +102,7 @@ export function ConnectionsPage({
                   className={`row-icon client-avatar ${profile.avatar?.tone ?? 'sage'}`}
                   aria-hidden="true"
                 >
-                  {profile.avatar?.mark === 'spark' ? (
-                    '✳'
-                  ) : profile.avatar?.mark === 'message' ? (
-                    <MessageCircle size={20} />
-                  ) : (
-                    <Plug size={20} />
-                  )}
+                  <ClientLogo client={profile.id} />
                 </span>
                 <span className="connection-client-copy">
                   <span className="connection-client-name">

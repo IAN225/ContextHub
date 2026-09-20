@@ -99,10 +99,10 @@ export function UploadReview({
                   )}
                 </span>
                 <div>
-                  <h3>{x.title}</h3>
+                  <h3>{x.source}</h3>
                   <p>
                     {x.kind === 'summary'
-                      ? '工作台候选摘要'
+                      ? '候选摘要'
                       : `${x.turns.length} 个完整轮次`}
                   </p>
                   <small>{formatDate(x.createdAt)}</small>
@@ -114,19 +114,12 @@ export function UploadReview({
             <article className="inbox-paper">
               <div className="inbox-paper-top">
                 <div>
-                  <span className="eyebrow">
-                    {u.kind === 'summary'
-                      ? 'SUMMARY DRAFT'
-                      : 'CONVERSATION DELIVERY'}
-                  </span>
-                  <input
-                    aria-label="上传内容标题"
-                    className="note-title-input"
-                    value={u.title}
-                    onChange={(e) => edit({ title: e.target.value })}
-                  />
+                  <h3>{u.source}</h3>
                   <p>
-                    {u.source} · {formatDate(u.createdAt)}
+                    {u.kind === 'summary'
+                      ? '候选摘要'
+                      : `${u.turns.length} 轮对话`}{' '}
+                    · {formatDate(u.createdAt)}
                   </p>
                 </div>
                 <button
@@ -244,8 +237,7 @@ export function UploadReview({
           onClose={() => setRemove(false)}
         >
           <p className="callout warning">
-            「{u.title}
-            」将永久删除。这份尚未归档的内容无法从原文回收站恢复。
+            这份来自 {u.source} 的收件将永久删除，无法从回收站恢复。
           </p>
           <div className="form-actions">
             <Button onClick={() => setRemove(false)}>保留</Button>

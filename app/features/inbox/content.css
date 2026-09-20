@@ -2,16 +2,20 @@
 .inbox-layout {
   display: grid;
   grid-template-columns: 230px minmax(0, 1fr);
-  gap: 30px;
+  gap: 20px;
 }
 .inbox-list > button {
   display: flex;
   align-items: flex-start;
   gap: 11px;
-  padding: 18px 12px;
+  padding: 12px;
   width: 100%;
   text-align: left;
   border-bottom: 1px solid var(--ui-border, #e3e9d9);
+}
+.inbox-list > button > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .inbox-list > button.selected {
   background: var(--ui-soft, #f1f6e8);
@@ -23,10 +27,9 @@
 .inbox-list h3 {
   line-height: 1.7;
   color: var(--ui-heading, #81986a);
-  font-family: 'SimSun', serif;
   font-weight: 400;
-  margin: 0 0 8px;
-  font-size: 16px;
+  margin: 0 0 4px;
+  font-size: 14px;
 }
 .inbox-list p {
   color: var(--ui-muted, #99ab83);
@@ -48,7 +51,7 @@
   display: flex;
   justify-content: space-between;
   gap: 14px;
-  padding-bottom: 20px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--ui-border, #e1e8d3);
   margin-bottom: 20px;
   flex-shrink: 0;
@@ -57,12 +60,12 @@
   flex: 1;
   min-width: 0;
 }
-.inbox-paper-top .eyebrow {
-  font-size: 9px;
-}
-.inbox-paper-top .note-title-input {
-  padding: 11px 0 8px;
-  font-size: 24px;
+.inbox-paper-top h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--ui-heading, #81986a);
+  overflow-wrap: anywhere;
 }
 .inbox-paper-top p {
   color: var(--ui-muted, #a2b48c);
@@ -78,7 +81,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 22px 0 13px;
+  margin: 0 0 12px;
   color: var(--ui-muted, #9caf83);
   font-size: 12px;
 }
@@ -106,19 +109,17 @@
   font-size: 12px;
 }
 .upload-message {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 7px 0 7px 25px;
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  padding: 10px 0;
 }
 .upload-message small {
-  min-width: 54px;
   color: var(--ui-muted, #a7b88c);
-  padding-top: 4px;
   font-size: 12px;
 }
 .upload-message p {
-  color: var(--ui-muted, #81956b);
+  color: var(--ui-text, #81956b);
   line-height: 1.9;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -157,11 +158,11 @@
     display: none;
   }
   .inbox-list > button {
-    width: 220px;
+    width: 190px;
     flex-shrink: 0;
     border: 1px solid var(--ui-border, #e1e9d4);
     border-radius: 4px;
-    padding: 15px;
+    padding: 10px 12px;
   }
   .inbox-paper {
     padding: 23px;
@@ -169,12 +170,7 @@
 }
 @media (max-width: 480px) {
   .inbox-paper {
-    padding: 18px;
-  }
-  .upload-message {
-    padding-left: 10px;
-    gap: 8px;
-    flex-direction: column;
+    padding: 12px;
   }
   .inbox-file-action {
     justify-content: flex-end;
@@ -183,8 +179,6 @@
     min-width: 100%;
     font-size: 12px;
   }
-}
-@media (max-width: 480px) {
   .upload-message p {
     font-size: 14px;
   }
@@ -194,9 +188,11 @@
     font-size: 11px;
   }
   .upload-selection {
+    gap: 8px;
     font-size: 12px;
   }
-  .inbox-paper-top .note-title-input {
-    font-size: 22px;
+  .upload-selection .button {
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 }
