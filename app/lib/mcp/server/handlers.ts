@@ -5,6 +5,7 @@ import { McpError, object } from '../contracts.ts';
 import { errorInfo, headers, json, localOrigin } from './http.ts';
 import { OAUTH_SCOPE } from './oauth.ts';
 import type { McpRepository } from './repository.ts';
+import { downloadTranscript } from './transcript.ts';
 import { callMcpTool } from './tools.ts';
 const versions = ['2025-11-25', '2025-06-18', '2025-03-26'];
 function rpcError(id: unknown, code: number, message: string, status = 200) {
@@ -30,6 +31,20 @@ export async function mcpHandler(
       )
         throw new McpError('FORBIDDEN', '请求来源无效。', 403);
     } else localOrigin(request);
+    if (
+      request.method === 'GET' &&
+      new URL(request.url).searchParams.get('download') === 'transcript'
+    ) {
+      try {
+        return await downloadTranscript(request, workspaceId, repo);
+      } catch (error) {
+        const e = errorInfo(error);
+        return Response.json(
+          { error: { code: e.code, message: e.message } },
+          { status: e.status, headers },
+        );
+      }
+    }
     const secret = request.headers
       .get('authorization')
       ?.match(/^Bearer (ch_mcp_[a-f0-9]{64})$/i)?.[1];
@@ -134,6 +149,7 @@ export async function mcpHandler(
           params.name,
           params.arguments,
           fetcher,
+          new URL(request.url).origin,
         );
         result = {
           content: [{ type: 'text', text: JSON.stringify(data) }],

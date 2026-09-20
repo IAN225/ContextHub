@@ -5,7 +5,10 @@ import {
 import { digest } from '../../server/crypto.ts';
 import type { SQLiteDatabase } from '../../server/sqlite.ts';
 import { coverage } from '../../summary/coverage.ts';
-import { summaryEngines, summaryWorkspace } from '../../summary/engines.ts';
+import {
+  modelSummaryEngines,
+  summaryWorkspace,
+} from '../../summary/engines.ts';
 import { summaryRevision } from '../../summary/planning.ts';
 import { summarySettingsRepository } from '../../summary/server/settings.ts';
 import type { TaskEnvironment } from '../../tasks/server/http.ts';
@@ -37,7 +40,7 @@ export async function scheduleTasks(
     try {
       const snapshot = app.read(owner);
       for (const original of snapshot.state.workspaces)
-        for (const engine of summaryEngines) {
+        for (const engine of modelSummaryEngines) {
           const w = summaryWorkspace(original, engine);
           if (
             !w.config.auto ||

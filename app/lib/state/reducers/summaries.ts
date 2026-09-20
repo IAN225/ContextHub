@@ -18,6 +18,8 @@ export function applySummaries<T extends WorkspaceContext>(
 ): T {
   switch (command.type) {
     case 'summary/config': {
+      if (w.summaryEngine === 'client')
+        throw new Error('客户端压缩不使用模型配置。');
       const config = { ...w.config, ...command.patch };
       if (config.review) config.auto = false;
       // A previously saved toggle never authorizes a newly connected paid model.
@@ -52,6 +54,8 @@ export function applySummaries<T extends WorkspaceContext>(
           : {}),
       };
     case 'summary/generated':
+      if (w.summaryEngine === 'client')
+        throw new Error('客户端摘要必须通过专用提交操作保存。');
       return applyGeneratedCheckpoint(w, command.generated);
     case 'summary/restore':
       return {

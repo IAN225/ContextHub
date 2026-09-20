@@ -1,21 +1,33 @@
 import { attachmentContext } from '../attachments/content.ts';
 import { type Note, type Workspace } from '../core/model.ts';
-import type { WorkspaceSnapshotV2 } from '../storage/payload-v2.ts';
 import { summaryTrack, summaryWorkspace } from '../summary/engines.ts';
 
 // This local service copy is deliberately not an account/device sync format.
 // Only memory inputs and Note history are exposed: no credentials or file bytes.
-export function mcpWorkspace(w: Workspace): WorkspaceSnapshotV2 {
+export function mcpWorkspace(w: Workspace): Workspace {
   return {
     memoryEngine: w.memoryEngine,
-    ...(w.reme
-      ? {
-          reme: {
-            ...summaryTrack(summaryWorkspace(w, 'reme')),
-            config: { configured: false, auto: false, batch: 20, review: true },
-          },
-        }
-      : {}),
+    ...Object.fromEntries(
+      (['reme', 'client'] as const).flatMap((engine) => {
+        const track = w[engine];
+        return track
+          ? [
+              [
+                engine,
+                {
+                  ...summaryTrack(summaryWorkspace(w, engine)),
+                  config: {
+                    configured: false,
+                    auto: false,
+                    batch: 20,
+                    review: true,
+                  },
+                },
+              ],
+            ]
+          : [];
+      }),
+    ),
     id: w.id,
     name: w.name,
     platform: w.platform,

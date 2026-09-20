@@ -162,14 +162,26 @@ export function normalizeHubState(raw: unknown): HubState {
       requireShape(
         item[key] === undefined ||
           item[key] === 'custom' ||
-          item[key] === 'reme',
+          item[key] === 'reme' ||
+          item[key] === 'client',
       );
-    if (item.reme !== undefined) {
-      requireShape(record(item.reme));
+    for (const engine of ['reme', 'client']) {
+      if (item[engine] === undefined) continue;
+      requireShape(record(item[engine]));
+      if (engine === 'client') {
+        const config = item[engine].config;
+        requireShape(
+          record(config) &&
+            config.auto === false &&
+            config.configured === false &&
+            !config.modelEnabled,
+        );
+      }
       const scoped = {
         ...item,
-        ...item.reme,
+        ...item[engine],
         reme: undefined,
+        client: undefined,
         summaryEngine: undefined,
       };
       normalizeHubState({

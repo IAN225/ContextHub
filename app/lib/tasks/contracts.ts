@@ -4,7 +4,7 @@ import type {
   Upload,
   WorkspaceSnapshotV2 as Workspace,
 } from '../storage/payload-v2.ts';
-import type { SummaryEngine } from '../summary/engines.ts';
+import type { ModelSummaryEngine } from '../summary/engines.ts';
 export type TaskStatus =
   | 'queued'
   | 'running'
@@ -15,7 +15,7 @@ export type TaskStatus =
   | 'cancelled';
 export type TaskKind = 'summary' | 'workbench' | 'attachments';
 export type BackgroundTask = {
-  engine?: SummaryEngine;
+  engine?: ModelSummaryEngine;
   id: string;
   kind: TaskKind;
   title: string;
@@ -45,7 +45,7 @@ export type WorkbenchTaskState = {
 };
 export type AttachmentTaskState = { attachments: Attachment[] };
 export type SummaryTaskResult = {
-  engine?: SummaryEngine;
+  engine?: ModelSummaryEngine;
   kind: 'summary';
   expectedHash: string;
   summary: Summary;

@@ -35,7 +35,7 @@ app/
   features/
     workspace/                 工作区外壳、首页、卡片、导航、设置及创建
     transcript/                原文列表、时间轴、轮次详情与编辑
-    summary/                   两种摘要方案的共用界面、工作台和模型设置
+    summary/                   三种摘要方案、共用历史/窗口控件、工作台和模型设置
     notes/、memory/            Note 与记忆包界面
     connections/               MCP 连接、Key 与 OAuth 授权界面
     imports/                   收录弹窗、手动/链接导入和投递配置
@@ -97,7 +97,7 @@ docs/                          设计、运维和审查记录
 - MCP 授权管理在 `mcp/server/management.ts`，JSON-RPC 在 `handlers.ts`，工具逻辑在 `tools.ts`，OAuth 流程与仓库独立。共享请求校验由 `http.ts` 提供。
 - `lib/server/crypto.ts` 统一 SHA-256 和随机密钥；`request.ts` 统一同源管理策略及 Cookie 解析/散列；`body.ts` 统一按字节限量读取、取消信号及请求体丢弃。Cookie 名、仓库查询、错误码/文案仍由各业务适配器指定。MCP 的本机来源限制、投递 Key 授权和任务执行器鉴权是不同策略，不与管理请求混合。
 - 导入的请求体适配在 `imports/server/http.ts`，分享链接抓取仍在 `share-service.ts`。MCP 只为实际分享导入能力依赖该业务；基础工具不再从 imports 借用。Node `IncomingMessage`/`ServerResponse` 继续由 `scripts/server/` 管理，其中账号 JSON 响应复用 `http.mjs` 的 `send()`。
-- 账号密码派生、数据事务分别位于 `account-credentials.mjs`、`account-records.mjs`；会话、角色和审批每次操作仍重新校验。本轮账号 schema 升至 5、客户端协议升至 4；既有账号业务记录键保持不变。通用记录接口只保存草稿、偏好等辅助数据，业务命令经 `/api/workspaces`。
+- 账号密码派生、数据事务分别位于 `account-credentials.mjs`、`account-records.mjs`；会话、角色和审批每次操作仍重新校验。账号 schema 为 5、客户端协议为 5；既有账号业务记录键保持不变。通用记录接口只保存草稿、偏好等辅助数据，业务命令经 `/api/workspaces`。
 - HTTPS 生命周期在 `access-controller.mjs`：验证成功后保存新地址，失败时恢复原配置；`service.mjs` 负责入口策略和路由，`proxy.mjs` 负责清理转发头与 Cookie。
 
 导入解析器、摘要 provider、数据库迁移、备份和桌宠编解码已经有独立契约。扩展时在其边界内修改，不把协议或存储细节加入页面组件。

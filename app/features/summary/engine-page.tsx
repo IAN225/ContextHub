@@ -1,38 +1,22 @@
 'use client';
-import {
-  AlertTriangle,
-  Check,
-  ChevronRight,
-  Clock,
-  History,
-  Layers,
-  Pause,
-  Play,
-  Plus,
-  RotateCcw,
-  Settings2,
-} from 'lucide-react';
+import { AlertTriangle, Check, Pause, Play, Settings2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../../components/shared/button.tsx';
 import { ChainMap } from '../../components/shared/coverage-map.tsx';
-import { Empty } from '../../components/shared/empty.tsx';
-import { Markdown } from '../../components/shared/markdown.tsx';
 import { PageTitle } from '../../components/shared/page-title.tsx';
 import { Picker } from '../../components/shared/picker.tsx';
 import { Switch } from '../../components/ui/switch.tsx';
-import { type Summary, type WorkspaceContext } from '../../lib/core/model.ts';
-import { formatDate } from '../../lib/format-date.ts';
+import { type WorkspaceContext } from '../../lib/core/model.ts';
 import { type SendWorkspaceCommand } from '../../lib/state/contracts.ts';
 import { estimateInput } from '../../lib/summary/contracts.ts';
 import { coverage } from '../../lib/summary/coverage.ts';
 import { engineLabels } from '../../lib/summary/engines.ts';
 import { selectCompressionBatch } from '../../lib/summary/planning.ts';
-import { estimateTurnTokens } from '../../lib/transcript/tokens.ts';
 import type { CommitWorkspaceCommand } from '../../lib/application/use-hub.ts';
+import { SummaryHistory } from './history.tsx';
+import { RetentionControl } from './retention-control.tsx';
 import { ModelSettings } from './model-settings.tsx';
-import { RestoreDialog } from './restore-dialog.tsx';
 import { useSummaryTask } from './use-summary-task.ts';
-import { SummaryWorkbench } from './workbench.tsx';
 export function SummaryEnginePage({
   w,
   onCommand,
@@ -48,15 +32,10 @@ export function SummaryEnginePage({
   pendingCount: number;
   onReview: () => void;
 }) {
-  const [selected, setSelected] = useState(w.activeId),
-    [modal, setModal] = useState(''),
-    [creating, setCreating] = useState(false),
-    [restore, setRestore] = useState<Summary | null>(null);
+  const [modal, setModal] = useState('');
   const task = useSummaryTask(w);
   const { running, message } = task;
-  const c = coverage(w),
-    s = w.summaries.find((s) => s.id === selected) ?? c.active;
-  const retainTokenMode = w.retainMode === 'tokens';
+  const c = coverage(w);
   const batchTokenMode = w.config.batchMode === 'tokens';
   let batchPreview: ReturnType<typeof selectCompressionBatch> | undefined;
   try {
@@ -64,10 +43,6 @@ export function SummaryEnginePage({
   } catch {
     // Invalid imported model settings remain editable in the settings dialog.
   }
-  const recentTokens = c.recent.reduce(
-    (sum, turn) => sum + estimateTurnTokens(turn),
-    0,
-  );
   const batchTokens = batchPreview?.input
     ? estimateInput(batchPreview.input.system, batchPreview.input.user)
     : 0;
@@ -100,53 +75,11 @@ export function SummaryEnginePage({
         </div>
         <ChainMap w={w} />
         <div className="summary-controls">
-          <fieldset className="summary-limit" aria-label="近期原文保留窗口">
-            <legend>近期原文</legend>
-            <input
-              aria-label={
-                retainTokenMode ? '保留原文 token 上限' : '保留近期轮次数'
-              }
-              className={retainTokenMode ? 'token-limit-input' : ''}
-              type="number"
-              min={1}
-              max={retainTokenMode ? 2000000 : 500}
-              value={retainTokenMode ? (w.retainTokens ?? 8000) : w.retain}
-              onChange={(e) => {
-                task.stop();
-                onCommand({
-                  type: 'summary/retain',
-                  ...(retainTokenMode
-                    ? { tokens: Number(e.target.value) }
-                    : { retain: Number(e.target.value) }),
-                });
-              }}
-            />
-            <Picker
-              label="原文窗口单位"
-              value={w.retainMode ?? 'turns'}
-              onChange={(mode) => {
-                task.stop();
-                onCommand({
-                  type: 'summary/retain',
-                  mode: mode as 'turns' | 'tokens',
-                });
-              }}
-              options={[
-                { value: 'tokens', label: 'token' },
-                { value: 'turns', label: '轮' },
-              ]}
-            />
-            <span
-              className="summary-limit-hint"
-              title="根据当前原文窗口保守估算；只纳入完整轮次。"
-            >
-              估算：约
-              {retainTokenMode
-                ? c.recent.length
-                : recentTokens.toLocaleString()}
-              {retainTokenMode ? '轮' : ' token'}
-            </span>
-          </fieldset>
+          <RetentionControl
+            w={w}
+            onCommand={onCommand}
+            beforeChange={() => task.stop()}
+          />
           <fieldset className="summary-limit" aria-label="每批发送上限">
             <legend>每批发送上限</legend>
             <input
@@ -288,108 +221,16 @@ export function SummaryEnginePage({
           </div>
         </div>
       )}
-      <div className="summary-layout">
-        <aside className="checkpoint-list">
-          <div className="surface-head">
-            <h2>
-              <History size={15} />
-              检查点
-            </h2>
-            <small>{w.summaries.length} / 30</small>
-          </div>
-          <div className="checkpoint-scroll">
-            {[...w.summaries].reverse().map((item, i) => (
-              <button
-                className={!creating && s?.id === item.id ? 'selected' : ''}
-                key={item.id}
-                onClick={() => {
-                  setCreating(false);
-                  setSelected(item.id);
-                }}
-              >
-                <div className="checkpoint-marker">
-                  <span />
-                  {i !== w.summaries.length - 1 && <i />}
-                </div>
-                <div>
-                  <div className="checkpoint-title">
-                    {item.title}
-                    {item.id === w.activeId && (
-                      <span className="pill">活跃</span>
-                    )}
-                  </div>
-                  <p>覆盖 {item.covered.length} 轮原文</p>
-                  <small>{formatDate(item.createdAt)}</small>
-                </div>
-                <ChevronRight size={13} />
-              </button>
-            ))}
-            {!w.summaries.length && (
-              <p className="inline-note">首次压缩后，检查点会出现在这里。</p>
-            )}
-            <p className="inline-note checkpoint-help">
-              每批保存一个检查点，最多保留 30
-              条。选择历史摘要后，可单独决定是否回退原文水位。
-            </p>
-          </div>
-          {w.summaryEngine !== 'reme' && (
-            <button
-              type="button"
-              className={`checkpoint-create ${creating ? 'selected' : ''}`}
-              aria-pressed={creating}
-              onClick={() => {
-                task.stop();
-                setCreating(true);
-              }}
-            >
-              <Plus size={17} />
-              <span>新建自定义摘要</span>
-            </button>
-          )}
-        </aside>
-        <article className="summary-paper">
-          {creating ? (
-            <SummaryWorkbench
-              w={w}
-              pendingCount={pendingCount}
-              onReview={onReview}
-            />
-          ) : s ? (
-            <>
-              <div className="summary-paper-head">
-                <div>
-                  <div className="eyebrow">
-                    {s.id === w.activeId
-                      ? 'ACTIVE SUMMARY'
-                      : 'HISTORY CHECKPOINT'}
-                  </div>
-                  <h2>{s.title}</h2>
-                  <p>
-                    覆盖 {s.covered.length} 轮 · {formatDate(s.createdAt)}
-                  </p>
-                </div>
-                <Layers size={22} />
-              </div>
-              <Markdown text={s.text} />
-              <div className="summary-paper-footer">
-                <span>
-                  <Clock size={12} />
-                  原文完整保存在仓库
-                </span>
-                <Button onClick={() => setRestore(s)}>
-                  <RotateCcw size={14} />
-                  {s.id === w.activeId ? '调整处理水位' : '设为活跃摘要'}
-                </Button>
-              </div>
-            </>
-          ) : (
-            <Empty
-              title="还没有摘要"
-              detail="先导入一些原文，再配置模型并开始首次整理。"
-            />
-          )}
-        </article>
-      </div>
+      <SummaryHistory
+        w={w}
+        onCommand={onCommand}
+        beforeChange={() => task.stop()}
+        workbench={
+          w.summaryEngine === 'custom' || !w.summaryEngine
+            ? { pendingCount, onReview }
+            : undefined
+        }
+      />
       {modal === 'settings' && (
         <ModelSettings
           w={w}
@@ -398,19 +239,6 @@ export function SummaryEnginePage({
           onClose={() => setModal('')}
         />
       )}{' '}
-      {restore && (
-        <RestoreDialog
-          w={w}
-          summary={restore}
-          onClose={() => setRestore(null)}
-          onApply={(mode) => {
-            task.stop('活跃摘要与处理水位已更新。');
-            onCommand({ type: 'summary/restore', summaryId: restore.id, mode });
-            setSelected(restore.id);
-            setRestore(null);
-          }}
-        />
-      )}
     </>
   );
 }

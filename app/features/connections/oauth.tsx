@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/shared/button.tsx';
 import { CopyButton } from '../../components/shared/copy-button.tsx';
 import { type Workspace } from '../../lib/core/model.ts';
+import { mcpTools } from '../../lib/mcp/catalog.ts';
 import { mcpRequest } from '../../lib/mcp/client.ts';
 import type { OAuthClientProfile } from '../../lib/mcp/oauth-clients.ts';
 import { mcpWorkspace } from '../../lib/mcp/snapshot.ts';
@@ -187,9 +188,10 @@ export function OAuthConnection({
                       请求核对成功，请确认以下授权范围后批准。
                     </p>
                     <p>
-                      将「{w.name}」的 7 项工具授权给 {inspected.clientName}
-                      ，有效期 30 天。原文和摘要只读，Note
-                      可写，分享链接进入待确认收件。
+                      将「{w.name}」的 {mcpTools.length} 项工具授权给{' '}
+                      {inspected.clientName}
+                      ，有效期 30 天。可读取和下载原文、提交客户端摘要、编辑
+                      Note；分享链接进入待确认收件。
                     </p>
                     {inspected.clientName !== provider && (
                       <p className="inline-note">

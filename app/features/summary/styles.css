@@ -446,11 +446,14 @@
 
 .summary-engine-tabs {
   display: flex;
+  overflow-x: auto;
   gap: 8px;
   margin-bottom: 14px;
   border-bottom: 1px solid var(--ui-border, #dee6d1);
 }
 .summary-engine-tabs button {
+  flex: 0 0 auto;
+  white-space: nowrap;
   padding: 12px 18px;
   background: transparent;
   border: 0;

@@ -13,6 +13,21 @@ export function mcpRepository(
   const applicationSql = () => application.database;
   const sql = (query: string, ...args: unknown[]) =>
     db.prepare(query).bind(...args);
+  async function findToken(hash: string) {
+    const token = await sql(
+      'SELECT * FROM mcp_tokens WHERE secret_hash=? AND revoked_at IS NULL AND expires_at>?',
+      hash,
+      Date.now(),
+    ).first<McpToken>();
+    if (token) {
+      try {
+        application.requireOwner(token.owner_id);
+      } catch {
+        return null;
+      }
+    }
+    return token;
+  }
   return {
     async register(owner: string, wid: string) {
       const current = application.read(owner);
@@ -50,20 +65,13 @@ export function mcpRepository(
       ]);
       return { workspaces: workspaces.results, tokens: tokens.results };
     },
-    async token(hash: string) {
-      const token = await sql(
-        'SELECT * FROM mcp_tokens WHERE secret_hash=? AND revoked_at IS NULL AND expires_at>?',
-        hash,
-        Date.now(),
-      ).first<McpToken>();
-      if (token) {
-        try {
-          application.requireOwner(token.owner_id);
-        } catch {
-          return null;
-        }
-      }
-      return token;
+    token: findToken,
+    async downloadToken(id: string) {
+      const row = await sql(
+        'SELECT secret_hash FROM mcp_tokens WHERE id=?',
+        id,
+      ).first<{ secret_hash: string }>();
+      return row ? findToken(row.secret_hash) : null;
     },
     async createToken(token: McpToken, replaceId?: string) {
       if (replaceId) {

@@ -1,3 +1,8 @@
+import {
+  applyClientSummary,
+  clientSummaryState,
+} from '../../summary/client-compression.ts';
+import { readConversation } from './transcript.ts';
 import { now, uid } from '../../core/identity.ts';
 import { type Note } from '../../core/model.ts';
 import { importShare } from '../../imports/server/share-service.ts';
@@ -66,6 +71,7 @@ export async function callMcpTool(
   name: string,
   input: unknown,
   fetcher?: typeof fetch,
+  origin?: string,
 ): Promise<object> {
   const { tool, args } = argumentsFor(name, input);
   const requestId = tool.annotations.readOnlyHint
@@ -106,6 +112,8 @@ export async function callMcpTool(
     workspace: w.name,
     syncedAt: snapshot.syncedAt,
   };
+  if (name === 'conversation_read')
+    return readConversation(w, args, token, origin);
   if (name === 'memory_bootstrap') {
     const engine = parseSummaryEngine(args.engine ?? w.memoryEngine);
     const scoped = summaryWorkspace(w, engine);
@@ -193,7 +201,37 @@ export async function callMcpTool(
   }
   let result: object;
   const commands: HubCommand[] = [];
-  if (name === 'note_create') {
+  if (name === 'summary_submit') {
+    const submission = {
+      sourceRevision: String(args.source_revision),
+      summaryRevision: String(args.summary_revision),
+      from: Number(args.from_turn),
+      to: Number(args.to_turn),
+      id: uid(),
+      title: String(args.title),
+      text: String(args.text),
+      createdAt: now(),
+      model: typeof args.model === 'string' ? args.model : token.name,
+    };
+    const next = applyClientSummary(w, submission);
+    const summary = next.client!.summaries.at(-1)!;
+    commands.push({
+      type: 'workspace',
+      workspaceId: w.id,
+      command: { type: 'summary/client', submission },
+    });
+    result = {
+      ...context,
+      saved: true,
+      engine: 'client',
+      summaryId: summary.id,
+      summary_revision: clientSummaryState(next).revision,
+      source_revision: submission.sourceRevision,
+      coveredTurnIds: summary.covered,
+      coveredTurns: summary.covered.length,
+      memoryEngine: w.memoryEngine ?? 'custom',
+    };
+  } else if (name === 'note_create') {
     const title = String(args.title).trim();
     if (!title) throw new McpError('INVALID_ARGUMENTS', 'Note 标题不能为空。');
     const at = now();

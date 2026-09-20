@@ -1,3 +1,5 @@
+import { pipeline } from 'node:stream/promises';
+import { Readable } from 'node:stream';
 import { createServer } from 'node:http';
 
 // Explicitly bounded gateway: the application, management APIs, model settings,
@@ -117,6 +119,7 @@ export function createMcpGateway({
       const out = {};
       for (const name of [
         'content-type',
+        'content-disposition',
         'cache-control',
         'pragma',
         'www-authenticate',
@@ -131,11 +134,14 @@ export function createMcpGateway({
         if (value) out[name] = value;
       }
       res.writeHead(result.status, out);
-      if (result.body) for await (const chunk of result.body) res.write(chunk);
-      res.end();
+      if (result.body)
+        await pipeline(Readable.fromWeb(result.body), res, {
+          signal: controller.signal,
+        });
+      else res.end();
     } catch {
       if (!res.headersSent) reply(502, '本机 MCP 服务暂不可用。');
-      else res.end();
+      else res.destroy();
     } finally {
       clearTimeout(timer);
       inFlight--;

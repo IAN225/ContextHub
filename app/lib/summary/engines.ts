@@ -3,17 +3,32 @@ import {
   type SummaryView,
   type WorkspaceContext,
 } from '../core/model.ts';
-export type SummaryEngine = 'custom' | 'reme';
-export const summaryEngines: SummaryEngine[] = ['custom', 'reme'];
+export type ModelSummaryEngine = 'custom' | 'reme';
+export type SummaryEngine = ModelSummaryEngine | 'client';
+export const modelSummaryEngines: ModelSummaryEngine[] = ['custom', 'reme'];
+export const summaryEngines: SummaryEngine[] = [
+  ...modelSummaryEngines,
+  'client',
+];
 export const engineLabels = {
   custom: '自定义压缩',
+  client: '客户端压缩',
   reme: 'ReMeLight 风格（实验）',
 };
 export function parseSummaryEngine(value: unknown): SummaryEngine {
   if (value === undefined || value === null || value === 'custom')
     return 'custom';
-  if (value === 'reme') return 'reme';
+  if (value === 'reme' || value === 'client') return value;
   throw new Error('未知摘要方案。');
+}
+export function parseModelSummaryEngine(value: unknown): ModelSummaryEngine {
+  const engine = parseSummaryEngine(value);
+  if (engine === 'client')
+    throw new Error('客户端压缩由 MCP 客户端提交，不使用服务端模型。');
+  return engine;
+}
+export function emptyClientTrack(): SummaryTrack {
+  return { ...emptyRemeTrack(), retainMode: 'turns' };
 }
 export function emptyRemeTrack(): SummaryTrack {
   return {
@@ -68,14 +83,17 @@ export function summaryWorkspace(
   engine: SummaryEngine,
 ): SummaryView {
   if (w.summaryEngine === engine) return { ...w, summaryEngine: engine };
-  if (w.summaryEngine === 'reme')
-    throw new Error('不能将实验摘要视图作为自定义摘要读取。');
+  if (w.summaryEngine && w.summaryEngine !== 'custom')
+    throw new Error('不能从摘要投影视图读取其他方案。');
   return engine === 'custom'
     ? { ...w, summaryEngine: 'custom' }
     : {
         ...w,
-        ...(w.reme ?? emptyRemeTrack()),
-        summaryEngine: 'reme',
+        ...(engine === 'reme'
+          ? (w.reme ?? emptyRemeTrack())
+          : (w.client ?? emptyClientTrack())),
+        summaryEngine: engine,
         reme: undefined,
+        client: undefined,
       };
 }

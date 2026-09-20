@@ -4,9 +4,9 @@ import { digest } from '../../server/crypto.ts';
 import { coverage } from '../../summary/coverage.ts';
 import {
   engineLabels,
-  parseSummaryEngine,
+  parseModelSummaryEngine,
   summaryWorkspace,
-  type SummaryEngine,
+  type ModelSummaryEngine,
 } from '../../summary/engines.ts';
 import {
   planCompression,
@@ -38,7 +38,7 @@ export async function enqueueTask(
   env: TaskEnvironment,
   connectionForOwner?: (
     owner: string,
-    engine: SummaryEngine,
+    engine: ModelSummaryEngine,
   ) => Promise<SummaryEnvironment>,
 ) {
   if (!runtimeReady(env))
@@ -55,17 +55,22 @@ export async function enqueueTask(
     workspaceId: string | null = null,
     connection: string | null = null,
     total = 0;
-  let engine: SummaryEngine = 'custom';
+  let engine: ModelSummaryEngine = 'custom';
   if (data.kind === 'summary' || data.kind === 'workbench') {
     const requested = object(data.workspace);
     const normalized = initial.state.workspaces.find(
       (w) => w.id === (data.workspaceId ?? requested.id),
     );
     if (!normalized) throw new TaskError('NOT_FOUND', '工作区已不存在。', 404);
+    if ((data.engine ?? requested.summaryEngine) === 'client')
+      throw new TaskError(
+        'INVALID_ENGINE',
+        '客户端压缩由 MCP 客户端提交，不创建模型任务。',
+      );
     const w = summaryTaskWorkspace(
       summaryWorkspace(
         normalized,
-        parseSummaryEngine(data.engine ?? requested.summaryEngine),
+        parseModelSummaryEngine(data.engine ?? requested.summaryEngine),
       ),
     );
     if (
@@ -73,7 +78,7 @@ export async function enqueueTask(
       data.expectedHash !== (await digest(summaryRevision(w)))
     )
       throw new TaskError('STALE_INPUT', '任务输入已变化，请刷新后重试。', 409);
-    engine = parseSummaryEngine(w.summaryEngine);
+    engine = parseModelSummaryEngine(w.summaryEngine);
     if (data.kind === 'workbench' && engine !== 'custom')
       throw new TaskError(
         'INVALID_ENGINE',

@@ -1,3 +1,4 @@
+import { parseModelSummaryEngine } from '../summary/engines.ts';
 import { attachmentContext } from '../attachments/content.ts';
 import { type WorkspaceContext } from '../core/model.ts';
 import type { WorkspaceSnapshotV2 } from '../storage/payload-v2.ts';
@@ -5,7 +6,7 @@ import type { WorkspaceSnapshotV2 } from '../storage/payload-v2.ts';
 // The job needs summary inputs, never browser tokens, Note bodies or binary media.
 export function summaryTaskWorkspace(w: WorkspaceContext): WorkspaceSnapshotV2 {
   return {
-    summaryEngine: w.summaryEngine,
+    summaryEngine: parseModelSummaryEngine(w.summaryEngine),
     id: w.id,
     name: w.name,
     platform: w.platform,

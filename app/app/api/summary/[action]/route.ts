@@ -3,7 +3,7 @@ import { accountContext, type AccountEnvironment } from '@/lib/account/server';
 import { modelSettingsService } from '@/lib/application/server/model-settings';
 import { applicationDatabase, env } from '@/lib/application/server/runtime';
 import type { SqlDatabase } from '@/lib/server/database';
-import { parseSummaryEngine } from '@/lib/summary/engines';
+import { parseModelSummaryEngine } from '@/lib/summary/engines';
 import type { SummaryEnvironment } from '@/lib/summary/server/config';
 import { createSummaryHandler } from '@/lib/summary/server/handlers';
 const handleSummary = createSummaryHandler();
@@ -17,7 +17,7 @@ async function handle(
   if (account instanceof Response) return account;
   let engine;
   try {
-    engine = parseSummaryEngine(
+    engine = parseModelSummaryEngine(
       new URL(request.url).searchParams.get('engine'),
     );
   } catch {

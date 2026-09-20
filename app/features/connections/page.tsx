@@ -229,8 +229,8 @@ export function ConnectionsPage({
                       />
                     </label>
                     <p className="callout">
-                      授权读取当前工作区记忆、创建和精准修改
-                      Note，以及提交分享链接到待确认收件箱。服务需要保持运行。
+                      授权读取当前工作区记忆、下载原文、提交客户端摘要、创建和精准修改
+                      Note，以及提交分享链接到待确认收件箱。
                     </p>
                     {error && (
                       <p className="error-text" role="alert">

@@ -1,8 +1,4 @@
-import type {
-  Note,
-  Upload,
-  WorkspaceSnapshotV2 as Workspace,
-} from '../storage/payload-v2.ts';
+import type { Note, Upload, Workspace } from '../core/model.ts';
 
 export class McpError extends Error {
   code: string;

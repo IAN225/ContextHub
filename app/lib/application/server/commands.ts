@@ -10,7 +10,7 @@ const id = (v: unknown) => text(v, 160) && !!v;
 const status = (v: unknown) =>
   ['normal', 'deprecated', 'trash'].includes(String(v));
 const engine = (v: unknown) =>
-  v === undefined || v === 'custom' || v === 'reme';
+  v === undefined || v === 'custom' || v === 'reme' || v === 'client';
 const integer = (v: unknown, min = 1, max = 2000000) =>
   Number.isSafeInteger(v) && Number(v) >= min && Number(v) <= max;
 function fields(v: Record<string, unknown>, allowed: string[]) {
@@ -56,7 +56,9 @@ export function validateCommand(
         case 'summary/tab':
         case 'memory/engine':
           shape(['value']);
-          requireValue(w.value === 'custom' || w.value === 'reme');
+          requireValue(
+            w.value === 'custom' || w.value === 'reme' || w.value === 'client',
+          );
           break;
         case 'note/create':
           shape(['note']);
@@ -101,6 +103,7 @@ export function validateCommand(
           requireValue(id(w.turnId) && status(w.status) && text(w.at, 100));
           break;
         case 'summary/config': {
+          requireValue(w.engine !== 'client');
           shape(['patch']);
           requireValue(object(w.patch));
           const p = w.patch;
@@ -248,8 +251,8 @@ export function commandDependencies(
     if (c.type === 'turn/save' || c.type === 'turn/status')
       return key === exact('turns') || key.startsWith(exact('turn/'));
     if (c.type.startsWith('summary/'))
-      return c.engine === 'reme'
-        ? key.startsWith(exact('reme-'))
+      return c.engine === 'reme' || c.engine === 'client'
+        ? key.startsWith(exact(c.engine + '-'))
         : key === exact('summary-settings') ||
             key === exact('summaries') ||
             key.startsWith(exact('summary/'));

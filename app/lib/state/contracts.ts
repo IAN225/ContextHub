@@ -8,6 +8,7 @@ import {
   type Upload,
   type Workspace,
 } from '../core/model.ts';
+import type { ClientSubmission } from '../summary/client-compression.ts';
 import type { McpEvent } from '../mcp/contracts.ts';
 import { type SummaryEngine } from '../summary/engines.ts';
 import { type GeneratedCheckpoint } from '../summary/planning.ts';
@@ -69,6 +70,7 @@ type WorkspaceCommandBody =
     }
   | { type: 'note/star'; noteId: string; at: string }
   | { type: 'note/status'; noteId: string; status: Status; at: string }
+  | { type: 'summary/client'; submission: ClientSubmission }
   | { type: 'summary/config'; patch: Partial<Config> }
   | {
       type: 'summary/retain';
