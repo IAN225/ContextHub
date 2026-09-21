@@ -1,3 +1,5 @@
+import { SHARE_MAX_BYTES } from '../share-transport.ts';
+import { readClaudeSnapshot } from './claude-browser.ts';
 import { resolveChatGPTAssets } from './chatgpt-assets.ts';
 import { readLimitedBody } from './http.ts';
 import { createImport, ImportError } from '../contracts.ts';
@@ -43,20 +45,26 @@ export async function importShare(
   link: string,
   title = '',
   fetcher: typeof fetch = fetch,
+  claudeReader: (id: string) => Promise<Response> = readClaudeSnapshot,
 ) {
   const { provider, id, canonical } = resolveShareUrl(link);
   let response: Response | undefined;
   try {
     // Fetch only a provider-constructed URL; never follow redirects into arbitrary hosts.
-    response = await fetcher(provider.resource(id), {
-      redirect: 'manual',
-      signal: AbortSignal.timeout(20000),
-      headers: {
-        'User-Agent': 'ContextHub/0.2 (conversation importer)',
-        Accept:
-          provider.host === 'claude.ai' ? 'application/json' : 'text/html',
-      },
-    });
+    response =
+      provider.id === 'claude-share'
+        ? await claudeReader(id)
+        : await fetcher(provider.resource(id), {
+            redirect: 'manual',
+            signal: AbortSignal.timeout(20000),
+            headers: {
+              'User-Agent': 'ContextHub/0.2 (conversation importer)',
+              Accept:
+                provider.host === 'claude.ai'
+                  ? 'application/json'
+                  : 'text/html',
+            },
+          });
     if (response.headers.get('cf-mitigated') === 'challenge')
       throw new ImportError(
         'SOURCE_CHALLENGE',
@@ -87,7 +95,7 @@ export async function importShare(
         '暂时无法读取分享，可能已跳转或不可公开访问。',
         502,
       );
-    const body = await readLimitedBody(response, 8 * 1024 * 1024);
+    const body = await readLimitedBody(response, SHARE_MAX_BYTES);
     try {
       const parsed = provider.parse(body);
       return createImport(

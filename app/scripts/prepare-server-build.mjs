@@ -23,6 +23,7 @@ cpSync(resolve(root, 'dist/standalone'), output, {
 });
 const entries = [
   'scripts/start-server.mjs',
+  'scripts/share-browser/worker.mjs',
   'scripts/start-application.mjs',
   'scripts/docker-start.mjs',
   'scripts/initialize-server.mjs',

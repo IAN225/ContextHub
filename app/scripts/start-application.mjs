@@ -1,3 +1,4 @@
+import { createShareBrowserService } from './share-browser/service.mjs';
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -12,6 +13,7 @@ if (
   throw new Error('Start through the account server');
 const key = randomBytes(32).toString('hex'),
   controller = new AbortController();
+const shareBrowser = await createShareBrowserService(root);
 const child = spawn(process.execPath, ['server.js'], {
   cwd: root,
   stdio: 'inherit',
@@ -22,6 +24,8 @@ const child = spawn(process.execPath, ['server.js'], {
     PORT: '3000',
     NODE_ENV: 'production',
     CONTEXT_HUB_TASK_RUNNER_KEY: key,
+    CONTEXT_HUB_SHARE_BROWSER_URL: shareBrowser.url,
+    CONTEXT_HUB_SHARE_BROWSER_KEY: shareBrowser.key,
   },
 });
 void runBackgroundTasks(
@@ -35,15 +39,18 @@ void runBackgroundTasks(
 );
 child.on('exit', (code) => {
   controller.abort();
+  void shareBrowser.close();
   process.exitCode = code ?? 1;
 });
 child.on('error', () => {
   controller.abort();
+  void shareBrowser.close();
   console.error('Application failed to start');
   process.exitCode = 1;
 });
 for (const signal of ['SIGINT', 'SIGTERM'])
   process.on(signal, () => {
     controller.abort();
+    void shareBrowser.close();
     child.kill(signal);
   });

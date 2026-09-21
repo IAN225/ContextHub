@@ -1,3 +1,7 @@
+import { runShareBrowser } from '../scripts/share-browser/runner.mjs';
+import { SHARE_MAX_BYTES } from '../lib/imports/share-transport.ts';
+import { createShareBrowserService } from '../scripts/share-browser/service.mjs';
+import { readClaudeSnapshot } from '../lib/imports/server/claude-browser.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readTextBody } from '../lib/server/body.ts';
@@ -8,7 +12,7 @@ import {
   downloadAttachment,
 } from '../scripts/background-runner.mjs';
 import { accountContext } from '../lib/account/server.ts';
-import { Readable } from 'node:stream';
+import { Readable, PassThrough } from 'node:stream';
 import { EventEmitter } from 'node:events';
 
 test('rejected and aborted bodies release their source without consuming it', async () => {
@@ -42,7 +46,7 @@ test('share import rejects redirects and source errors and cancels their bodies'
     let requests = 0;
     await assert.rejects(
       importShare(
-        'https://claude.ai/share/00000000-0000-0000-0000-000000000001',
+        'https://chatgpt.com/share/00000000-0000-0000-0000-000000000001',
         '',
         async (_url, options) => {
           requests++;
@@ -145,7 +149,7 @@ test('share import distinguishes security challenges, rate limits and access ref
     let cancelled = false;
     await assert.rejects(
       importShare(
-        'https://claude.ai/share/00000000-0000-0000-0000-000000000001',
+        'https://chatgpt.com/share/00000000-0000-0000-0000-000000000001',
         '',
         async () =>
           new Response(
@@ -261,4 +265,184 @@ test('account identity headers require the private gateway key', () => {
     ),
     id,
   );
+});
+
+test('Claude browser service authenticates, serializes requests and releases a cancelled job', async () => {
+  const id = '00000000-0000-0000-0000-000000000001';
+  let started, complete;
+  const running = new Promise((resolve) => {
+    started = resolve;
+  });
+  let calls = 0;
+  const service = await createShareBrowserService(
+    '/unused',
+    async (_root, value, signal) => {
+      calls++;
+      assert.equal(value, id);
+      started();
+      await new Promise((resolve, reject) => {
+        complete = resolve;
+        signal.addEventListener(
+          'abort',
+          () => reject(new Error('SOURCE_TIMEOUT')),
+          { once: true },
+        );
+      });
+      return {
+        status: 200,
+        type: 'application/json',
+        body: Buffer.from('{"chat_messages":[]}'),
+      };
+    },
+  );
+  const headers = { Authorization: `Bearer ${service.key}` };
+  try {
+    assert.equal(
+      (await fetch(service.url, { method: 'POST', body: id })).status,
+      401,
+    );
+    const invalid = await fetch(service.url, {
+      method: 'POST',
+      headers,
+      body: 'https://127.0.0.1/private',
+    });
+    assert.equal(invalid.status, 400);
+    assert.equal(calls, 0);
+    const first = fetch(service.url, { method: 'POST', headers, body: id });
+    await running;
+    const busy = await fetch(service.url, {
+      method: 'POST',
+      headers,
+      body: id,
+    });
+    assert.equal(
+      busy.headers.get('x-context-hub-browser-error'),
+      'BROWSER_BUSY',
+    );
+    assert.equal(calls, 1);
+    complete();
+    assert.deepEqual(await (await first).json(), { chat_messages: [] });
+    const pending = fetch(service.url, {
+      method: 'POST',
+      headers,
+      body: id,
+    }).catch(() => null);
+    while (calls < 2) await new Promise((resolve) => setTimeout(resolve, 5));
+    await service.close();
+    await pending;
+  } finally {
+    await service.close();
+  }
+});
+
+test('Claude share transport uses the browser reader without a direct source fetch', async () => {
+  let browserId;
+  const result = await importShare(
+    'https://claude.ai/share/00000000-0000-0000-0000-000000000001',
+    '',
+    async () => {
+      throw Error('Unexpected direct fetch');
+    },
+    async (id) => {
+      browserId = id;
+      return Response.json({
+        chat_messages: [
+          { sender: 'human', text: 'hello' },
+          { sender: 'assistant', text: 'answer' },
+        ],
+      });
+    },
+  );
+  assert.equal(browserId, '00000000-0000-0000-0000-000000000001');
+  assert.equal(result.turns.length, 1);
+  assert.equal(result.turns[0].messages[1].content, 'answer');
+});
+
+test('browser adapter rejects unconfigured service and exposes bounded worker errors', async () => {
+  const oldUrl = process.env.CONTEXT_HUB_SHARE_BROWSER_URL,
+    oldKey = process.env.CONTEXT_HUB_SHARE_BROWSER_KEY;
+  try {
+    delete process.env.CONTEXT_HUB_SHARE_BROWSER_URL;
+    await assert.rejects(
+      readClaudeSnapshot('00000000-0000-0000-0000-000000000001'),
+      (e) => e.code === 'BROWSER_UNAVAILABLE',
+    );
+    process.env.CONTEXT_HUB_SHARE_BROWSER_URL = 'http://127.0.0.1:12345/';
+    process.env.CONTEXT_HUB_SHARE_BROWSER_KEY = 'local-test-key';
+    await assert.rejects(
+      readClaudeSnapshot(
+        '00000000-0000-0000-0000-000000000001',
+        async (url, options) => {
+          assert.equal(url, 'http://127.0.0.1:12345/');
+          assert.equal(options.redirect, 'manual');
+          assert.equal(options.headers.Authorization, 'Bearer local-test-key');
+          return new Response(null, {
+            status: 503,
+            headers: { 'x-context-hub-browser-error': 'BROWSER_BUSY' },
+          });
+        },
+      ),
+      (e) => e.code === 'BROWSER_BUSY',
+    );
+  } finally {
+    if (oldUrl === undefined) delete process.env.CONTEXT_HUB_SHARE_BROWSER_URL;
+    else process.env.CONTEXT_HUB_SHARE_BROWSER_URL = oldUrl;
+    if (oldKey === undefined) delete process.env.CONTEXT_HUB_SHARE_BROWSER_KEY;
+    else process.env.CONTEXT_HUB_SHARE_BROWSER_KEY = oldKey;
+  }
+});
+
+test('browser child boundary limits output, strips secrets and reports cancellation', async () => {
+  for (const scenario of ['success', 'oversized', 'cancelled', 'malformed']) {
+    const controller = new AbortController();
+    const child = new EventEmitter();
+    child.stdin = new PassThrough();
+    child.stdout = new PassThrough();
+    const previous = process.env.CONTEXT_HUB_MCP_GATEWAY_KEY;
+    process.env.CONTEXT_HUB_MCP_GATEWAY_KEY = 'never-forward';
+    try {
+      const result = runShareBrowser(
+        '/runtime',
+        '00000000-0000-0000-0000-000000000001',
+        controller.signal,
+        (_command, _args, options) => {
+          assert.equal(options.env.CONTEXT_HUB_MCP_GATEWAY_KEY, undefined);
+          assert.equal(options.env.HTTP_PROXY, undefined);
+          assert.equal(options.windowsHide, true);
+          setImmediate(() => {
+            if (scenario === 'success')
+              child.stdout.write(
+                '{"status":200,"type":"application/json"}\n{"ok":true}',
+              );
+            if (scenario === 'oversized')
+              child.stdout.write(Buffer.alloc(SHARE_MAX_BYTES + 1025));
+            if (scenario === 'cancelled') controller.abort();
+            if (scenario === 'malformed')
+              child.stdout.write('not a worker response');
+            child.emit('close', 0);
+          });
+          return child;
+        },
+      );
+      if (scenario === 'success') {
+        const response = await result;
+        assert.equal(response.status, 200);
+        assert.equal(response.body.toString(), '{"ok":true}');
+      } else
+        await assert.rejects(
+          result,
+          new RegExp(
+            scenario === 'oversized'
+              ? 'TOO_LARGE'
+              : scenario === 'cancelled'
+                ? 'SOURCE_TIMEOUT'
+                : 'BROWSER_UNAVAILABLE',
+          ),
+        );
+    } finally {
+      if (previous === undefined)
+        delete process.env.CONTEXT_HUB_MCP_GATEWAY_KEY;
+      else process.env.CONTEXT_HUB_MCP_GATEWAY_KEY = previous;
+    }
+  }
 });

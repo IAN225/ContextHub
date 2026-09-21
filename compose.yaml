@@ -4,6 +4,9 @@ services:
     build: .
     image: contexthub:local
     init: true
+    shm_size: 256mb
+    security_opt:
+      - seccomp=./deploy/chromium-seccomp.json
     restart: unless-stopped
     network_mode: service:caddy
     depends_on:

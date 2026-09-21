@@ -1,3 +1,4 @@
+import { claudeSnapshotUrl } from './share-transport.ts';
 import type { ParsedConversation } from './contracts.ts';
 import { parseChatGPTShare } from './parsers/chatgpt-share.ts';
 import { parseClaudeShare } from './parsers/claude-share.ts';
@@ -25,8 +26,7 @@ export const shareProviders: ShareProvider[] = [
     version: 1,
     label: 'Claude 分享',
     host: 'claude.ai',
-    resource: (id) =>
-      `https://claude.ai/api/chat_snapshots/${id}?rendering_mode=messages&render_all_tools=true`,
+    resource: claudeSnapshotUrl,
     parse: (body) => parseClaudeShare(JSON.parse(body)),
   },
 ];

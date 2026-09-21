@@ -30,7 +30,7 @@ cd ContextHub
 sudo bash deploy/install.sh
 ```
 
-脚本会安装运行依赖、构建应用、创建数据库，并设置服务开机自启。完成后访问：
+脚本会安装运行依赖（包括 Claude 分享导入使用的 Chromium 和 Xvfb）、构建应用、创建数据库，并设置服务开机自启。完成后访问：
 
 ```text
 http://服务器IP:8080

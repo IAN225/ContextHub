@@ -132,4 +132,8 @@ sudo bash deploy/docker.sh
 
 分享导入需要部署服务器能访问来源站点。ChatGPT 导入会使用分享页面为本次请求签发的匿名访客标识解析图片地址，再由附件任务保存文件；同一图片的正文引用与元数据只导入一次。匿名标识只在当前导入请求内使用，不保存到账号或备份，也不需要提供 ChatGPT 登录 Cookie。
 
-来源返回 Cloudflare 安全验证时，显示安全验证提示；请求限流和其他访问拒绝分别提示。Claude 分享页可能加载成功，但正文接口仍要求安全验证，自动导入因此无法完成。此时可在来源页面打开对话后手动导入。图片接口不可用时保留失败原因，可在原文编辑中补充原图。
+Claude 分享导入通过有界面 Chromium 直接读取公开正文接口，Linux 使用 Xvfb 提供虚拟显示器。浏览器进程按需启动，每次使用独立的匿名会话，用完关闭；单个实例同时处理一条浏览器导入，忙时提示稍后重试。正文上限 8 MiB，浏览器任务约 25 秒超时并回收进程。网页和 MCP 分享导入使用同一条服务路径，无需配置代理或提供 Claude 登录 Cookie。
+
+源码安装脚本会安装浏览器系统依赖、下载与 Playwright 版本匹配的 Chromium，并检查沙箱启动；浏览器文件缓存于 `/var/lib/contexthub/.cache/ms-playwright`，新旧版本可以共存以支持应用回退。首次升级到此版本请运行完整的 `sudo bash deploy/install.sh`；`--skip-dependencies` 仅适用于系统依赖已经齐全的情况，仍会检查和下载匹配的浏览器版本。Docker 镜像自带浏览器与 Xvfb，Compose 使用非 root 用户、256 MiB 共享内存和 `deploy/chromium-seccomp.json` 支持 Chromium 的用户命名空间沙箱；该配置基于 [Playwright v1.63.0 官方配置](https://github.com/microsoft/playwright/blob/v1.63.0/utils/docker/seccomp_profile.json)，部署时应保留。宿主机必须允许非特权用户命名空间；浏览器启动失败时不会降级为关闭沙箱运行。
+
+浏览器导入只接收分享 ID，不提供任意网址浏览或远程调试入口。临时会话不保存到账户或备份，浏览器子进程不继承账户密钥、模型凭据。来源仍可能要求安全验证或限制访问，此时会明确提示；系统不会自动点击人机验证。图片接口不可用时保留失败原因，可在原文编辑中补充原图。
