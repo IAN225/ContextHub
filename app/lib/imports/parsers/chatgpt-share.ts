@@ -1,8 +1,5 @@
-import {
-  attachmentFromReference,
-  attachmentMarker,
-  parseMediaBlock,
-} from '../../attachments/content.ts';
+import { chatgptAttachment, chatgptFileId } from './chatgpt-assets.ts';
+import { attachmentMarker } from '../../attachments/content.ts';
 import { type Attachment, type Message } from '../../core/model.ts';
 import {
   ImportError,
@@ -171,15 +168,26 @@ export function parseChatGPTShare(html: string): ParsedConversation {
     if (['thoughts', 'reasoning_recap', 'reasoning'].includes(type)) continue;
     const parts = Array.isArray(content.parts) ? content.parts : [content.text];
     const attachments: Attachment[] = [];
+    const metadata = Array.isArray(record(m.metadata).attachments)
+      ? (record(m.metadata).attachments as unknown[])
+      : [];
+    function addAttachment(media: Attachment) {
+      const file = chatgptFileId(media.reference ?? '');
+      if (
+        file &&
+        attachments.some((a) => chatgptFileId(a.reference ?? '') === file)
+      )
+        return '';
+      attachments.push(media);
+      missing ||= media.status !== 'stored';
+      return attachmentMarker(media);
+    }
     let body = parts
       .map((part) => {
         if (typeof part === 'string') return part;
         const p = record(part);
         if (p.content_type === 'image_asset_pointer' || p.asset_pointer) {
-          const media = parseMediaBlock({ ...p, type: 'image_asset_pointer' })!;
-          attachments.push(media);
-          missing ||= media.status !== 'stored';
-          return attachmentMarker(media);
+          return addAttachment(chatgptAttachment(p, metadata));
         }
         if (typeof p.text === 'string') return p.text;
         if (Object.keys(p).length) {
@@ -190,22 +198,9 @@ export function parseChatGPTShare(html: string): ParsedConversation {
       })
       .filter(Boolean)
       .join('\n');
-    if (
-      Array.isArray(record(m.metadata).attachments) &&
-      (record(m.metadata).attachments as unknown[]).length
-    ) {
-      for (const raw of record(m.metadata).attachments as unknown[]) {
-        const a = record(raw);
-        const media = attachmentFromReference({
-          name: string(a.name ?? a.file_name),
-          type: string(a.mime_type),
-          url: string(a.download_url ?? a.url),
-          reference: string(a.id ?? a.file_id),
-        });
-        attachments.push(media);
-        missing ||= media.status !== 'stored';
-        body += `\n${attachmentMarker(media)}`;
-      }
+    for (const raw of metadata) {
+      const marker = addAttachment(chatgptAttachment(raw, metadata));
+      if (marker) body += `\n${marker}`;
     }
     const recipient = string(m.recipient);
     const mappedRole =

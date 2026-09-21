@@ -124,7 +124,9 @@ def docker_drill(temp):
     run('python3', 'deploy/backup.py', 'backup', archive, '--mode', 'docker', '--project', PROJECT)
     run('docker', 'compose', 'exec', '-T', 'app', 'node', '-e', "require('fs').writeFileSync('/app/.wrangler/server/after-backup','remove')")
     run('python3', 'deploy/backup.py', 'restore', archive, '--mode', 'docker', '--project', PROJECT, '--replace-existing')
-    run('docker', 'compose', 'start', 'caddy', 'app')
+    # Match production recovery: the shared network owner must be running first.
+    run('docker', 'compose', 'start', 'caddy')
+    run('docker', 'compose', 'start', 'app')
     wait_health(8080)
     assert fixture('docker', 'verify') == changed
     dockerfile = ROOT / 'Dockerfile'; original = dockerfile.read_bytes()
@@ -134,6 +136,9 @@ def docker_drill(temp):
     finally:
         dockerfile.write_bytes(original)
     rolled = journal('docker')
+    frozen = json.loads((rolled / 'compose.json').read_text())
+    profile = frozen['services']['app']['security_opt'][0].split('=', 1)[1]
+    assert Path(profile).parent == rolled and Path(profile).is_file()
     assert json.loads((rolled / 'upgrade.json').read_text())['phase'] == 'rolled-back'
     run('docker', 'compose', 'cp', 'deploy/recovery-fixture.mjs', 'app:/tmp/recovery-fixture.mjs')
     wait_health(8080)

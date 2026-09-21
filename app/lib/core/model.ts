@@ -1,4 +1,7 @@
-import { type SummaryEngine } from '../summary/engines.ts';
+import {
+  type ModelSummaryEngine,
+  type SummaryEngine,
+} from '../summary/engines.ts';
 import type { WorkspaceAppearance } from '../workspaces/appearance.ts';
 
 export type Status = 'normal' | 'deprecated' | 'trash';
@@ -36,7 +39,6 @@ export type ImportProvenance = {
 
 export type Turn = {
   id: string;
-  title: string;
   messages: Message[];
   status: Status;
   source: string;
@@ -132,6 +134,7 @@ export type SummaryTrack = Pick<
 type WorkspaceData = {
   appearance?: WorkspaceAppearance;
   reme?: SummaryTrack;
+  client?: SummaryTrack;
   summaryTab?: SummaryEngine;
   memoryEngine?: SummaryEngine;
   id: string;
@@ -162,7 +165,7 @@ export type WorkspaceContext = WorkspaceData & {
 export type UploadChannel = 'api' | 'link' | 'manual' | 'workbench';
 
 export type Upload = {
-  summaryEngine?: SummaryEngine;
+  summaryEngine?: ModelSummaryEngine;
   id: string;
   title: string;
   source: string;

@@ -12,7 +12,7 @@ export function Segments({
 }) {
   return (
     <Tabs value={value} onValueChange={(v) => onChange(String(v))}>
-      <TabsList className="segments">
+      <TabsList className="segments" data-scroll-rail="always">
         {options.map((o) => (
           <TabsTrigger key={o.id} value={o.id}>
             {o.label}

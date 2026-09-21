@@ -77,14 +77,40 @@ def restore_files(instance, directory):
         backup.restore(instance, staging, manifest, True)
 
 
+def snapshot_seccomp(config, directory=None):
+    # Compose leaves seccomp paths relative; recovery runs from the backup directory.
+    profiles = config.setdefault('x-context-hub-seccomp', {})
+    for name in ['app', 'caddy']:
+        service = config['services'][name]
+        options = service.get('security_opt', [])
+        for index, option in enumerate(options):
+            if not option.startswith(('seccomp=', 'seccomp:')):
+                continue
+            value = option[8:]
+            if value == 'unconfined':
+                continue
+            key = name + ':' + str(index)
+            if key not in profiles:
+                path = Path(value)
+                if not path.is_absolute():
+                    path = ROOT / path
+                profiles[key] = json.loads(path.read_text())
+            if directory is not None:
+                target = directory / (name + '-seccomp-' + str(index) + '.json')
+                save_json(target, profiles[key])
+                options[index] = 'seccomp=' + str(target)
+
+
 def record_compose(instance):
     config = json.loads(backup.run(*instance.compose, 'config', '--format', 'json').stdout)
+    snapshot_seccomp(config)
     save_json(instance.paths['app'] / 'server/deployment-compose.json', config)
 
 
 def frozen_compose(instance, directory):
     saved = instance.paths['app'] / 'server/deployment-compose.json'
     config = json.loads(saved.read_text() if saved.exists() else backup.run(*instance.compose, 'config', '--format', 'json').stdout)
+    snapshot_seccomp(config, directory)
     for volume in config['services']['caddy'].get('volumes', []):
         if volume.get('type') == 'bind' and volume.get('target') == '/etc/caddy/bootstrap.json':
             snapshot = directory / 'caddy-bootstrap.json'

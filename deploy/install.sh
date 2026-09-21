@@ -87,6 +87,13 @@ chmod 755 "$stage"
 rsync -a --exclude=.git --exclude=node_modules --exclude=dist --exclude=production --exclude=.wrangler --exclude='.env*' --exclude=outputs "$SOURCE/app/" "$stage/app/"
 chown -R contexthub:contexthub "$stage"
 sudo -u contexthub env HOME=/var/lib/contexthub XDG_CONFIG_HOME=/var/lib/contexthub/.config XDG_DATA_HOME=/var/lib/contexthub/.local/share XDG_CACHE_HOME=/var/lib/contexthub/.cache PATH="$(dirname "$NODE"):$(dirname "$PNPM"):/usr/bin:/bin" bash -c 'set -e; cd "$1"; "$2" install --frozen-lockfile; "$2" build' _ "$stage/app" "$PNPM"
+# Browser assets are versioned in the service user's cache, preserving rollback compatibility.
+if $DEPENDENCIES; then
+  "$NODE" "$stage/app/node_modules/playwright/cli.js" install-deps chromium
+  apt-get install -y --no-install-recommends xauth
+fi
+sudo -u contexthub env HOME=/var/lib/contexthub PATH="$(dirname "$NODE"):/usr/bin:/bin" "$NODE" "$stage/app/node_modules/playwright/cli.js" install chromium --no-shell
+sudo -u contexthub env HOME=/var/lib/contexthub PATH="$(dirname "$NODE"):/usr/bin:/bin" xvfb-run -a "$NODE" "$stage/app/production/scripts/share-browser/worker.mjs" --check | python3 -c 'import sys,json; result=json.loads(sys.stdin.readline()); sys.exit(0 if result.get("status")==200 else "Chromium sandbox startup failed; check browser dependencies and user namespace support.")'
 fi
 if [[ -f $PREFIX/app/.wrangler/server/accounts.sqlite && ${CONTEXT_HUB_UPGRADE_CHILD:-} != 1 ]]; then
   $START || { echo 'An existing instance must be upgraded with startup verification; omit --no-start.' >&2; exit 1; }

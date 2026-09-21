@@ -1,13 +1,16 @@
 import type { SQLiteDatabase } from '../../server/sqlite.ts';
 import { SummaryError } from '../../summary/contracts.ts';
-import { summaryWorkspace, type SummaryEngine } from '../../summary/engines.ts';
+import {
+  summaryWorkspace,
+  type ModelSummaryEngine,
+} from '../../summary/engines.ts';
 import { summarySettingsRepository } from '../../summary/server/settings.ts';
 import { workspaceApplication } from './workspaces.ts';
 /** Changing credentials revokes existing automatic execution consent in the same commit. */
 export function modelSettingsService(
   db: SQLiteDatabase,
   owner: string,
-  engine: SummaryEngine,
+  engine: ModelSummaryEngine,
 ) {
   const app = workspaceApplication(db);
   const repo = summarySettingsRepository(

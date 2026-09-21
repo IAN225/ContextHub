@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { readFileSync, writeFileSync } from "node:fs";
 import { createHash, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
+import { pathToFileURL } from "node:url";
 const [root, action, base] = process.argv.slice(2);
+const { CLIENT_PROTOCOL } = await import(pathToFileURL(root + "/lib/storage/protocol.js"));
 const directory = root + "/.wrangler/server";
 const raw = new DatabaseSync(directory + "/accounts.sqlite");
 let session;
@@ -15,7 +17,7 @@ async function api(path, body) {
       "Content-Type": "application/json",
       "X-Context-Hub": "1",
       "X-Context-Hub-User": session.owner,
-      "X-Context-Hub-Version": "4",
+      "X-Context-Hub-Version": CLIENT_PROTOCOL,
     },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });

@@ -1,7 +1,10 @@
 import { digest, randomSecret } from '../../server/crypto.ts';
 import type { SqlDatabase } from '../../server/database.ts';
 import { SummaryError } from '../contracts.ts';
-import type { SummaryEngine } from '../engines.ts';
+import {
+  parseModelSummaryEngine,
+  type ModelSummaryEngine,
+} from '../engines.ts';
 import {
   normalizeBaseUrl,
   readSummaryConnection,
@@ -26,13 +29,14 @@ export function publicSummarySettings(settings: SavedSummarySettings) {
 export function summarySettingsRepository(
   db: SqlDatabase,
   owner: string,
-  engine: SummaryEngine = 'custom',
+  engine: ModelSummaryEngine = 'custom',
   commit?: (
     query: string,
     parameters: (string | number | null)[],
   ) => Promise<{ meta: { changes: number } }>,
 ) {
   if (!owner) throw new SummaryError('UNAUTHORIZED', '请先登录。', 401);
+  parseModelSummaryEngine(engine);
   const isolated = engine === 'reme';
   const isolatedOwner = 'account:' + owner;
   async function read(

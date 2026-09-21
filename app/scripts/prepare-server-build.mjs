@@ -4,6 +4,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -22,6 +23,7 @@ cpSync(resolve(root, 'dist/standalone'), output, {
 });
 const entries = [
   'scripts/start-server.mjs',
+  'scripts/share-browser/worker.mjs',
   'scripts/start-application.mjs',
   'scripts/docker-start.mjs',
   'scripts/initialize-server.mjs',
@@ -36,8 +38,34 @@ function copyPackage(specifier, importer) {
   const name = specifier.startsWith('@')
     ? specifier.split('/').slice(0, 2).join('/')
     : specifier.split('/')[0];
-  const require = createRequire(importer);
-  let directory = dirname(require.resolve(specifier));
+  let directory;
+  try {
+    directory = dirname(createRequire(importer).resolve(specifier));
+  } catch (error) {
+    if (
+      !['MODULE_NOT_FOUND', 'ERR_PACKAGE_PATH_NOT_EXPORTED'].includes(
+        error.code,
+      )
+    )
+      throw error;
+    // Import-only exports cannot be resolved through require(); find the package
+    // directory without changing its exports or adding development dependencies.
+    for (const start of [dirname(importer), root]) {
+      let parent = start;
+      while (true) {
+        const candidate = resolve(parent, 'node_modules', name);
+        if (existsSync(resolve(candidate, 'package.json'))) {
+          directory = realpathSync(candidate);
+          break;
+        }
+        const next = dirname(parent);
+        if (next === parent) break;
+        parent = next;
+      }
+      if (directory) break;
+    }
+    if (!directory) throw error;
+  }
   let manifest;
   while (true) {
     const file = resolve(directory, 'package.json');
@@ -59,13 +87,14 @@ function copyPackage(specifier, importer) {
     return;
   }
   packages.set(name, manifest.version);
-  cpSync(directory, resolve(output, 'node_modules', name), {
-    recursive: true,
-    dereference: true,
-    filter: (path) =>
-      path === directory ||
-      !relative(directory, path).split(/[\\/]/).includes('node_modules'),
-  });
+  if (directory !== resolve(output, 'node_modules', name))
+    cpSync(directory, resolve(output, 'node_modules', name), {
+      recursive: true,
+      dereference: true,
+      filter: (path) =>
+        path === directory ||
+        !relative(directory, path).split(/[\\/]/).includes('node_modules'),
+    });
   for (const dependency of Object.keys(manifest.dependencies || {})) {
     copyPackage(dependency, resolve(directory, 'package.json'));
   }
@@ -85,7 +114,13 @@ function collectPackages(source, absolute) {
             node.expression.kind === ts.SyntaxKind.ImportKeyword
           ? node.arguments[0]
           : null;
-    if (spec && ts.isStringLiteralLike(spec) && !spec.text.startsWith('.'))
+    if (
+      spec &&
+      ts.isStringLiteralLike(spec) &&
+      !spec.text.startsWith('.') &&
+      !spec.text.startsWith('/') &&
+      !spec.text.startsWith('#')
+    )
       copyPackage(spec.text, absolute);
     ts.forEachChild(node, visit);
   }
@@ -159,6 +194,13 @@ function* files(dir) {
     if (entry.isDirectory()) yield* files(path);
     else yield relative(output, path).replaceAll('\\', '/');
   }
+}
+for (const file of files(output)) {
+  if (/\.(?:m?js|cjs)$/.test(file))
+    collectPackages(
+      readFileSync(resolve(output, file), 'utf8'),
+      resolve(output, file),
+    );
 }
 writeFileSync(
   resolve(output, 'runtime-manifest.json'),

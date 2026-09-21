@@ -35,7 +35,7 @@ app/
   features/
     workspace/                 工作区外壳、首页、卡片、导航、设置及创建
     transcript/                原文列表、时间轴、轮次详情与编辑
-    summary/                   两种摘要方案的共用界面、工作台和模型设置
+    summary/                   三种摘要方案、共用历史/窗口控件、工作台和模型设置
     notes/、memory/            Note 与记忆包界面
     connections/               MCP 连接、Key 与 OAuth 授权界面
     imports/                   收录弹窗、手动/链接导入和投递配置
@@ -94,10 +94,10 @@ docs/                          设计、运维和审查记录
 - 摘要策略、原文窗口和记忆包保留各自边界。自定义压缩和 ReMeLight 的配置与历史独立；近期原文始终取水位之后最新的完整轮次。界面覆盖条、待压缩批次和 MCP 注入共用领域计算。
 - 账号网络动作位于 `account/actions.ts`，在退出或改密前等待存储写入；账号状态及请求身份绑定位于 `account/client.ts`。存储层只依赖后者。
 - 后台执行器先持久化模型结果，应用服务随后在事务中写入账号记录与应用回执。重启先恢复未提交结果；浏览器仅查询状态、发起操作和显示候选，不负责结果 ACK 或自动入队。
-- MCP 授权管理在 `mcp/server/management.ts`，JSON-RPC 在 `handlers.ts`，工具逻辑在 `tools.ts`，OAuth 流程与仓库独立。共享请求校验由 `http.ts` 提供。
+- MCP 工具契约在 `mcp/catalog.ts`、`schema.ts`、`result-schemas.ts`；输入默认值、校验和输出校验共用这些定义。`server/tools.ts` 只编排幂等与事务，读取、Note 写入、摘要/收件写入分别由 `read-tools.ts`、`notes.ts`、`write-tools.ts` 负责。范围指纹属于 `transcript/range.ts` 领域规则，下载签名和流式响应位于 `server/transcript-download.ts`。授权管理、JSON-RPC 和 OAuth 保持独立。
 - `lib/server/crypto.ts` 统一 SHA-256 和随机密钥；`request.ts` 统一同源管理策略及 Cookie 解析/散列；`body.ts` 统一按字节限量读取、取消信号及请求体丢弃。Cookie 名、仓库查询、错误码/文案仍由各业务适配器指定。MCP 的本机来源限制、投递 Key 授权和任务执行器鉴权是不同策略，不与管理请求混合。
 - 导入的请求体适配在 `imports/server/http.ts`，分享链接抓取仍在 `share-service.ts`。MCP 只为实际分享导入能力依赖该业务；基础工具不再从 imports 借用。Node `IncomingMessage`/`ServerResponse` 继续由 `scripts/server/` 管理，其中账号 JSON 响应复用 `http.mjs` 的 `send()`。
-- 账号密码派生、数据事务分别位于 `account-credentials.mjs`、`account-records.mjs`；会话、角色和审批每次操作仍重新校验。本轮账号 schema 升至 5、客户端协议升至 4；既有账号业务记录键保持不变。通用记录接口只保存草稿、偏好等辅助数据，业务命令经 `/api/workspaces`。
+- 账号密码派生、数据事务分别位于 `account-credentials.mjs`、`account-records.mjs`；会话、角色和审批每次操作仍重新校验。账号 schema 为 5、客户端协议为 5；既有账号业务记录键保持不变。通用记录接口只保存草稿、偏好等辅助数据，业务命令经 `/api/workspaces`。
 - HTTPS 生命周期在 `access-controller.mjs`：验证成功后保存新地址，失败时恢复原配置；`service.mjs` 负责入口策略和路由，`proxy.mjs` 负责清理转发头与 Cookie。
 
 导入解析器、摘要 provider、数据库迁移、备份和桌宠编解码已经有独立契约。扩展时在其边界内修改，不把协议或存储细节加入页面组件。
@@ -161,3 +161,7 @@ CI 在独立临时容器上运行桌面和手机浏览器用例，检查禁用�
 服务器认证只经过账号库。旧 access.json 中的管理员哈希仅供首次迁移读取；旧独立登录、会话写入和浏览器表单已退出运行路径。历史工作区 Token 字段保留为备份兼容数据，不作为有效授权；有效 MCP 授权保存在服务器账号关联表中。stdio 客户端只转发到已授权的 HTTPS 工作区，见 [stdio 接入](mcp-stdio.md)。
 
 SettingsLink 的移动端样式由组件自身管理；首页和阅读页通过 placement 明确选择位置。Picker、Modal、Segments 沿用统一 Base UI 封装，TextEditor 保留编辑器专属交互，不另建通用按钮底层。
+
+原文 `Turn` 不含标题。`transcript/compatibility.ts` 只在记录、状态和任务边界移除旧字段；搜索展示动态轮次编号。冻结的 payload v1/v2 保持不变，当前任务 DTO 为 v3。JSON 备份 v2 与 v1 读取共用状态校验。
+
+生产打包同时收集 CLI 入口和服务端构建产物的外部包依赖，发布目录可脱离源码 `node_modules` 运行；正式产物检查在隔离目录验证。

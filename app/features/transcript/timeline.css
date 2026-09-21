@@ -8,6 +8,7 @@
 }
 .timeline {
   position: relative;
+  --timeline-point-top: 42px;
   height: 132px;
   overflow: hidden;
   mask-image: linear-gradient(
@@ -23,7 +24,7 @@
 }
 .timeline-rail {
   position: absolute;
-  top: 79px;
+  top: calc(var(--timeline-point-top) + 37px);
   height: 1px;
   width: 100%;
   background: var(--ui-muted, #62685b);
@@ -84,13 +85,13 @@
   );
   background-size: 26px 14px;
   background-repeat: repeat-x;
-  background-position: -0.5px 65px;
+  background-position: -0.5px calc(var(--timeline-point-top) + 23px);
   background-origin: content-box;
   background-clip: content-box;
 }
 .timeline-track .turn-point {
   position: relative;
-  top: 42px;
+  top: var(--timeline-point-top);
   flex: 0 0 104px;
   width: 104px;
   height: 82px;
@@ -189,46 +190,59 @@
 }
 @media (max-width: 767px) {
   .timeline-toolbar {
-    gap: 10px;
+    gap: 8px;
+    margin-top: 4px;
   }
-  .timeline {
-    margin-top: 3px;
+  .timeline-toolbar > div {
+    min-width: 0;
   }
-  .timeline-bottom > span {
-    max-width: 115px;
-    line-height: 1.8;
-  }
-  .timeline-bottom .text-button {
-    font-size: 10px;
-  }
-}
-@media (max-width: 760px) {
-  .timeline-bottom > span {
-    display: none;
-  }
-  .timeline-bottom > div {
-    width: 100%;
-    justify-content: flex-end;
-  }
-}
-@media (max-width: 480px) {
-  .timeline-bottom .key {
-    font-size: 8px;
-  }
-  .timeline-bottom > div {
-    gap: 3px;
-  }
-  .timeline-bottom .icon-button {
-    padding: 3px;
+  .timeline-toolbar .segments {
+    height: 40px !important;
+    gap: 12px !important;
   }
   .timeline-toolbar .segments [data-slot='tabs-trigger'] {
     font-size: 12px !important;
+    white-space: nowrap;
   }
-  .timeline-toolbar .segments {
-    gap: 10px !important;
+  .timeline-toolbar .search-field {
+    min-width: 0;
+    flex: 0 1 110px;
+  }
+  .timeline-toolbar .search-field input {
+    min-width: 0;
+    width: 100%;
+  }
+  .timeline {
+    --timeline-point-top: 14px;
+    height: 68px;
+    margin-top: 0;
+  }
+  .timeline.has-dates {
+    height: 92px;
+  }
+  .timeline-center {
+    top: 0;
+    height: 68px;
+  }
+  .timeline-center > span,
+  .timeline-bottom > span {
+    display: none;
   }
   .timeline-bottom {
-    font-size: 10px;
+    padding-bottom: 4px;
+    font-size: 12px;
+  }
+  .timeline-bottom > div {
+    width: 100%;
+    justify-content: center;
+    gap: 8px;
+  }
+  .timeline-bottom .icon-button,
+  .timeline-bottom .text-button {
+    font-size: 12px;
+    min-width: 40px;
+    min-height: 40px;
+    justify-content: center;
   }
   .point-time {
     font-size: 10px;

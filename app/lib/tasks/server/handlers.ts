@@ -2,7 +2,7 @@ import { enqueueTask } from '../../application/server/enqueue-task.ts';
 import type { TaskService } from '../../application/server/tasks.ts';
 import { discardRequestBody } from '../../server/body.ts';
 import { digest } from '../../server/crypto.ts';
-import { type SummaryEngine } from '../../summary/engines.ts';
+import { type ModelSummaryEngine } from '../../summary/engines.ts';
 import { summaryRevision } from '../../summary/planning.ts';
 import { type SummaryEnvironment } from '../../summary/server/config.ts';
 import { publicTask, TaskError, type SummaryTaskState } from '../contracts.ts';
@@ -23,7 +23,7 @@ export async function taskHandler(
   accountId?: string,
   connectionForOwner?: (
     owner: string,
-    engine: SummaryEngine,
+    engine: ModelSummaryEngine,
   ) => Promise<SummaryEnvironment>,
 ) {
   try {

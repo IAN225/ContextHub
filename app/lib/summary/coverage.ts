@@ -25,6 +25,11 @@ export function coverage(w: WorkspaceContext) {
   const included = new Set(active?.covered ?? []);
   const at = w.turns.findIndex((t) => t.id === w.watermark);
   const normal = w.turns.filter((t) => t.status === 'normal');
+  if (w.summaryEngine === 'client') {
+    const covered = normal.filter((t) => included.has(t.id));
+    const recent = normal.filter((t) => !included.has(t.id));
+    return { active, covered, recent, gap: [], pending: [], queued: [], at };
+  }
   const recent = selectRetentionWindow(
     w,
     w.turns.filter((t, i) => t.status === 'normal' && i > at),

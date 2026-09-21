@@ -1,3 +1,10 @@
+import { coverage } from '../lib/summary/coverage.ts';
+import {
+  applyClientSummary,
+  clientSummaryState,
+} from '../lib/summary/client-compression.ts';
+import { transcriptRange } from '../lib/transcript/range.ts';
+import { parseMediaBlock } from '../lib/attachments/content.ts';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
@@ -201,7 +208,7 @@ test('new and legacy data survive storage and payload roundtrips; unknown versio
     legacy.summaries,
   );
 });
-test('MCP default and explicit overrides pair the correct summary and raw window without mixing engines', async () => {
+test('MCP bootstrap follows user selection; explicit summary reads do not change it', async () => {
   let w = fixture();
   for (const engine of ['custom', 'reme'] as const)
     w = applyWorkspaceCommand(w, {
@@ -229,22 +236,30 @@ test('MCP default and explicit overrides pair the correct summary and raw window
   const current = (await callMcpTool(repo, token, 'memory_bootstrap', {})) as {
     content: string;
     engine: string;
-    recentTurnIds: string[];
+    recent_turn_ids: string[];
   };
   assert.equal(current.engine, 'reme');
   assert.ok(current.content.includes(text));
   assert.ok(!current.content.includes('自定义结果'));
   assert.deepEqual(
-    current.recentTurnIds,
+    current.recent_turn_ids,
     w.turns.slice(-2).map((t) => t.id),
   );
-  const custom = (await callMcpTool(repo, token, 'memory_bootstrap', {
+  await assert.rejects(
+    callMcpTool(repo, token, 'memory_bootstrap', { engine: 'custom' }),
+    /不支持字段 engine/,
+  );
+  const custom = (await callMcpTool(repo, token, 'summary_read', {
     engine: 'custom',
-  })) as typeof current;
+  })) as {
+    engine: string;
+    summary: { text: string };
+    recent_from_turn: number;
+  };
   assert.equal(custom.engine, 'custom');
-  assert.ok(custom.content.includes('自定义结果'));
-  assert.ok(!custom.content.includes(text));
-  assert.deepEqual(custom.recentTurnIds, [w.turns.at(-1)!.id]);
+  assert.ok(custom.summary.text.includes('自定义结果'));
+  assert.equal(custom.recent_from_turn, w.turns.length);
+  assert.equal(w.memoryEngine, 'reme');
   assert.ok(memoryText(w).includes(text));
   const result = createMemorySearch()([w], {
     query: '自定义结果',
@@ -260,8 +275,52 @@ test('MCP default and explicit overrides pair the correct summary and raw window
       'memory_bootstrap',
       {},
     ),
-    /尚未就绪/,
+    /不可读取/,
   );
+});
+test('empty attachment text keeps the same revision through task serialization', () => {
+  const w = fixture();
+  const empty = parseMediaBlock({
+    type: 'document',
+    source: { type: 'text', data: '' },
+  })!;
+  assert.equal(empty.status, 'stored');
+  assert.equal(empty.text, '');
+  assert.equal(empty.size, 0);
+  const base64 = parseMediaBlock({
+    type: 'document',
+    source: { type: 'base64', media_type: 'text/plain', data: '' },
+  })!;
+  assert.equal(base64.status, 'stored');
+  assert.equal(base64.text, '');
+  w.turns[0].attachments = [empty];
+  const scoped = summaryWorkspace(w, 'custom');
+  const snapshot = summaryTaskWorkspace(scoped);
+  assert.equal(summaryRevision(scoped), summaryRevision(snapshot));
+  assert.equal(
+    summaryRevision(scoped),
+    summaryRevision(JSON.parse(JSON.stringify(snapshot))),
+  );
+});
+test('legacy titles are removed at record and task boundaries without changing messages', () => {
+  const w = fixture();
+  const old = { ...w, turns: w.turns.map((t) => ({ ...t, title: '旧标题' })) };
+  const state = normalizeHubState({
+    schemaVersion: 1,
+    workspaces: [old],
+    uploads: [],
+  });
+  assert.deepEqual(state.workspaces[0].turns, w.turns);
+  assert.deepEqual(normalizeHubState(joinHub(splitHub(state))), state);
+  for (const version of [1, 2]) {
+    const result = decodePayload<{ workspace: typeof w }>('task-state', {
+      format: 'contexthub-payload',
+      kind: 'task-state',
+      version,
+      data: { workspace: old },
+    });
+    assert.deepEqual(result.workspace.turns, w.turns);
+  }
 });
 test('model secrets remain separate per account and engine', async (t) => {
   const db = database();
@@ -418,5 +477,69 @@ test('both strategies enqueue independently and run serially with strategy-speci
   assert.equal(
     app.read('account-a').state.workspaces[0].reme?.summaries.length,
     1,
+  );
+});
+
+test('client coverage retains every uncovered normal turn independently of legacy window limits', async () => {
+  let w = fixture();
+  w.client = {
+    ...emptyRemeTrack(),
+    retain: 1,
+    retainMode: 'tokens',
+    retainTokens: 1,
+  };
+  const originalCustom = coverage(summaryWorkspace(w, 'custom')).recent.map(
+    (t) => t.id,
+  );
+  const submit = (from: number, to: number, id: string) => {
+    w = applyClientSummary(w, {
+      source: transcriptRange(w, from, to),
+      baseSummaryRevision: clientSummaryState(w).revision,
+      id,
+      title: id,
+      text: 'cumulative-' + id,
+      model: 'test',
+      createdAt: '2026-09-22',
+    });
+  };
+  assert.equal(coverage(summaryWorkspace(w, 'client')).recent.length, 5);
+  submit(2, 3, 'first');
+  let c = coverage(summaryWorkspace(w, 'client'));
+  assert.deepEqual(
+    c.recent.map((t) => t.id),
+    [w.turns[0].id, w.turns[3].id, w.turns[4].id],
+  );
+  assert.equal(c.gap.length + c.pending.length + c.queued.length, 0);
+  w.turns.push(
+    ...groupTurns([
+      { role: 'user', content: 'new-uncovered' },
+      { role: 'assistant', content: 'new-response' },
+    ]),
+  );
+  c = coverage(summaryWorkspace(w, 'client'));
+  assert.equal(c.recent.length, 4);
+  const full = memoryText(summaryWorkspace(w, 'client'), [
+    { id: 'r', type: 'recent' },
+  ]);
+  assert.ok(full.includes('new-uncovered'));
+  assert.ok(full.includes('用户内容 0'));
+  assert.ok(!full.includes('用户内容 1'));
+  submit(1, 6, 'all');
+  assert.equal(coverage(summaryWorkspace(w, 'client')).recent.length, 0);
+  assert.equal(coverage(summaryWorkspace(w, 'client')).covered.length, 6);
+  assert.throws(
+    () =>
+      applyWorkspaceCommand(w, {
+        type: 'summary/retain',
+        engine: 'client',
+        retain: 2,
+      }),
+    /客户端/,
+  );
+  assert.deepEqual(
+    coverage(
+      summaryWorkspace({ ...w, turns: w.turns.slice(0, 5) }, 'custom'),
+    ).recent.map((t) => t.id),
+    originalCustom,
   );
 });

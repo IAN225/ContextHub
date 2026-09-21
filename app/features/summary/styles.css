@@ -444,6 +444,23 @@
   }
 }
 
+.client-retention {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--ui-text, #737b65);
+  font-size: 14px;
+}
+.client-retention strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-accent, #657f54);
+}
+.client-retention small {
+  color: var(--ui-muted, #737b65);
+  font-size: 12px;
+}
+
 .summary-engine-tabs {
   display: flex;
   gap: 8px;
@@ -451,6 +468,8 @@
   border-bottom: 1px solid var(--ui-border, #dee6d1);
 }
 .summary-engine-tabs button {
+  flex: 0 0 auto;
+  white-space: nowrap;
   padding: 12px 18px;
   background: transparent;
   border: 0;

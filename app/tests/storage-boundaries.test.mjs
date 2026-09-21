@@ -24,7 +24,6 @@ test('auxiliary schemas share nested validation and reject unknown keys, fields 
   const draft = {
     messages: [{ role: 'user', content: '', attachmentIds: ['a'] }],
     attachments: [],
-    title: '',
     source: '',
   };
   assert.deepEqual(
@@ -32,6 +31,10 @@ test('auxiliary schemas share nested validation and reject unknown keys, fields 
     draft,
   );
   assert.equal(decodeAuxiliary('turn-draft-a-b', draft), draft);
+  assert.deepEqual(
+    decodeAuxiliary('turn-draft-a-b', { ...draft, title: '旧标题' }),
+    draft,
+  );
   assert.throws(
     () =>
       decodeAuxiliary('search-draft', {

@@ -113,20 +113,19 @@ test('both engines and MCP injection use the same latest window as coverage befo
     read: async () => ({ workspace: mcpWorkspace(w), syncedAt: 'now' }),
   } as unknown as McpRepository;
   for (const engine of ['custom', 'reme'] as const) {
-    const result = (await callMcpTool(repo, token, 'memory_bootstrap', {
-      engine,
-    })) as {
+    w.memoryEngine = engine;
+    const result = (await callMcpTool(repo, token, 'memory_bootstrap', {})) as {
       content: string;
-      recentTurnIds: string[];
-      omittedTurnIds: string[];
+      recent_turn_ids: string[];
+      omitted_turn_ids: string[];
     };
     const c = coverage(summaryWorkspace(w, engine));
     assert.deepEqual(
-      result.recentTurnIds,
+      result.recent_turn_ids,
       ids(w.turns.slice(engine === 'custom' ? -6 : -2)),
     );
-    assert.deepEqual(result.recentTurnIds, ids(c.recent));
-    assert.deepEqual(result.omittedTurnIds, ids(c.queued));
+    assert.deepEqual(result.recent_turn_ids, ids(c.recent));
+    assert.deepEqual(result.omitted_turn_ids, ids(c.queued));
     assert.ok(result.content.includes('ANSWER_12'));
     assert.ok(!result.content.includes('REQUEST_01'));
   }

@@ -80,10 +80,11 @@ export function createMemorySearch() {
           'turn',
           cached(turns, w.turns, () =>
             w.turns
-              .filter((t) => t.status === 'normal')
-              .map((t) => ({
+              .map((t, index) => ({ t, number: index + 1 }))
+              .filter(({ t }) => t.status === 'normal')
+              .map(({ t, number }) => ({
                 id: t.id,
-                title: t.title,
+                title: `第 ${number} 轮`,
                 text: t.messages
                   .map((m) => `${m.role}: ${m.content}`)
                   .join('\n\n'),

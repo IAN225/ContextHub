@@ -10,7 +10,7 @@ import { normalizeHubState } from '../state/validation.ts';
 export const BACKUP_LIMIT = 100 * 1024 * 1024;
 export type HubBackup = {
   format: 'context-hub-backup';
-  version: 1;
+  version: 2;
   createdAt: string;
   entries: StorageEntry[];
 };
@@ -34,7 +34,9 @@ export function backupState(backup: HubBackup) {
 }
 export function validateBackup(raw: unknown): HubBackup {
   check(
-    object(raw) && raw.format === 'context-hub-backup' && raw.version === 1,
+    object(raw) &&
+      raw.format === 'context-hub-backup' &&
+      (raw.version === 1 || raw.version === 2),
   );
   check(
     typeof raw.createdAt === 'string' &&
@@ -72,11 +74,21 @@ export function validateBackup(raw: unknown): HubBackup {
   for (const w of state.workspaces) {
     unique(w.turns);
     unique(w.notes);
-    unique(w.summaries);
+    for (const track of [w, w.reme, w.client]) {
+      if (!track) continue;
+      unique(track.summaries);
+      check(Number.isInteger(track.retain) && track.retain >= 1);
+      check(
+        track.activeId === null ||
+          track.summaries.some((s) => s.id === track.activeId),
+      );
+      check(
+        track.watermark === null ||
+          w.turns.some((t) => t.id === track.watermark),
+      );
+      validateAuxiliary('model-draft-validation', track.config);
+    }
     unique(w.blocks);
-    check(Number.isInteger(w.retain) && w.retain >= 1);
-    check(w.activeId === null || w.summaries.some((s) => s.id === w.activeId));
-    check(w.watermark === null || w.turns.some((t) => t.id === w.watermark));
     for (const n of w.notes) {
       check(
         ['createdAt', 'updatedAt', 'editor', 'source'].every(
@@ -96,7 +108,6 @@ export function validateBackup(raw: unknown): HubBackup {
         ),
       );
     }
-    validateAuxiliary('model-draft-validation', w.config);
     blocks(w.blocks);
     check(
       w.tokens.every(
@@ -112,7 +123,7 @@ export function validateBackup(raw: unknown): HubBackup {
   }
   return {
     format: 'context-hub-backup',
-    version: 1,
+    version: 2,
     createdAt: raw.createdAt,
     entries: entries.map((entry) =>
       entry.key === HUB_KEY ? { ...entry, value: state } : entry,
@@ -148,7 +159,7 @@ export async function createBackup(
   }
   return validateBackup({
     format: 'context-hub-backup',
-    version: 1,
+    version: 2,
     createdAt: new Date().toISOString(),
     entries,
   });
@@ -188,6 +199,22 @@ export async function restoreBackup(
       workspaces: state.workspaces.map((w) => ({
         ...w,
         config: { ...w.config, auto: false },
+        ...(w.reme
+          ? { reme: { ...w.reme, config: { ...w.reme.config, auto: false } } }
+          : {}),
+        ...(w.client
+          ? {
+              client: {
+                ...w.client,
+                config: {
+                  ...w.client.config,
+                  auto: false,
+                  configured: false,
+                  modelEnabled: false,
+                },
+              },
+            }
+          : {}),
       })),
     };
     return [

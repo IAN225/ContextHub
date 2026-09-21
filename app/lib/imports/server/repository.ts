@@ -1,7 +1,7 @@
 import type { WorkspaceApplication } from '../../application/server/workspaces.ts';
 import { type Upload } from '../../core/model.ts';
 import type { SQLiteDatabase } from '../../server/sqlite.ts';
-import { ImportError } from '../contracts.ts';
+import { ImportError, MAX_PENDING_IMPORT_BYTES } from '../contracts.ts';
 
 export type Owner = { id: string; key_hash: string | null };
 type Receipt = {
@@ -87,7 +87,7 @@ export function createImportRepository(
           pending.length >= 200 ||
           new TextEncoder().encode(JSON.stringify(pending)).length +
             new TextEncoder().encode(JSON.stringify(upload)).length >
-            20 * 1024 * 1024
+            MAX_PENDING_IMPORT_BYTES
         )
           throw new ImportError(
             'INBOX_FULL',

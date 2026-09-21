@@ -148,9 +148,17 @@
   .upload-review-dialog .inbox-layout {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
-    gap: 12px;
+    gap: 8px;
   }
   .inbox-layout .inbox-list {
-    max-height: 112px;
+    max-height: 74px;
+    overflow-y: hidden;
+  }
+  .inbox-paper-body {
+    scrollbar-gutter: auto;
+    padding: 10px 0;
+  }
+  .inbox-paper .inbox-file-action {
+    padding-top: 8px;
   }
 }

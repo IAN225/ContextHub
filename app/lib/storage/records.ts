@@ -1,3 +1,7 @@
+import {
+  withoutTurnTitle,
+  normalizeTurnList,
+} from '../transcript/compatibility.ts';
 import type { StorageEntry } from './account-repository.ts';
 // Stable account-scoped keys. A format version belongs to each record, not the UI model.
 export const HUB_KEY = 'hub-state-v1';
@@ -18,16 +22,49 @@ function id(value: unknown): string {
   return encodeURIComponent(value);
 }
 export function encodeRecord(kind: string, data: unknown) {
-  return { format: 'contexthub-record', kind, version: 1, data };
+  // A new optional track upgrades its owning workspace record. Legacy readers
+  // reject it before reconstructing state instead of dropping unfamiliar records.
+  const workspace = kind === 'workspace' ? object(data) : null;
+  const version =
+    kind === 'turn' || kind === 'upload'
+      ? 2
+      : workspace &&
+          (workspace.hasClient ||
+            workspace.summaryTab === 'client' ||
+            workspace.memoryEngine === 'client')
+        ? 2
+        : 1;
+  const value =
+    kind === 'turn'
+      ? withoutTurnTitle(object(data))
+      : kind === 'upload'
+        ? {
+            ...object(data),
+            turns: normalizeTurnList(array(object(data).turns).map(object)),
+          }
+        : data;
+  return { format: 'contexthub-record', kind, version, data: value };
 }
 export function decodeRecord(value: unknown, kind?: string): unknown {
   const record = object(value);
   if (
     record.format !== 'contexthub-record' ||
-    record.version !== 1 ||
+    (record.version !== 1 &&
+      !(
+        ['workspace', 'turn', 'upload'].includes(String(record.kind)) &&
+        record.version === 2
+      )) ||
     (kind && record.kind !== kind)
   )
     throw new Error('存储版本不兼容，请使用匹配的应用版本。');
+  if (record.kind === 'turn') return withoutTurnTitle(object(record.data));
+  if (record.kind === 'upload') {
+    const upload = object(record.data);
+    return {
+      ...upload,
+      turns: normalizeTurnList(array(upload.turns).map(object)),
+    };
+  }
   return record.data;
 }
 export function splitHub(value: unknown): StorageEntry[] {
@@ -56,16 +93,31 @@ export function splitHub(value: unknown): StorageEntry[] {
       return v.id;
     });
   const workspaces = list(root.workspaces, 'workspace', 'workspace', (w, p) => {
-    const { turns, notes, summaries, blocks, tokens, reme, ...metadata } = w;
-    if (reme !== undefined) {
-      const { summaries: history, ...settings } = object(reme);
-      put(p + '/reme-settings', 'reme-settings', settings);
+    const {
+      turns,
+      notes,
+      summaries,
+      blocks,
+      tokens,
+      reme,
+      client,
+      ...metadata
+    } = w;
+    delete metadata.hasReme;
+    delete metadata.hasClient;
+    for (const [engine, track] of [
+      ['reme', reme],
+      ['client', client],
+    ] as const) {
+      if (track === undefined) continue;
+      const { summaries: history, ...settings } = object(track);
+      put(p + '/' + engine + '-settings', engine + '-settings', settings);
       put(
-        p + '/reme-summaries',
+        p + '/' + engine + '-summaries',
         'summary-index',
-        list(history, p + '/reme-summary', 'summary'),
+        list(history, p + '/' + engine + '-summary', 'summary'),
       );
-      metadata.hasReme = true;
+      metadata[engine === 'reme' ? 'hasReme' : 'hasClient'] = true;
     }
     const settings: ObjectValue = {};
     for (const key of [
@@ -151,19 +203,30 @@ export function joinHub(entries: readonly StorageEntry[]): unknown {
   return {
     ...root,
     workspaces: list(root.workspaces, 'workspace', 'workspace', (w, p) => ({
-      ...Object.fromEntries(Object.entries(w).filter(([k]) => k !== 'hasReme')),
-      ...(w.hasReme
-        ? {
-            reme: {
-              ...object(get(p + '/reme-settings', 'reme-settings')),
-              summaries: list(
-                get(p + '/reme-summaries', 'summary-index'),
-                p + '/reme-summary',
-                'summary',
-              ),
-            },
-          }
-        : {}),
+      ...Object.fromEntries(
+        Object.entries(w).filter(([k]) => k !== 'hasReme' && k !== 'hasClient'),
+      ),
+      ...Object.fromEntries(
+        ['reme', 'client'].flatMap((engine) =>
+          w[engine === 'reme' ? 'hasReme' : 'hasClient']
+            ? [
+                [
+                  engine,
+                  {
+                    ...object(
+                      get(p + '/' + engine + '-settings', engine + '-settings'),
+                    ),
+                    summaries: list(
+                      get(p + '/' + engine + '-summaries', 'summary-index'),
+                      p + '/' + engine + '-summary',
+                      'summary',
+                    ),
+                  },
+                ],
+              ]
+            : [],
+        ),
+      ),
       ...object(get(p + '/summary-settings', 'summary-settings')),
       blocks: get(p + '/blocks', 'memory-blocks'),
       tokens: get(p + '/tokens', 'connections'),

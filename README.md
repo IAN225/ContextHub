@@ -8,11 +8,11 @@ ContextHub 是一个可部署在云端托管的 AI 对话与记忆工作区。�
 
 - **整理对话**：导入已有对话、接收客户端投递，按轮次查看原文和附件。
 - **Note**：MCP 客户端模型和用户都可以创建、搜索、修改，支持编辑历史与标星。
-- **压缩上下文**：配置自己的模型服务，分批生成摘要，保留近期原文。
+- **压缩上下文**：配置模型服务分批生成摘要，或让已连接 MCP 的对话模型下载原文、自行压缩并提交摘要。
 - **编排记忆包**：组合摘要、原文、Note 和自定义内容，供 MCP 客户端读取。
 - **个性化外观**：设置工作区主题和模型头像，导入自己的桌宠角色包（兼容codex格式）。
 
-摘要提供“自定义压缩”和“ReMeLight 风格（实验）”两种方案，可分别配置模型与压缩策略。实验方案是参考 ReMeLight 的实现，不包含其官方 Python 引擎。模型调用需要自行配置 API，费用由所用模型服务收取。详见[摘要方案](docs/summary-engines.md)。
+摘要提供“自定义压缩”“ReMeLight 风格（实验）”和“客户端压缩”三种独立方案。前两种自行配置模型 API；客户端压缩由 MCP 连接的对话模型完成，无需在 ContextHub 配置摘要模型。实验方案参考 ReMeLight，不包含其官方 Python 引擎。模型使用费用由相应服务收取。详见[摘要方案与 MCP 压缩流程](docs/summary-engines.md)。
 
 ## Quickstart
 
@@ -30,7 +30,7 @@ cd ContextHub
 sudo bash deploy/install.sh
 ```
 
-脚本会安装运行依赖、构建应用、创建数据库，并设置服务开机自启。完成后访问：
+脚本会安装运行依赖（包括 Claude 分享导入使用的 Chromium 和 Xvfb）、构建应用、创建数据库，并设置服务开机自启。完成后访问：
 
 ```text
 http://服务器IP:8080
@@ -153,6 +153,7 @@ Docker 部署将最后一行换为 `sudo bash deploy/docker.sh`。自定义安�
 ## 更多文档
 
 - [摘要方案与记忆来源](docs/summary-engines.md)
+- [MCP 工具与客户端压缩](docs/mcp-tools.md)
 - [制作和导入桌宠](docs/pet-packs.md)
 - [部署维护与备份恢复](docs/operations.md)
 - [项目结构、模块边界与开发检查](docs/architecture.md)

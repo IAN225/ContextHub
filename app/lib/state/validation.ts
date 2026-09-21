@@ -1,4 +1,5 @@
 import { type Turn, type Upload, type Workspace } from '../core/model.ts';
+import { normalizeTurnList } from '../transcript/compatibility.ts';
 import { uploadChannel } from '../imports/queue.ts';
 import { validAppearance } from '../workspaces/appearance.ts';
 import { type HubState } from './contracts.ts';
@@ -23,7 +24,6 @@ function validTurns(value: unknown): value is Turn[] {
     value.every(
       (t) =>
         identified(t) &&
-        typeof t.title === 'string' &&
         typeof t.source === 'string' &&
         ['normal', 'deprecated', 'trash'].includes(String(t.status)) &&
         Array.isArray(t.messages) &&
@@ -162,14 +162,26 @@ export function normalizeHubState(raw: unknown): HubState {
       requireShape(
         item[key] === undefined ||
           item[key] === 'custom' ||
-          item[key] === 'reme',
+          item[key] === 'reme' ||
+          item[key] === 'client',
       );
-    if (item.reme !== undefined) {
-      requireShape(record(item.reme));
+    for (const engine of ['reme', 'client']) {
+      if (item[engine] === undefined) continue;
+      requireShape(record(item[engine]));
+      if (engine === 'client') {
+        const config = item[engine].config;
+        requireShape(
+          record(config) &&
+            config.auto === false &&
+            config.configured === false &&
+            !config.modelEnabled,
+        );
+      }
       const scoped = {
         ...item,
-        ...item.reme,
+        ...item[engine],
         reme: undefined,
+        client: undefined,
         summaryEngine: undefined,
       };
       normalizeHubState({
@@ -178,7 +190,11 @@ export function normalizeHubState(raw: unknown): HubState {
         uploads: [],
       });
     }
-    const workspace = item as unknown as Workspace;
+    const original = item as unknown as Workspace;
+    const turns = normalizeTurnList(original.turns);
+    const workspace =
+      turns === original.turns ? original : { ...original, turns };
+    changed ||= workspace !== original;
     if (workspace.firstComplete !== undefined) return workspace;
     changed = true;
     return { ...workspace, firstComplete: workspace.started };
@@ -201,7 +217,10 @@ export function normalizeHubState(raw: unknown): HubState {
         item.summaryEngine === 'custom' ||
         item.summaryEngine === 'reme',
     );
-    const upload = item as unknown as Upload;
+    const original = item as unknown as Upload;
+    const turns = normalizeTurnList(original.turns);
+    const upload = turns === original.turns ? original : { ...original, turns };
+    changed ||= upload !== original;
     const channel = uploadChannel(upload);
     if (upload.channel === channel) return upload;
     changed = true;

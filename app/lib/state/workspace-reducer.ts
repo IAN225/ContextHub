@@ -1,3 +1,4 @@
+import { applyClientSummary } from '../summary/client-compression.ts';
 import { type Workspace } from '../core/model.ts';
 import {
   parseSummaryEngine,
@@ -15,6 +16,8 @@ export function applyWorkspaceCommand(
   w: Workspace,
   command: WorkspaceCommand,
 ): Workspace {
+  if (command.type === 'summary/client')
+    return applyClientSummary(w, command.submission);
   if (command.type === 'summary/tab')
     return { ...w, summaryTab: parseSummaryEngine(command.value) };
   if (command.type === 'memory/engine')
@@ -33,8 +36,8 @@ export function applyWorkspaceCommand(
       summaryWorkspace(w, engine ?? 'custom'),
       command,
     );
-    return engine === 'reme'
-      ? { ...w, reme: summaryTrack(next) }
+    return engine === 'reme' || engine === 'client'
+      ? { ...w, [engine]: summaryTrack(next) }
       : { ...w, ...summaryTrack(next) };
   }
   switch (command.type) {

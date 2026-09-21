@@ -58,7 +58,7 @@ export function attachmentContext(a: Attachment) {
     type: a.type,
     status: attachmentStatus(a),
     size: a.size,
-    ...(a.text
+    ...(typeof a.text === 'string'
       ? { text: a.text }
       : { content: '未提供附件正文；不可推断图片或文件内容' }),
   };
@@ -216,9 +216,9 @@ export function parseMediaBlock(value: unknown): Attachment | undefined {
       ? inline.startsWith('data:')
         ? inline
         : `data:${mime};base64,${inline}`
-      : source.type === 'base64' && sourceData
+      : source.type === 'base64' && typeof source.data === 'string'
         ? `data:${mime};base64,${sourceData}`
-        : source.type === 'text' && sourceData
+        : source.type === 'text' && typeof source.data === 'string'
           ? bytesDataUrl(new TextEncoder().encode(sourceData), 'text/plain')
           : url,
     reference: string(

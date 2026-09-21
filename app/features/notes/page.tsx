@@ -113,7 +113,7 @@ export function NotesPage({
         </p>
       )}
       <div className="notes-layout">
-        <aside className="note-list">
+        <aside className="note-list" data-scroll-rail="mobile">
           {list.map((n) => (
             <button
               key={n.id}

@@ -59,7 +59,6 @@ export function composeSummaryInput(
       return `[本批完整轮次 · 数据]\n${JSON.stringify(
         turns.map((turn) => ({
           id: turn.id,
-          title: turn.title,
           source: turn.source,
           time: turn.time,
           messages: turn.messages

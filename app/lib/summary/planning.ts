@@ -1,3 +1,4 @@
+import { withoutTurnTitle } from '../transcript/compatibility.ts';
 import { attachmentContext } from '../attachments/content.ts';
 import {
   type Summary,
@@ -13,12 +14,12 @@ import {
   type SummaryResult,
 } from './contracts.ts';
 import { coverage } from './coverage.ts';
-import type { SummaryEngine } from './engines.ts';
+import { parseModelSummaryEngine, type ModelSummaryEngine } from './engines.ts';
 import { composeSummaryInput } from './prompts.ts';
 import { REME_STRATEGY_VERSION, validateRemeSummary } from './reme.ts';
 
 export type SummaryPlan = {
-  engine?: SummaryEngine;
+  engine?: ModelSummaryEngine;
   expected: string;
   input: SummaryInput;
   turnIds: string[];
@@ -35,7 +36,7 @@ export function summaryRevision(w: WorkspaceContext) {
       ? { engine: 'reme', strategy: REME_STRATEGY_VERSION }
       : {}),
     turns: w.turns.map((t) => ({
-      ...t,
+      ...withoutTurnTitle(t),
       messages: t.messages.map(
         ({ role, content, name, callId, attachmentIds }) => ({
           role,
@@ -104,7 +105,7 @@ export function planCompression(w: WorkspaceContext): SummaryPlan | null {
       '提示词、上一份摘要和下一完整轮次超出每批发送上限或模型预算。请提高上限、缩短提示词或降低输出预留；系统不会截断轮次。',
     );
   return {
-    engine: w.summaryEngine ?? 'custom',
+    engine: parseModelSummaryEngine(w.summaryEngine),
     expected: summaryRevision(w),
     input,
     turnIds: batch.map((t) => t.id),
@@ -143,7 +144,7 @@ export function planWorkbench(
   };
 }
 export type GeneratedCheckpoint = {
-  engine?: SummaryEngine;
+  engine?: ModelSummaryEngine;
   expected: string;
   summary: Summary;
   turnIds: string[];

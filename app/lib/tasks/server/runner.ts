@@ -3,7 +3,7 @@ import {
   fingerprintAttachment,
 } from '../../attachments/content.ts';
 import { type Attachment } from '../../core/model.ts';
-import { type SummaryEngine } from '../../summary/engines.ts';
+import { type ModelSummaryEngine } from '../../summary/engines.ts';
 import { type SummaryEnvironment } from '../../summary/server/config.ts';
 import { TaskError, type AttachmentTaskState } from '../contracts.ts';
 import { body, headers, requireRunner, type TaskEnvironment } from './http.ts';
@@ -18,7 +18,7 @@ export async function handleRunner(
   fetcher?: typeof fetch,
   connectionForOwner?: (
     owner: string,
-    engine: SummaryEngine,
+    engine: ModelSummaryEngine,
   ) => Promise<SummaryEnvironment>,
 ) {
   await requireRunner(request, env);

@@ -62,27 +62,32 @@ export function purgeTrash(
     return {
       ...w,
       watermark,
-      ...(w.reme
-        ? {
-            reme: {
-              ...w.reme,
-              watermark:
-                w.reme.watermark && removedTurns.has(w.reme.watermark)
-                  ? (w.turns
-                      .slice(
-                        0,
-                        w.turns.findIndex((t) => t.id === w.reme!.watermark),
-                      )
-                      .filter((t) => !removedTurns.has(t.id))
-                      .at(-1)?.id ?? null)
-                  : w.reme.watermark,
-              summaries: w.reme.summaries.map((s) => ({
-                ...s,
-                covered: s.covered.filter((id) => !removedTurns.has(id)),
-              })),
-            },
-          }
-        : {}),
+      ...Object.fromEntries(
+        (['reme', 'client'] as const).flatMap((engine) => {
+          const track = w[engine];
+          if (!track) return [];
+          const index = w.turns.findIndex((t) => t.id === track.watermark);
+          return [
+            [
+              engine,
+              {
+                ...track,
+                watermark:
+                  track.watermark && removedTurns.has(track.watermark)
+                    ? (w.turns
+                        .slice(0, index)
+                        .filter((t) => !removedTurns.has(t.id))
+                        .at(-1)?.id ?? null)
+                    : track.watermark,
+                summaries: track.summaries.map((s) => ({
+                  ...s,
+                  covered: s.covered.filter((id) => !removedTurns.has(id)),
+                })),
+              },
+            ],
+          ];
+        }),
+      ),
       turns: w.turns.filter((t) => !removedTurns.has(t.id)),
       notes: w.notes.filter((n) => !removedNotes.has(n.id)),
       summaries: w.summaries.map((s) => ({
