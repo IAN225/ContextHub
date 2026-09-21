@@ -213,7 +213,7 @@
     display: flex;
     overflow-x: auto;
     gap: 10px;
-    padding-bottom: 8px;
+    padding: 6px;
   }
   .note-list > button {
     flex-shrink: 0;

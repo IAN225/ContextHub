@@ -41,37 +41,15 @@ export function ChainMap({
     <div
       className={`chain${compact ? ' chain-compact' : ''}${includeInactive ? ' chain-positioned' : ''}`}
     >
-      <div className="chain-track">
-        {runs.map((r, i) => (
-          <div
-            key={i}
-            style={{ flex: r.count / n, minWidth: r.count ? 6 : 0 }}
-            className={`chain-run coverage-${r.type}`}
-            title={`${{ covered: '摘要已覆盖', recent: '近期原文', gap: '记忆缺口', pending: '待压缩', deprecated: '弃用 · 不参与召回', trash: '回收站 · 不参与召回' }[r.type]} · ${r.count} 轮`}
-          >
-            {selectedIndex >= r.start && selectedIndex < r.start + r.count && (
-              <svg
-                className="chain-cursor"
-                viewBox="0 0 12 24"
-                aria-label={`当前第 ${selectedNumber} 轮，共 ${w.turns.length} 轮`}
-                style={{
-                  left: `${((selectedIndex - r.start + 0.5) / r.count) * 100}%`,
-                }}
-              >
-                <title>{`读到这里 · 第 ${selectedNumber} 轮`}</title>
-                <path d="M6 14V24" stroke="currentColor" />
-                <path d="M1 0H11V16L6 12L1 16Z" fill="currentColor" />
-                <path d="M3 2H9" stroke="#f7efd8" strokeOpacity="0.65" />
-              </svg>
-            )}
-          </div>
-        ))}
-      </div>
       {!compact && (
         <div className="chain-labels">
           <span>
             <i className="coverage-covered" />
             摘要覆盖 {c.covered.length} 轮
+          </span>
+          <span>
+            <i className="coverage-recent" />
+            原文窗口 {c.recent.length} 轮
           </span>
           {c.gap.length > 0 && (
             <span className="amber">
@@ -91,12 +69,38 @@ export function ChainMap({
               不参与召回 {inactiveCount} 轮
             </span>
           )}
-          <span>
-            <i className="coverage-recent" />
-            原文窗口 {c.recent.length} 轮
-          </span>
         </div>
       )}
+      <div className="chain-track">
+        {runs.map((r, i) => (
+          <div
+            key={i}
+            style={{ flex: r.count / n, minWidth: r.count ? 6 : 0 }}
+            className={`chain-run coverage-${r.type}`}
+            title={`${{ covered: '摘要已覆盖', recent: '近期原文', gap: '记忆缺口', pending: '待压缩', deprecated: '弃用 · 不参与召回', trash: '回收站 · 不参与召回' }[r.type]} · ${r.count} 轮`}
+          >
+            {selectedIndex >= r.start && selectedIndex < r.start + r.count && (
+              <svg
+                className="chain-cursor"
+                viewBox="0 0 16 24"
+                aria-label={`当前第 ${selectedNumber} 轮，共 ${w.turns.length} 轮`}
+                style={{
+                  left: `${((selectedIndex - r.start + 0.5) / r.count) * 100}%`,
+                }}
+              >
+                <title>{`读到这里 · 第 ${selectedNumber} 轮`}</title>
+                <path d="M8 15V24M5 21H11" stroke="currentColor" />
+                <path d="M8 1L14 8L8 16L2 8Z" fill="currentColor" />
+                <path
+                  d="M8 4L11 8L8 12L5 8Z"
+                  fill="none"
+                  stroke="var(--ui-surface, #fffef8)"
+                />
+              </svg>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

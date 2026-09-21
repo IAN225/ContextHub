@@ -14,6 +14,7 @@ export function SummaryPage(props: Parameters<typeof SummaryEnginePage>[0]) {
     <>
       <div
         className="summary-engine-tabs"
+        data-scroll-rail="always"
         role="tablist"
         aria-label="摘要压缩方案"
       >

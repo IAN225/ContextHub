@@ -444,9 +444,25 @@
   }
 }
 
+.client-retention {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--ui-text, #737b65);
+  font-size: 14px;
+}
+.client-retention strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-accent, #657f54);
+}
+.client-retention small {
+  color: var(--ui-muted, #737b65);
+  font-size: 12px;
+}
+
 .summary-engine-tabs {
   display: flex;
-  overflow-x: auto;
   gap: 8px;
   margin-bottom: 14px;
   border-bottom: 1px solid var(--ui-border, #dee6d1);

@@ -1,3 +1,9 @@
+import { coverage } from '../lib/summary/coverage.ts';
+import {
+  applyClientSummary,
+  clientSummaryState,
+} from '../lib/summary/client-compression.ts';
+import { transcriptRange } from '../lib/transcript/range.ts';
 import { parseMediaBlock } from '../lib/attachments/content.ts';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -471,5 +477,69 @@ test('both strategies enqueue independently and run serially with strategy-speci
   assert.equal(
     app.read('account-a').state.workspaces[0].reme?.summaries.length,
     1,
+  );
+});
+
+test('client coverage retains every uncovered normal turn independently of legacy window limits', async () => {
+  let w = fixture();
+  w.client = {
+    ...emptyRemeTrack(),
+    retain: 1,
+    retainMode: 'tokens',
+    retainTokens: 1,
+  };
+  const originalCustom = coverage(summaryWorkspace(w, 'custom')).recent.map(
+    (t) => t.id,
+  );
+  const submit = (from: number, to: number, id: string) => {
+    w = applyClientSummary(w, {
+      source: transcriptRange(w, from, to),
+      baseSummaryRevision: clientSummaryState(w).revision,
+      id,
+      title: id,
+      text: 'cumulative-' + id,
+      model: 'test',
+      createdAt: '2026-09-22',
+    });
+  };
+  assert.equal(coverage(summaryWorkspace(w, 'client')).recent.length, 5);
+  submit(2, 3, 'first');
+  let c = coverage(summaryWorkspace(w, 'client'));
+  assert.deepEqual(
+    c.recent.map((t) => t.id),
+    [w.turns[0].id, w.turns[3].id, w.turns[4].id],
+  );
+  assert.equal(c.gap.length + c.pending.length + c.queued.length, 0);
+  w.turns.push(
+    ...groupTurns([
+      { role: 'user', content: 'new-uncovered' },
+      { role: 'assistant', content: 'new-response' },
+    ]),
+  );
+  c = coverage(summaryWorkspace(w, 'client'));
+  assert.equal(c.recent.length, 4);
+  const full = memoryText(summaryWorkspace(w, 'client'), [
+    { id: 'r', type: 'recent' },
+  ]);
+  assert.ok(full.includes('new-uncovered'));
+  assert.ok(full.includes('用户内容 0'));
+  assert.ok(!full.includes('用户内容 1'));
+  submit(1, 6, 'all');
+  assert.equal(coverage(summaryWorkspace(w, 'client')).recent.length, 0);
+  assert.equal(coverage(summaryWorkspace(w, 'client')).covered.length, 6);
+  assert.throws(
+    () =>
+      applyWorkspaceCommand(w, {
+        type: 'summary/retain',
+        engine: 'client',
+        retain: 2,
+      }),
+    /客户端/,
+  );
+  assert.deepEqual(
+    coverage(
+      summaryWorkspace({ ...w, turns: w.turns.slice(0, 5) }, 'custom'),
+    ).recent.map((t) => t.id),
+    originalCustom,
   );
 });

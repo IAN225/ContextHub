@@ -1,6 +1,8 @@
 'use client';
 import { FileText, Inbox, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { Checkbox } from '../../components/ui/checkbox.tsx';
+import { ImportWarning } from './import-warning.tsx';
 import { Button } from '../../components/shared/button.tsx';
 import { Empty } from '../../components/shared/empty.tsx';
 import { Modal } from '../../components/shared/modal.tsx';
@@ -60,6 +62,12 @@ export function UploadReview({
     u && trigger && !includeTrigger
       ? { ...u, turns: u.turns.filter((turn) => turn.id !== trigger.id) }
       : u;
+  const selectedTurns = (preview?.turns ?? []).filter((turn) =>
+    checked.includes(turn.id),
+  );
+  const allSelected = Boolean(
+    preview?.turns.length && selectedTurns.length === preview.turns.length,
+  );
   const w = workspaces.find(
     (w) => w.id === (u?.kind === 'summary' ? u.workspaceId : target),
   );
@@ -77,7 +85,7 @@ export function UploadReview({
     <>
       {uploads.length ? (
         <div className="inbox-layout">
-          <aside className="inbox-list">
+          <aside className="inbox-list" data-scroll-rail="mobile">
             <div className="surface-head">
               <h2>{delivery ? '待归档上下文' : '待确认内容'}</h2>
               <span className="pill">{uploads.length} 份</span>
@@ -88,6 +96,7 @@ export function UploadReview({
                 key={x.id}
                 onClick={() => {
                   setSelected(x.id);
+                  setRemove(false);
                   setChecked([]);
                 }}
               >
@@ -114,14 +123,36 @@ export function UploadReview({
           {u && preview && (
             <article className="inbox-paper">
               <div className="inbox-paper-top">
-                <div>
+                {u.kind === 'conversation' && (
+                  <label className="inbox-select-all">
+                    <Checkbox
+                      aria-label="全选轮次"
+                      checked={allSelected}
+                      indeterminate={Boolean(
+                        selectedTurns.length && !allSelected,
+                      )}
+                      disabled={!preview.turns.length}
+                      onCheckedChange={(yes) =>
+                        setChecked(yes ? preview.turns.map((t) => t.id) : [])
+                      }
+                    />
+                    <span>全选</span>
+                  </label>
+                )}
+                <div className="inbox-receipt-meta">
                   <p>
                     {u.kind === 'summary' ? '候选摘要' : `${u.turns.length} 轮`}{' '}
                     · {formatDate(u.createdAt)}
                   </p>
                 </div>
+                {u.warning && <ImportWarning key={u.id} warning={u.warning} />}
                 <button
-                  aria-label="删除这份待确认内容"
+                  disabled={u.kind === 'conversation' && !selectedTurns.length}
+                  aria-label={
+                    u.kind === 'summary'
+                      ? '删除候选摘要'
+                      : `删除所选轮次（${selectedTurns.length}）`
+                  }
                   className="icon-button"
                   onClick={() => setRemove(true)}
                 >
@@ -133,7 +164,6 @@ export function UploadReview({
                 key={u.id}
                 aria-label="收件内容"
               >
-                {u.warning && <p className="callout warning">{u.warning}</p>}
                 {trigger && (
                   <div className="delivery-trigger-option">
                     <label>
@@ -181,12 +211,6 @@ export function UploadReview({
                     turns={preview.turns}
                     checked={checked}
                     onCheckedChange={setChecked}
-                    onRemoveChecked={() => {
-                      edit({
-                        turns: u.turns.filter((t) => !checked.includes(t.id)),
-                      });
-                      setChecked([]);
-                    }}
                   />
                 )}
               </section>
@@ -230,23 +254,38 @@ export function UploadReview({
       )}
       {remove && u && (
         <Modal
-          title="删除这份未归档内容？"
+          title={
+            u.kind === 'summary'
+              ? '删除候选摘要？'
+              : allSelected
+                ? '删除整份收件？'
+                : `删除选中的 ${selectedTurns.length} 轮？`
+          }
           description="编辑当前收件。"
           onClose={() => setRemove(false)}
         >
           <p className="callout warning">
-            这份来自 {u.source} 的收件将永久删除，无法从回收站恢复。
+            {u.kind === 'summary' || allSelected
+              ? '整份收件将永久删除。'
+              : `选中的 ${selectedTurns.length} 轮将永久删除，其余轮次保留。`}
           </p>
           <div className="form-actions">
             <Button onClick={() => setRemove(false)}>保留</Button>
             <Button
               onClick={() => {
-                onRemove(u.id);
+                if (u.kind === 'summary' || allSelected) onRemove(u.id);
+                else if (selectedTurns.length)
+                  edit({
+                    turns: u.turns.filter(
+                      (t) =>
+                        !selectedTurns.some((selected) => selected.id === t.id),
+                    ),
+                  });
                 setRemove(false);
                 setChecked([]);
               }}
             >
-              删除这份收件
+              确认删除
             </Button>
           </div>
         </Modal>

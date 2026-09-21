@@ -11,6 +11,8 @@
 @import '../components/shared/modal.css';
 @import '../components/shared/settings-link.css';
 @import '../components/shared/content.css';
+@import '../components/shared/conversation.css';
+@import '../components/shared/scroll-rail.css';
 @import '../components/shared/coverage.css';
 @import '../components/shared/composer.css';
 @import '../components/shared/editors.css';

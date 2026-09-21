@@ -51,6 +51,8 @@
   min-width: 0;
 }
 .inbox-paper-top {
+  position: relative;
+  align-items: center;
   display: flex;
   justify-content: space-between;
   gap: 14px;
@@ -59,7 +61,7 @@
   margin-bottom: 20px;
   flex-shrink: 0;
 }
-.inbox-paper-top > div {
+.inbox-paper-top > .inbox-receipt-meta {
   flex: 1;
   min-width: 0;
 }
@@ -79,43 +81,54 @@
 .inbox-paper .rich-editor {
   margin-top: 20px;
 }
-.upload-selection {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 0 0 12px;
-  color: var(--ui-muted, #9caf83);
-  font-size: 12px;
-}
-.upload-selection .button {
-  font-size: 10px;
-  padding: 6px 8px;
-  min-height: 30px;
-}
 .upload-turn {
-  padding: 18px 0;
-  border-bottom: 1px solid var(--ui-border, #e3ead8);
+  padding: 6px 0 18px;
 }
-.upload-turn-label {
+.upload-message-head {
   display: flex;
   align-items: center;
-  gap: 9px;
-  color: var(--ui-muted, #92a572);
-  margin-bottom: 13px;
-  cursor: pointer;
-  font-size: 12px;
+  gap: 10px;
+  min-height: 24px;
 }
-.upload-turn-label > span:last-child {
+.upload-message-head time {
   margin-left: auto;
-  color: var(--ui-muted, #b0be9b);
+  color: var(--ui-muted, #737b65);
+  font-size: 11px;
+}
+.inbox-select-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
+  white-space: nowrap;
+}
+.inbox-warning-button {
+  color: #9b733c;
+}
+.inbox-warning-popover {
+  position: absolute;
+  inset: 100% 0 auto;
+  z-index: 3;
+  margin-top: 6px;
+  padding: 12px;
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid var(--ui-border, #d8c5a4);
+  border-radius: 5px;
+  background: var(--ui-surface, #fffef8);
+  box-shadow: 0 4px 14px #00000014;
+  color: var(--ui-text, #737b65);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.inbox-paper-top .icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 .upload-message {
   display: grid;
   min-width: 0;
   gap: 8px;
-  padding: 10px 0;
 }
 .upload-message small {
   color: var(--ui-muted, #a7b88c);
@@ -158,7 +171,7 @@
     display: flex;
     align-items: stretch;
     overflow-x: auto;
-    padding-bottom: 7px;
+    padding: 6px;
     gap: 10px;
   }
   .inbox-list .surface-head {
@@ -191,17 +204,7 @@
   .upload-message p {
     font-size: 14px;
   }
-  .upload-message small,
-  .upload-turn-label,
-  .upload-turn-label > span:last-child {
+  .upload-message small {
     font-size: 11px;
-  }
-  .upload-selection {
-    gap: 8px;
-    font-size: 12px;
-  }
-  .upload-selection .button {
-    white-space: nowrap;
-    flex-shrink: 0;
   }
 }

@@ -148,7 +148,7 @@ export const mcpTools: ToolDefinition[] = [
   tool(
     'summary_read',
     '读取摘要',
-    '读取所选方案的当前活跃摘要，或按 summary_id 读取历史摘要。engine 默认使用用户选择的方案；客户端压缩前明确指定 client，保存返回的 revision 作为 base_summary_revision。recent_from_turn 是该方案近期窗口起点，可据此选择待压缩范围。',
+    '读取所选方案的当前活跃摘要，或按 summary_id 读取历史摘要。engine 默认使用用户选择的方案；客户端压缩前明确指定 client，保存返回的 revision 作为 base_summary_revision。recent_from_turn 是当前保留原文的最早轮次，不是压缩终点。client 由模型自行决定压缩范围；所有未被活跃摘要覆盖的正常原文继续保留，包括之后新增的原文。',
     obj({ engine, summary_id: id }, []),
     result.summaryReadResult,
     true,
@@ -188,7 +188,7 @@ export const mcpTools: ToolDefinition[] = [
   tool(
     'summary_submit',
     '提交完整累积摘要',
-    '将客户端生成的完整累积摘要保存并标记 source 范围中的正常原文已覆盖。先用 summary_read(engine=client) 获取旧摘要与 revision，再用 conversation_read 读取完整目标范围；cumulative_summary 必须合并旧摘要与本次范围内容。source 原样使用读取结果，base_summary_revision 使用所依据的旧摘要版本。服务端检查范围与版本，不能检查语义遗漏。原文保留，其他摘要方案和用户的记忆来源不变。',
+    '将客户端生成的完整累积摘要保存并标记 source 范围中的正常原文已覆盖。先用 summary_read(engine=client) 获取旧摘要与 revision，再用 conversation_read 读取完整目标范围；cumulative_summary 必须合并旧摘要与本次范围内容。source 原样使用读取结果，base_summary_revision 使用所依据的旧摘要版本。服务端检查范围与版本，不能检查语义遗漏。模型通过 source 范围决定压缩哪些轮次；未被累积摘要覆盖的正常原文继续参与记忆注入，无固定保留轮数。原文存储保留，其他摘要方案和用户的记忆来源不变。',
     obj(
       {
         source: sourceRange,

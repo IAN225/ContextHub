@@ -8,6 +8,7 @@ import {
   RotateCcw,
   Trash2,
 } from 'lucide-react';
+import { TurnDivider } from '../../components/shared/turn-divider.tsx';
 import { AttachmentCard } from '../../components/shared/attachment-card.tsx';
 import { Button } from '../../components/shared/button.tsx';
 import { Markdown } from '../../components/shared/markdown.tsx';
@@ -85,8 +86,9 @@ export function TurnDetail({
       </div>
       {tab === 'preview' ? (
         <div className="conversation-text">
+          <TurnDivider number={actual} />
           {media.messages.map((m, i) => (
-            <div className={`message ${m.role}`} key={i}>
+            <div className={`message conversation-role ${m.role}`} data-role={m.role} key={i}>
               <div className="message-avatar">
                 {m.role === 'user' ? (
                   '我'

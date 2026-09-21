@@ -23,13 +23,21 @@ export function memoryText(
             .map((n) => `${n.id} · ${n.title}`)
             .join('\n') || (b.custom ? '未选择笔记' : '暂无标星笔记')
         }`;
-      const turns = b.custom
-        ? coverage({
-            ...w,
-            retain: Math.max(0, Math.floor(b.windowLength ?? 0)),
-            retainMode: 'turns',
-          }).recent
-        : c.recent;
+      const turns =
+        b.custom && w.summaryEngine === 'client'
+          ? c.recent.slice(
+              Math.max(
+                0,
+                c.recent.length - Math.max(0, Math.floor(b.windowLength ?? 0)),
+              ),
+            )
+          : b.custom
+            ? coverage({
+                ...w,
+                retain: Math.max(0, Math.floor(b.windowLength ?? 0)),
+                retainMode: 'turns',
+              }).recent
+            : c.recent;
       return `[${b.custom ? '自选滑动窗口' : '近期原文'}]\n${turns.map((t) => [t.messages.map((m) => `${m.role}: ${m.content}`).join('\n'), ...(t.attachments?.length ? [`[附件资料]\n${JSON.stringify(t.attachments.map(attachmentContext))}`] : [])].join('\n')).join('\n\n')}`;
     })
     .join('\n\n');

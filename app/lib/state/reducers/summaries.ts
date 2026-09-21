@@ -33,6 +33,8 @@ export function applySummaries<T extends WorkspaceContext>(
       return { ...w, config };
     }
     case 'summary/retain':
+      if (w.summaryEngine === 'client')
+        throw new Error('客户端原文保留范围由模型提交的摘要覆盖范围决定。');
       return {
         ...w,
         ...(command.retain !== undefined

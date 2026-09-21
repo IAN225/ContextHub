@@ -1,14 +1,11 @@
 .segments {
-  background: transparent !important;
+  max-width: 100%;
   padding: 0 !important;
-  border-radius: 0 !important;
   height: 34px !important;
   gap: 20px !important;
 }
 .segments [data-slot='tabs-trigger'] {
-  background: transparent !important;
   border: 0 !important;
-  border-radius: 0 !important;
   padding: 0 1px !important;
   box-shadow: none !important;
   font-weight: 400 !important;
