@@ -134,6 +134,9 @@ def docker_drill(temp):
     finally:
         dockerfile.write_bytes(original)
     rolled = journal('docker')
+    frozen = json.loads((rolled / 'compose.json').read_text())
+    profile = frozen['services']['app']['security_opt'][0].split('=', 1)[1]
+    assert Path(profile).parent == rolled and Path(profile).is_file()
     assert json.loads((rolled / 'upgrade.json').read_text())['phase'] == 'rolled-back'
     run('docker', 'compose', 'cp', 'deploy/recovery-fixture.mjs', 'app:/tmp/recovery-fixture.mjs')
     wait_health(8080)
