@@ -1,3 +1,4 @@
+import { parseMediaBlock } from '../lib/attachments/content.ts';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
@@ -273,17 +274,20 @@ test('MCP bootstrap follows user selection; explicit summary reads do not change
 });
 test('empty attachment text keeps the same revision through task serialization', () => {
   const w = fixture();
-  w.turns[0].attachments = [
-    {
-      id: 'empty',
-      name: 'empty.txt',
-      type: 'text/plain',
-      url: 'data:text/plain;base64,',
-      status: 'stored',
-      size: 0,
-      text: '',
-    },
-  ];
+  const empty = parseMediaBlock({
+    type: 'document',
+    source: { type: 'text', data: '' },
+  })!;
+  assert.equal(empty.status, 'stored');
+  assert.equal(empty.text, '');
+  assert.equal(empty.size, 0);
+  const base64 = parseMediaBlock({
+    type: 'document',
+    source: { type: 'base64', media_type: 'text/plain', data: '' },
+  })!;
+  assert.equal(base64.status, 'stored');
+  assert.equal(base64.text, '');
+  w.turns[0].attachments = [empty];
   const scoped = summaryWorkspace(w, 'custom');
   const snapshot = summaryTaskWorkspace(scoped);
   assert.equal(summaryRevision(scoped), summaryRevision(snapshot));
