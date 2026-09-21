@@ -57,7 +57,19 @@ export async function importShare(
           provider.host === 'claude.ai' ? 'application/json' : 'text/html',
       },
     });
-    if ([401, 403, 429].includes(response.status))
+    if (response.headers.get('cf-mitigated') === 'challenge')
+      throw new ImportError(
+        'SOURCE_CHALLENGE',
+        `${provider.label}要求完成 Cloudflare 安全验证，当前服务器无法直接读取。可在来源页面打开对话后，通过手动导入上传内容。`,
+        502,
+      );
+    if (response.status === 429)
+      throw new ImportError(
+        'SOURCE_RATE_LIMITED',
+        `${provider.label}暂时限制了请求频率，请稍后重试。`,
+        502,
+      );
+    if ([401, 403].includes(response.status))
       throw new ImportError(
         'SOURCE_RESTRICTED',
         `${provider.label}限制了服务器读取。浏览器可打开不代表服务器可访问，请复制对话后手动导入。`,
@@ -80,7 +92,7 @@ export async function importShare(
       const parsed = provider.parse(body);
       return createImport(
         provider.id === 'chatgpt-share'
-          ? await resolveChatGPTAssets(parsed, id, fetcher)
+          ? await resolveChatGPTAssets(parsed, id, fetcher, response.headers)
           : parsed,
         provider,
         'link',

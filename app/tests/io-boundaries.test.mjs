@@ -64,6 +64,105 @@ test('share import rejects redirects and source errors and cancels their bodies'
   }
 });
 
+test('share import keeps anonymous device sessions request-local and excludes account cookies', async () => {
+  const shareId = '00000000-0000-0000-0000-000000000001';
+  const deviceIds = [shareId, '00000000-0000-0000-0000-000000000002'];
+  const html = `<script type="application/json">${JSON.stringify({
+    linear_conversation: [
+      {
+        message: {
+          author: { role: 'user' },
+          content: {
+            parts: [
+              'question',
+              {
+                content_type: 'image_asset_pointer',
+                asset_pointer: 'sediment://file_test',
+              },
+            ],
+          },
+        },
+      },
+    ],
+  })}</script>`;
+  for (const valid of [true, false]) {
+    await Promise.all(
+      deviceIds.map(async (id) => {
+        let requests = 0;
+        const result = await importShare(
+          `https://chatgpt.com/share/${shareId}`,
+          '',
+          async (url, options) => {
+            requests++;
+            if (requests === 1) {
+              assert.equal(options.headers.Cookie, undefined);
+              const headers = new Headers();
+              headers.append(
+                'set-cookie',
+                '__Secure-next-auth.session-token=account-secret; Secure',
+              );
+              headers.append(
+                'set-cookie',
+                'cf_clearance=challenge-secret; Secure',
+              );
+              headers.append(
+                'set-cookie',
+                `oai-did=${valid ? id : 'bad,other=secret'}; Secure; Path=/`,
+              );
+              return new Response(html, { headers });
+            }
+            assert.equal(new URL(url).hostname, 'chatgpt.com');
+            assert.equal(
+              new URL(url).pathname,
+              '/backend-anon/files/download/file_test',
+            );
+            assert.equal(
+              options.headers.Cookie,
+              valid ? `oai-did=${id}` : undefined,
+            );
+            assert.equal(options.redirect, 'manual');
+            return Response.json({
+              download_url: 'https://files.oaiusercontent.com/image.png',
+            });
+          },
+        );
+        assert.equal(requests, 2);
+        assert.equal(result.turns[0].attachments[0].status, 'remote');
+        assert.ok(!JSON.stringify(result).includes('oai-did'));
+        assert.ok(!JSON.stringify(result).includes('secret'));
+      }),
+    );
+  }
+});
+
+test('share import distinguishes security challenges, rate limits and access refusal', async () => {
+  for (const [status, headers, code] of [
+    [403, { 'cf-mitigated': 'challenge' }, 'SOURCE_CHALLENGE'],
+    [200, { 'cf-mitigated': 'challenge' }, 'SOURCE_CHALLENGE'],
+    [429, {}, 'SOURCE_RATE_LIMITED'],
+    [403, {}, 'SOURCE_RESTRICTED'],
+  ]) {
+    let cancelled = false;
+    await assert.rejects(
+      importShare(
+        'https://claude.ai/share/00000000-0000-0000-0000-000000000001',
+        '',
+        async () =>
+          new Response(
+            new ReadableStream({
+              cancel() {
+                cancelled = true;
+              },
+            }),
+            { status, headers },
+          ),
+      ),
+      (error) => error.code === code,
+    );
+    assert.equal(cancelled, true);
+  }
+});
+
 test('attachment DNS rejects non-public, mixed and credential-bearing destinations', async () => {
   for (const address of [
     '127.0.0.1',

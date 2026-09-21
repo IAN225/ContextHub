@@ -4,12 +4,26 @@ import { record, string, type ParsedConversation } from '../contracts.ts';
 import { chatgptFileId } from '../parsers/chatgpt-assets.ts';
 import { readLimitedBody } from './http.ts';
 
-/** Resolve public share assets only; no account cookies or login credentials. */
+// Keep only the anonymous device cookie issued by this share-page request.
+// Login and Cloudflare cookies must never enter the attachment pipeline.
+function anonymousDeviceCookie(headers?: Headers) {
+  for (const cookie of headers?.getSetCookie() ?? []) {
+    const match =
+      /^oai-did=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:;|$)/i.exec(
+        cookie,
+      );
+    if (match) return `oai-did=${match[1]}`;
+  }
+}
+
+/** Resolve public share assets using a request-local anonymous session. */
 export async function resolveChatGPTAssets(
   parsed: ParsedConversation,
   shareId: string,
   fetcher: typeof fetch,
+  pageHeaders?: Headers,
 ) {
+  const cookie = anonymousDeviceCookie(pageHeaders);
   const pending = parsed.messages
     .flatMap((m) => m.attachments ?? [])
     .filter((a) => a.status === 'missing' && chatgptFileId(a.reference ?? ''));
@@ -35,7 +49,10 @@ export async function resolveChatGPTAssets(
             {
               redirect: 'manual',
               signal,
-              headers: { Accept: 'application/json' },
+              headers: {
+                Accept: 'application/json',
+                ...(cookie ? { Cookie: cookie } : {}),
+              },
             },
           );
           if ([401, 403, 429].includes(response.status))
