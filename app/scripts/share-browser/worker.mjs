@@ -1,11 +1,16 @@
 import { chromium } from 'playwright';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   claudeSnapshotUrl,
   SHARE_MAX_BYTES,
   SHARE_BROWSER_TIMEOUT_MS,
 } from '../../lib/imports/share-transport.ts';
 
+const check = process.argv[2] === '--check';
 let browser,
+  home,
   timer,
   timedOut = false;
 const stop = async () => {
@@ -20,7 +25,6 @@ const output = (meta, body = '') =>
   process.stdout.write(JSON.stringify(meta) + '\n' + body);
 let errorCode = 'BROWSER_UNAVAILABLE';
 try {
-  const check = process.argv[2] === '--check';
   let id = '';
   if (!check) {
     for await (const chunk of process.stdin) {
@@ -33,7 +37,14 @@ try {
     timedOut = true;
     void stop();
   }, SHARE_BROWSER_TIMEOUT_MS - 5000);
+  home = await mkdtemp(join(tmpdir(), 'contexthub-share-browser-'));
   browser = await chromium.launch({
+    env: {
+      ...process.env,
+      HOME: home,
+      XDG_CONFIG_HOME: home,
+      XDG_CACHE_HOME: home,
+    },
     headless: false,
     chromiumSandbox: true,
     timeout: 15000,
@@ -100,9 +111,11 @@ try {
       output(meta, body.toString('utf8'));
     }
   }
-} catch {
+} catch (error) {
+  if (check) console.error(error.message);
   output({ error: timedOut ? 'SOURCE_TIMEOUT' : errorCode });
 } finally {
   clearTimeout(timer);
   await stop();
+  if (home) await rm(home, { recursive: true, force: true });
 }

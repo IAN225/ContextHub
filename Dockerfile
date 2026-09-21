@@ -10,6 +10,7 @@ ENV NODE_ENV=production HOME=/home/node PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 WORKDIR /app
 COPY --from=build --chown=node:node /app/production/ ./
 RUN node node_modules/playwright/cli.js install --with-deps --no-shell chromium \
+    && apt-get install -y --no-install-recommends xauth \
     && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p .wrangler && chown node:node .wrangler && chmod 700 .wrangler
 USER node
