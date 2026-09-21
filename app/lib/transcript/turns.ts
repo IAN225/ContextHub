@@ -13,7 +13,6 @@ export function groupTurns(messages: Message[], source = '文本粘贴'): Turn[]
     if (m.role === 'user')
       turns.push({
         id: uid(),
-        title: m.content.slice(0, 36) || '附件对话',
         messages: [],
         status: 'normal',
         source,

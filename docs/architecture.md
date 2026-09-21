@@ -161,3 +161,7 @@ CI 在独立临时容器上运行桌面和手机浏览器用例，检查禁用�
 服务器认证只经过账号库。旧 access.json 中的管理员哈希仅供首次迁移读取；旧独立登录、会话写入和浏览器表单已退出运行路径。历史工作区 Token 字段保留为备份兼容数据，不作为有效授权；有效 MCP 授权保存在服务器账号关联表中。stdio 客户端只转发到已授权的 HTTPS 工作区，见 [stdio 接入](mcp-stdio.md)。
 
 SettingsLink 的移动端样式由组件自身管理；首页和阅读页通过 placement 明确选择位置。Picker、Modal、Segments 沿用统一 Base UI 封装，TextEditor 保留编辑器专属交互，不另建通用按钮底层。
+
+原文 `Turn` 不含标题。`transcript/compatibility.ts` 只在记录、状态和任务边界移除旧字段；搜索展示动态轮次编号。冻结的 payload v1/v2 保持不变，当前任务 DTO 为 v3。JSON 备份 v2 与 v1 读取共用状态校验。
+
+生产打包同时收集 CLI 入口和服务端构建产物的外部包依赖，发布目录可脱离源码 `node_modules` 运行；正式产物检查在隔离目录验证。

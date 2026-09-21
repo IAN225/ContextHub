@@ -55,10 +55,10 @@ export function AttachmentCard({ attachment: a }: { attachment: Attachment }) {
         </span>
         {a.error && <p>{a.error}</p>}
         {brokenImage && <p>图片无法预览，原文件仍可下载。</p>}
-        {a.text ? (
+        {typeof a.text === 'string' ? (
           <details>
             <summary>查看附件文字</summary>
-            <pre className="raw-text">{a.text}</pre>
+            <pre className="raw-text">{a.text || '空文件'}</pre>
           </details>
         ) : (
           stored && <small>原文件已保存，尚未提取正文。</small>

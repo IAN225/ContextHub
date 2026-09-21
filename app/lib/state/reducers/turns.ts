@@ -11,14 +11,13 @@ export function applyTurns(
       const current = w.turns.find((t) => t.id === command.turn.id);
       if (!command.insert) {
         if (!current) throw new Error('需要编辑的原文轮次已不存在。');
-        const { title, source, messages, attachments } = command.turn;
+        const { source, messages, attachments } = command.turn;
         return {
           ...w,
           turns: w.turns.map((t) =>
             t.id === current.id
               ? {
                   ...t,
-                  title,
                   source,
                   messages,
                   attachments: preserveFetchedAttachments(

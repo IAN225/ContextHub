@@ -58,7 +58,7 @@ export function attachmentContext(a: Attachment) {
     type: a.type,
     status: attachmentStatus(a),
     size: a.size,
-    ...(a.text
+    ...(typeof a.text === 'string'
       ? { text: a.text }
       : { content: '未提供附件正文；不可推断图片或文件内容' }),
   };

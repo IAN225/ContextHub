@@ -1,3 +1,7 @@
+import {
+  withoutTurnTitle,
+  normalizeTurnList,
+} from '../transcript/compatibility.ts';
 import type { StorageEntry } from './account-repository.ts';
 // Stable account-scoped keys. A format version belongs to each record, not the UI model.
 export const HUB_KEY = 'hub-state-v1';
@@ -22,23 +26,45 @@ export function encodeRecord(kind: string, data: unknown) {
   // reject it before reconstructing state instead of dropping unfamiliar records.
   const workspace = kind === 'workspace' ? object(data) : null;
   const version =
-    workspace &&
-    (workspace.hasClient ||
-      workspace.summaryTab === 'client' ||
-      workspace.memoryEngine === 'client')
+    kind === 'turn' || kind === 'upload'
       ? 2
-      : 1;
-  return { format: 'contexthub-record', kind, version, data };
+      : workspace &&
+          (workspace.hasClient ||
+            workspace.summaryTab === 'client' ||
+            workspace.memoryEngine === 'client')
+        ? 2
+        : 1;
+  const value =
+    kind === 'turn'
+      ? withoutTurnTitle(object(data))
+      : kind === 'upload'
+        ? {
+            ...object(data),
+            turns: normalizeTurnList(array(object(data).turns).map(object)),
+          }
+        : data;
+  return { format: 'contexthub-record', kind, version, data: value };
 }
 export function decodeRecord(value: unknown, kind?: string): unknown {
   const record = object(value);
   if (
     record.format !== 'contexthub-record' ||
     (record.version !== 1 &&
-      !(record.kind === 'workspace' && record.version === 2)) ||
+      !(
+        ['workspace', 'turn', 'upload'].includes(String(record.kind)) &&
+        record.version === 2
+      )) ||
     (kind && record.kind !== kind)
   )
     throw new Error('存储版本不兼容，请使用匹配的应用版本。');
+  if (record.kind === 'turn') return withoutTurnTitle(object(record.data));
+  if (record.kind === 'upload') {
+    const upload = object(record.data);
+    return {
+      ...upload,
+      turns: normalizeTurnList(array(upload.turns).map(object)),
+    };
+  }
   return record.data;
 }
 export function splitHub(value: unknown): StorageEntry[] {

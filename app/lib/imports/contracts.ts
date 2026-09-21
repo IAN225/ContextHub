@@ -78,7 +78,7 @@ export function createImport(
   };
   const upload: Upload = {
     id: uid(),
-    title: title.trim() || parsed.title || turns[0].title,
+    title: title.trim() || parsed.title || '导入对话',
     kind: 'conversation',
     channel,
     source: plugin.label,

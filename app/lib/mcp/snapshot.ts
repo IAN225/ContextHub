@@ -33,7 +33,6 @@ export function mcpWorkspace(w: Workspace): Workspace {
     platform: w.platform,
     turns: w.turns.map((t) => ({
       id: t.id,
-      title: t.title,
       status: t.status,
       source: t.source,
       time: t.time,

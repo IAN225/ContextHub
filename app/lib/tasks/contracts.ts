@@ -2,8 +2,8 @@ import type {
   Attachment,
   Summary,
   Upload,
-  WorkspaceSnapshotV2 as Workspace,
-} from '../storage/payload-v2.ts';
+  WorkspaceSnapshotV3 as Workspace,
+} from '../storage/payload-v3.ts';
 import type { ModelSummaryEngine } from '../summary/engines.ts';
 export type TaskStatus =
   | 'queued'

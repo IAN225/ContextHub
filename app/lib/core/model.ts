@@ -39,7 +39,6 @@ export type ImportProvenance = {
 
 export type Turn = {
   id: string;
-  title: string;
   messages: Message[];
   status: Status;
   source: string;

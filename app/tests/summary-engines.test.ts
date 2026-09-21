@@ -271,6 +271,47 @@ test('MCP bootstrap follows user selection; explicit summary reads do not change
     /不可读取/,
   );
 });
+test('empty attachment text keeps the same revision through task serialization', () => {
+  const w = fixture();
+  w.turns[0].attachments = [
+    {
+      id: 'empty',
+      name: 'empty.txt',
+      type: 'text/plain',
+      url: 'data:text/plain;base64,',
+      status: 'stored',
+      size: 0,
+      text: '',
+    },
+  ];
+  const scoped = summaryWorkspace(w, 'custom');
+  const snapshot = summaryTaskWorkspace(scoped);
+  assert.equal(summaryRevision(scoped), summaryRevision(snapshot));
+  assert.equal(
+    summaryRevision(scoped),
+    summaryRevision(JSON.parse(JSON.stringify(snapshot))),
+  );
+});
+test('legacy titles are removed at record and task boundaries without changing messages', () => {
+  const w = fixture();
+  const old = { ...w, turns: w.turns.map((t) => ({ ...t, title: '旧标题' })) };
+  const state = normalizeHubState({
+    schemaVersion: 1,
+    workspaces: [old],
+    uploads: [],
+  });
+  assert.deepEqual(state.workspaces[0].turns, w.turns);
+  assert.deepEqual(normalizeHubState(joinHub(splitHub(state))), state);
+  for (const version of [1, 2]) {
+    const result = decodePayload<{ workspace: typeof w }>('task-state', {
+      format: 'contexthub-payload',
+      kind: 'task-state',
+      version,
+      data: { workspace: old },
+    });
+    assert.deepEqual(result.workspace.turns, w.turns);
+  }
+});
 test('model secrets remain separate per account and engine', async (t) => {
   const db = database();
   t.after(() => db.close());

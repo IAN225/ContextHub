@@ -1,3 +1,4 @@
+import { resolveChatGPTAssets } from './chatgpt-assets.ts';
 import { readLimitedBody } from './http.ts';
 import { createImport, ImportError } from '../contracts.ts';
 import { shareProviders } from '../share-providers.ts';
@@ -51,7 +52,7 @@ export async function importShare(
       redirect: 'manual',
       signal: AbortSignal.timeout(20000),
       headers: {
-        'User-Agent': 'ContextHub/0.1 (local conversation importer)',
+        'User-Agent': 'ContextHub/0.2 (conversation importer)',
         Accept:
           provider.host === 'claude.ai' ? 'application/json' : 'text/html',
       },
@@ -59,7 +60,7 @@ export async function importShare(
     if ([401, 403, 429].includes(response.status))
       throw new ImportError(
         'SOURCE_RESTRICTED',
-        '来源站点要求验证、登录或暂时限制访问，请稍后重试，或使用手动复制导入。',
+        `${provider.label}限制了服务器读取。浏览器可打开不代表服务器可访问，请复制对话后手动导入。`,
         502,
       );
     if ([404, 410].includes(response.status))
@@ -76,8 +77,11 @@ export async function importShare(
       );
     const body = await readLimitedBody(response, 8 * 1024 * 1024);
     try {
+      const parsed = provider.parse(body);
       return createImport(
-        provider.parse(body),
+        provider.id === 'chatgpt-share'
+          ? await resolveChatGPTAssets(parsed, id, fetcher)
+          : parsed,
         provider,
         'link',
         title,

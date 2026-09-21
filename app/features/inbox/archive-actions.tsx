@@ -40,7 +40,7 @@ export function UploadArchiveActions({
       ) : (
         <>
           <label className="field">
-            归档到
+            <span className="sr-only">归档到</span>
             <Picker
               value={target}
               onChange={setTarget}
@@ -48,9 +48,9 @@ export function UploadArchiveActions({
               options={[
                 ...workspaces.map((w) => ({
                   value: w.id,
-                  label: `${w.name} · 原文末尾拼接`,
+                  label: w.name,
                 })),
-                { value: 'new', label: '以这份对话新建工作区' },
+                { value: 'new', label: '新建工作区' },
               ]}
             />
           </label>
@@ -60,7 +60,7 @@ export function UploadArchiveActions({
             onClick={() => onImport(u, target)}
           >
             <ArrowRight size={15} />
-            {target === 'new' ? '新建工作区并归档' : '拼接到原文末尾'}
+            {target === 'new' ? '新建并归档' : '拼接原文'}
           </Button>
         </>
       )}

@@ -1,3 +1,4 @@
+import { withoutTurnTitle } from '../transcript/compatibility.ts';
 import { attachmentContext } from '../attachments/content.ts';
 import {
   type Summary,
@@ -35,7 +36,7 @@ export function summaryRevision(w: WorkspaceContext) {
       ? { engine: 'reme', strategy: REME_STRATEGY_VERSION }
       : {}),
     turns: w.turns.map((t) => ({
-      ...t,
+      ...withoutTurnTitle(t),
       messages: t.messages.map(
         ({ role, content, name, callId, attachmentIds }) => ({
           role,

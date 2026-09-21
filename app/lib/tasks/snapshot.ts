@@ -1,10 +1,11 @@
+import { withoutTurnTitle } from '../transcript/compatibility.ts';
 import { parseModelSummaryEngine } from '../summary/engines.ts';
 import { attachmentContext } from '../attachments/content.ts';
 import { type WorkspaceContext } from '../core/model.ts';
-import type { WorkspaceSnapshotV2 } from '../storage/payload-v2.ts';
+import type { WorkspaceSnapshotV3 } from '../storage/payload-v3.ts';
 
 // The job needs summary inputs, never browser tokens, Note bodies or binary media.
-export function summaryTaskWorkspace(w: WorkspaceContext): WorkspaceSnapshotV2 {
+export function summaryTaskWorkspace(w: WorkspaceContext): WorkspaceSnapshotV3 {
   return {
     summaryEngine: parseModelSummaryEngine(w.summaryEngine),
     id: w.id,
@@ -22,7 +23,7 @@ export function summaryTaskWorkspace(w: WorkspaceContext): WorkspaceSnapshotV2 {
     tokens: [],
     blocks: [],
     turns: w.turns.map((t) => ({
-      ...t,
+      ...withoutTurnTitle(t),
       messages: t.messages.map(
         ({ role, content, name, callId, attachmentIds }) => ({
           role,

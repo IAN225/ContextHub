@@ -53,7 +53,6 @@ const attachment = obj({ id, name: str(), type: str(), text: str() }, [
 export const turn = obj({
   number: integer(1),
   id,
-  title: str(),
   source: str(),
   time: nullable(str()),
   messages: array(message),

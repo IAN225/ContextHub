@@ -1,1 +1,1 @@
-export const CLIENT_PROTOCOL = '5';
+export const CLIENT_PROTOCOL = '6';

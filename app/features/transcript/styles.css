@@ -12,77 +12,42 @@
   border-radius: 5px;
   margin-top: 12px;
 }
-.detail-top {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border-bottom: 1px solid var(--ui-border, #e7ebdf);
-  background: var(--ui-subtle, #f8faf1);
-  padding: 12px 20px;
-}
-.turn-badge {
-  font-family: var(--font-geist-mono);
-  font-size: 12px;
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  color: var(--ui-heading, #687651);
-  border-right: 1px solid var(--ui-border, #cfdbbc);
-  padding-right: 12px;
-  min-height: 28px;
-}
-.detail-top > div:nth-child(2) {
-  flex: 1;
-  min-width: 0;
-}
-.metadata-line {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  color: var(--ui-muted, #97a67e);
-  font-size: 12px;
-  line-height: 1.6;
-}
-.platform-dot {
-  width: 5px;
-  height: 5px;
-  border: 1px solid var(--ui-border, #93a87c);
-  border-radius: 50%;
-}
-.edit-turn {
-  flex-shrink: 0;
-  min-height: 36px;
-  padding: 6px;
-}
 .detail-tabs {
   padding: 0 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--ui-border, #e6eadc);
-  flex-wrap: wrap;
-  gap: 4px 12px;
+  flex-wrap: nowrap;
+  gap: 4px 8px;
 }
 .detail-tabs .segments {
   height: 44px !important;
-  gap: 20px !important;
+  gap: 16px !important;
+  min-width: 0;
 }
 .detail-view-options {
   display: flex;
   align-items: center;
   margin-left: auto;
+  flex-shrink: 0;
+  gap: 2px;
   padding: 4px 0;
 }
 .render-toggle {
-  padding: 6px 8px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   border: 1px solid var(--ui-border, #e0e7d4);
   border-radius: 4px;
-  font-weight: 400;
   color: var(--ui-muted, #8c9e76);
   background: var(--ui-subtle, #f5f8ee);
-  font-size: 12px;
-  white-space: nowrap;
+}
+.render-toggle[aria-pressed='false'] {
+  color: var(--ui-heading, #687651);
+  background: var(--ui-soft, #f1f6e8);
 }
 .conversation-text {
   padding: 20px;
@@ -204,30 +169,12 @@
   .turn-detail {
     margin-top: 8px;
   }
-  .detail-top {
-    padding: 8px 12px;
-    gap: 8px;
-  }
-  .turn-badge {
-    padding-right: 8px;
-  }
-  .metadata-line {
-    gap: 4px;
-    font-size: 11px;
-  }
-  .edit-turn span {
-    display: none;
-  }
-  .edit-turn {
-    min-width: 36px;
-    justify-content: center;
-  }
   .detail-tabs {
     padding: 0 12px;
-    gap: 4px 8px;
+    gap: 4px;
   }
   .detail-tabs .segments {
-    gap: 14px !important;
+    gap: 10px !important;
     height: 40px !important;
   }
   .detail-tabs .segments [data-slot='tabs-trigger'] {

@@ -14,7 +14,7 @@ export type ShareProvider = {
 export const shareProviders: ShareProvider[] = [
   {
     id: 'chatgpt-share',
-    version: 1,
+    version: 2,
     label: 'ChatGPT 分享',
     host: 'chatgpt.com',
     resource: (id) => `https://chatgpt.com/share/${id}`,

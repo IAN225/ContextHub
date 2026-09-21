@@ -8,7 +8,7 @@
 
 输入只接受工具定义中的字段，输出统一使用 snake_case。读写结果通常带 `workspace_id`、`workspace`、`read_at`（读取时间）；Note 的 `updated_at` 才是修改时间。原文读取使用范围元数据，完整输出结构以 `tools/list` 的 `outputSchema` 为准。成功输出会在写入提交前完成校验。
 
-升级后请让客户端重新发现工具，必要时断开并重新连接。旧版的 `memory_bootstrap.engine`、摘要提交参数 `text/source_revision/summary_revision/from_turn/to_turn`、`next_turn` 分页和 camelCase 返回字段已移除。旧版下载链接需重新获取。数据库中的原文、Note 和摘要内容不因契约升级重写，账号 SQL schema 仍为 5，网页协议仍为 5。
+升级后请让客户端重新发现工具，必要时断开并重新连接。旧版的 `memory_bootstrap.engine`、摘要提交参数 `text/source_revision/summary_revision/from_turn/to_turn`、`next_turn` 分页和 camelCase 返回字段已移除。旧版下载链接需重新获取。数据库中的原文、Note 和摘要内容不因契约升级重写，账号 SQL schema 仍为 5，网页协议为 6。
 
 ## 读取工具
 
@@ -17,7 +17,7 @@
 | `memory_bootstrap` | 无 | 加载用户配置的记忆包；新窗口或严重遗忘时使用 |
 | `notes_list` | `offset=0`、`limit=50` | 正常 Note 的 ID、标题、标星状态；仅标星项附前 50 字预览 |
 | `note_read` | 必填 `note_id` | Note 全文、标星、修改时间和 revision |
-| `memory_search` | 必填 `query`；`kind=all`、`engine`、`offset=0`、`limit=20` | ID、标题、类型、最多 280 字片段；原文附轮次 `number`，不返回全文 |
+| `memory_search` | 必填 `query`；`kind=all`、`engine`、`offset=0`、`limit=20` | ID、标题、类型、最多 280 字片段；原文附轮次 `number`，不返回全文，原文标题用轮次编号表示 |
 | `summary_read` | `engine`、`summary_id` | 默认读取该方案活跃摘要，也可按 ID 读取历史摘要；返回当前活跃轨道 revision、近期窗口起点 |
 | `conversation_read` | `mode=page`、`from_turn=1`、可选 `to_turn`；分页模式另有 `offset=0`、`limit=20` | 完整轮次分页，或短期 JSON 下载链接；返回 source 范围凭据及 base_summary_revision |
 

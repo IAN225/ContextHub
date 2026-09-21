@@ -99,12 +99,13 @@ export function UploadReview({
                   )}
                 </span>
                 <div>
-                  <h3>{x.source}</h3>
-                  <p>
+                  <h3>
                     {x.kind === 'summary'
                       ? '候选摘要'
-                      : `${x.turns.length} 个完整轮次`}
-                  </p>
+                      : x.channel === 'api'
+                        ? '客户端投递'
+                        : x.source}
+                  </h3>
                   <small>{formatDate(x.createdAt)}</small>
                 </div>
               </button>
@@ -114,11 +115,8 @@ export function UploadReview({
             <article className="inbox-paper">
               <div className="inbox-paper-top">
                 <div>
-                  <h3>{u.source}</h3>
                   <p>
-                    {u.kind === 'summary'
-                      ? '候选摘要'
-                      : `${u.turns.length} 轮对话`}{' '}
+                    {u.kind === 'summary' ? '候选摘要' : `${u.turns.length} 轮`}{' '}
                     · {formatDate(u.createdAt)}
                   </p>
                 </div>

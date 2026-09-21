@@ -26,7 +26,6 @@ type TurnDraft = {
   messages: Message[];
   attachments: Attachment[];
   source: string;
-  title: string;
 };
 
 export function TurnEditor({
@@ -49,7 +48,6 @@ export function TurnEditor({
     ],
     attachments: turn?.attachments ?? [],
     source: turn?.source ?? w.platform,
-    title: turn?.title ?? '',
   };
   const [draft, setDraft, save] = usePersistent(
     `turn-draft-${w.id}-${turn?.id ?? afterId ?? 'start'}`,
@@ -121,16 +119,6 @@ export function TurnEditor({
         ) : (
           <>
             <div className="form-grid">
-              <label className="field">
-                标题（可选）
-                <input
-                  value={draft.title}
-                  onChange={(e) =>
-                    setDraft({ ...draft, title: e.target.value })
-                  }
-                  placeholder="留空时使用用户输入开头"
-                />
-              </label>
               <label className="field">
                 来源平台
                 <Picker
@@ -236,10 +224,6 @@ export function TurnEditor({
                 onClick={async () => {
                   const result: Turn = {
                     ...(turn ?? { id: uid(), status: 'normal', time: null }),
-                    title:
-                      draft.title.trim() ||
-                      draft.messages[0].content.slice(0, 40) ||
-                      '附件对话',
                     source: draft.source,
                     messages: draft.messages,
                     attachments: draft.attachments,
@@ -251,7 +235,6 @@ export function TurnEditor({
                     ],
                     attachments: [],
                     source: w.platform,
-                    title: '',
                   };
                   setReading(true);
                   await save.commitWith(turn ? draft : cleared, (entry) =>

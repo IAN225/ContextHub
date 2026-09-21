@@ -30,6 +30,9 @@
   font-weight: 400;
   margin: 0 0 4px;
   font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .inbox-list p {
   color: var(--ui-muted, #99ab83);
@@ -127,17 +130,21 @@
   font-size: 15px;
 }
 .inbox-file-action {
-  padding-top: 22px;
+  padding-top: 12px;
   display: flex;
-  gap: 15px;
+  gap: 8px;
   align-items: flex-end;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   border-top: 1px solid var(--ui-border, #e2e9d6);
   margin-top: 24px;
 }
+.inbox-file-action > .button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .inbox-file-action .field {
   flex: 1;
-  min-width: 190px;
+  min-width: 0;
 }
 .inbox-file-action .inline-note {
   width: 100%;
@@ -158,11 +165,11 @@
     display: none;
   }
   .inbox-list > button {
-    width: 190px;
+    width: 158px;
     flex-shrink: 0;
     border: 1px solid var(--ui-border, #e1e9d4);
     border-radius: 4px;
-    padding: 10px 12px;
+    padding: 6px 10px;
   }
   .inbox-paper {
     padding: 23px;
@@ -172,11 +179,13 @@
   .inbox-paper {
     padding: 12px;
   }
-  .inbox-file-action {
-    justify-content: flex-end;
+  .inbox-file-action > .button {
+    padding: 10px 8px;
+    gap: 4px;
+    font-size: 12px;
   }
   .inbox-file-action .field {
-    min-width: 100%;
+    min-width: 0;
     font-size: 12px;
   }
   .upload-message p {

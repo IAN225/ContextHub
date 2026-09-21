@@ -20,7 +20,7 @@ const schemas: Record<string, Fields> = {
   'new-note': { text: 'title body editor source', boolean: 'star' },
   'connection-draft': { text: 'name ttl' },
   workbench: { text: 'summaryId instruction', number: 'from to' },
-  'turn-draft': { text: 'title source', nested: 'messages attachments' },
+  'turn-draft': { text: 'source', nested: 'messages attachments' },
   'import-draft': {
     text: 'tab link title protocol json text format workspaceName',
   },
@@ -76,6 +76,10 @@ export function validateAuxiliary(key: string, value: unknown): unknown {
       );
     }
     return value;
+  }
+  if (kind === 'turn-draft' && Object.hasOwn(object(value), 'title')) {
+    const { title: _title, ...rest } = object(value);
+    value = rest;
   }
   const row = object(value),
     schema = schemas[kind];

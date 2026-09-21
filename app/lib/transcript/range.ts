@@ -7,7 +7,6 @@ function project(t: Turn, number: number) {
   return {
     number,
     id: t.id,
-    title: t.title,
     source: t.source,
     time: t.time,
     messages: t.messages.map(

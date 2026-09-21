@@ -10,7 +10,7 @@ import { normalizeHubState } from '../state/validation.ts';
 export const BACKUP_LIMIT = 100 * 1024 * 1024;
 export type HubBackup = {
   format: 'context-hub-backup';
-  version: 1;
+  version: 2;
   createdAt: string;
   entries: StorageEntry[];
 };
@@ -34,7 +34,9 @@ export function backupState(backup: HubBackup) {
 }
 export function validateBackup(raw: unknown): HubBackup {
   check(
-    object(raw) && raw.format === 'context-hub-backup' && raw.version === 1,
+    object(raw) &&
+      raw.format === 'context-hub-backup' &&
+      (raw.version === 1 || raw.version === 2),
   );
   check(
     typeof raw.createdAt === 'string' &&
@@ -121,7 +123,7 @@ export function validateBackup(raw: unknown): HubBackup {
   }
   return {
     format: 'context-hub-backup',
-    version: 1,
+    version: 2,
     createdAt: raw.createdAt,
     entries: entries.map((entry) =>
       entry.key === HUB_KEY ? { ...entry, value: state } : entry,
@@ -157,7 +159,7 @@ export async function createBackup(
   }
   return validateBackup({
     format: 'context-hub-backup',
-    version: 1,
+    version: 2,
     createdAt: new Date().toISOString(),
     entries,
   });

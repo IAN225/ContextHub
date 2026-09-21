@@ -4,7 +4,6 @@ import {
   Pencil,
   ArrowUp,
   ArrowDown,
-  Clock,
   Code2,
   RotateCcw,
   Trash2,
@@ -19,7 +18,6 @@ import {
   type Turn,
   type Workspace,
 } from '../../lib/core/model.ts';
-import { formatDate } from '../../lib/format-date.ts';
 import { messageMedia } from '../../lib/attachments/message-media.ts';
 import type { TurnCoverageMark } from './timeline.tsx';
 export function TurnDetail({
@@ -52,43 +50,6 @@ export function TurnDetail({
   const media = messageMedia(current);
   return (
     <div className="turn-detail">
-      <div className="detail-top">
-        <div className="turn-badge" aria-label={`第 ${actual} 轮`}>
-          {String(actual).padStart(3, '0')}
-        </div>
-        <div>
-          <div className="metadata-line">
-            <span className="platform-dot" />
-            {current.source}
-            {current.time && (
-              <>
-                <span>·</span>
-                <Clock size={12} />
-                {formatDate(current.time)}
-              </>
-            )}
-            <span>·</span>
-            <span className={mark === 'gap' ? 'amber' : 'mint'}>
-              {
-                {
-                  recent: '近期原文',
-                  covered: '已纳入摘要',
-                  gap: '记忆缺口',
-                  pending: '待压缩原文',
-                }[mark]
-              }
-            </span>
-          </div>
-        </div>
-        <button
-          className="text-button edit-turn"
-          aria-label="编辑原文"
-          onClick={() => onEdit(current)}
-        >
-          <Pencil size={15} />
-          <span>编辑</span>
-        </button>
-      </div>
       <div className="detail-tabs">
         <Segments
           value={tab}
@@ -100,15 +61,24 @@ export function TurnDetail({
           ]}
         />
         <div className="detail-view-options">
+          <button
+            className="icon-button"
+            aria-label="编辑原文"
+            title="编辑原文"
+            onClick={() => onEdit(current)}
+          >
+            <Pencil size={16} />
+          </button>
           {tab === 'preview' &&
             current.messages.some((m) => m.role === 'assistant') && (
               <button
                 className="render-toggle"
-                aria-label="当前轮次的模型回复使用 Markdown 显示"
+                aria-label={rendered ? '显示原始文本' : '显示 Markdown'}
+                title={rendered ? '显示原始文本' : '显示 Markdown'}
                 aria-pressed={rendered}
                 onClick={() => setRendered(!rendered)}
               >
-                {rendered ? '显示原始文本' : '显示 Markdown'}
+                <Code2 size={16} />
               </button>
             )}
         </div>
@@ -171,7 +141,14 @@ export function TurnDetail({
       ) : (
         <div className="metadata-grid">
           {Object.entries({
+            轮次: actual,
             '轮次 ID': current.id,
+            覆盖状态: {
+              recent: '近期原文',
+              covered: '已纳入摘要',
+              gap: '记忆缺口',
+              pending: '待压缩原文',
+            }[mark],
             来源: current.source,
             原始时间: current.time ?? '未提供',
             Token: current.tokens ?? '来源未提供',
