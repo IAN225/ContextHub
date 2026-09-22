@@ -1,39 +1,194 @@
+/* Gold belongs to the reader's turn markers, independently of workspace color. */
 .turn-divider {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 4px 0 12px;
-  color: var(--ui-muted, #737b65);
+  gap: 10px;
+  margin: 6px 0 16px;
+  color: #887044;
 }
 .turn-divider::before,
 .turn-divider::after {
   content: '';
   flex: 1;
-  height: 4px;
-  border-block: 1px solid var(--ui-border, #c7c6bb);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #b99b605c, transparent);
 }
-.turn-divider small {
-  font-size: 11px;
-  letter-spacing: 0.16em;
+.turn-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   white-space: nowrap;
 }
-.turn-divider > span {
+.turn-dial {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.8;
+  stroke-linecap: round;
+}
+.turn-dial-pin {
+  fill: currentColor;
+  stroke: none;
+}
+.turn-marker-number {
+  font-family:
+    'Baskerville', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  font-size: 21px;
+  font-style: italic;
+  font-weight: 400;
+  font-variant-numeric: oldstyle-nums proportional-nums;
+  line-height: 1.15;
+}
+.turn-flank {
+  color: #af8b49;
+  font-family: Georgia, serif;
   font-size: 13px;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.clock-hand {
+  display: inline-block;
+  width: 64px;
+  height: 10px;
+  flex-shrink: 0;
+  background: currentColor;
+  mask: url('/ornaments/clock-hand.svg') center / 100% 100% no-repeat;
+}
+.clock-hand.pointing-left {
+  transform: rotate(180deg);
 }
 .conversation-role {
-  border-top: 1px solid var(--ui-border, #dfe4d5);
   padding: 12px;
 }
 .conversation-role[data-role='user'] {
-  background: color-mix(
-    in srgb,
-    var(--ui-accent, #657f54) 9%,
-    var(--ui-surface, #fffef8)
-  );
-  border: 1px solid var(--ui-border, #dfe4d5);
-  border-radius: 5px;
+  position: relative;
+  padding: 12px 16px;
+  background: linear-gradient(110deg, #c6a65d0e, transparent 70%);
 }
-.conversation-role[data-role^='tool'] {
+.user-message-ornament {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  color: #af8b49;
+}
+.user-message-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  background: currentColor;
+  mask: url('/ornaments/clock-corner.svg') center / contain no-repeat;
+}
+.user-message-corner.opening {
+  bottom: 0;
+  left: 0;
+  transform: rotate(-90deg);
+}
+.user-message-corner.closing {
+  right: 0;
+  top: 0;
+  transform: rotate(90deg);
+}
+
+.conversation-tool {
+  padding: 10px 12px;
   border-left: 2px solid var(--ui-border, #dfe4d5);
-  background: var(--ui-subtle, #f5f5f0);
+  background: #fff;
+  min-width: 0;
+}
+.conversation-tool-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ui-muted, #62685b);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  margin-bottom: 8px;
+}
+.conversation-tool-label svg {
+  flex-shrink: 0;
+}
+.conversation-tool .tool-text {
+  background: transparent;
+}
+
+.message {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 15px;
+  margin-bottom: 28px;
+}
+.message:last-child {
+  margin-bottom: 0;
+}
+.message-avatar {
+  border-radius: 50%;
+  border: 1px solid var(--ui-border, #e0d8c3);
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  background: var(--ui-subtle, #f1ebdf);
+  color: var(--ui-muted, #998c6b);
+  width: 30px;
+  height: 30px;
+}
+.message.assistant .message-avatar {
+  color: var(--ui-text, #879d6b);
+}
+.message-label {
+  font-weight: 550;
+  color: var(--ui-text, #8e9b7e);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.message-body {
+  grid-column: 2;
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+}
+.message-attachments {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+.message-attachments:empty {
+  display: none;
+}
+.message-attachments .attachment-card {
+  margin: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  .message {
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 10px 8px;
+    margin-bottom: 24px;
+  }
+  .message-avatar {
+    width: 26px;
+    height: 26px;
+  }
+  .message-body {
+    grid-column: 1 / -1;
+  }
+}
+
+.message-heading {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 10px;
+}
+.message-heading time {
+  margin-left: auto;
+  color: var(--ui-muted, #62685b);
+  font-size: 11px;
+}
+.upload-turns .raw-text:not(.tool-text) {
+  font-size: 14px;
+  line-height: 1.9;
 }

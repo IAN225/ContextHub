@@ -330,7 +330,7 @@
 
 @media (min-width: 761px) {
   .split-view.memory-layout-editable {
-    grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+    grid-template-columns: minmax(240px, 0.55fr) minmax(0, 1.45fr);
   }
 }
 .memory-block-open small.memory-block-tag {

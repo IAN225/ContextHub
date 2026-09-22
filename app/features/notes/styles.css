@@ -253,8 +253,8 @@
   }
 }
 @media (max-width: 480px) {
-  .notes-toolbar .segments [data-slot='tabs-trigger'] {
-    font-size: 13px !important;
+  .notes-toolbar .segments {
+    --segments-font-size: 13px;
   }
   .note-title-input {
     font-size: 24px;

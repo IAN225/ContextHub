@@ -11,14 +11,20 @@ export function Segments({
   onChange: (v: string) => void;
 }) {
   return (
-    <Tabs value={value} onValueChange={(v) => onChange(String(v))}>
-      <TabsList className="segments" data-scroll-rail="always">
+    <Tabs
+      className="segments-root"
+      value={value}
+      onValueChange={(v) => onChange(String(v))}
+    >
+      <span className="clock-hand pointing-left" aria-hidden="true" />
+      <TabsList variant="line" className="segments" data-scroll-rail="always">
         {options.map((o) => (
           <TabsTrigger key={o.id} value={o.id}>
             {o.label}
           </TabsTrigger>
         ))}
       </TabsList>
+      <span className="clock-hand" aria-hidden="true" />
     </Tabs>
   );
 }
