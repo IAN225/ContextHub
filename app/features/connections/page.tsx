@@ -14,6 +14,7 @@ import { mcpTools } from '../../lib/mcp/catalog.ts';
 import type { PublicMcpToken } from '../../lib/mcp/contracts.ts';
 import { oauthConnectionProfiles } from '../../lib/mcp/oauth-clients.ts';
 import type { McpConnection } from '../../lib/mcp/use-mcp.ts';
+import { ConnectionDetailsContent } from './details-content.tsx';
 import { ClientLogo } from './client-logo.tsx';
 import { OAuthConnection } from './oauth.tsx';
 import { useConnections } from './use-connections.ts';
@@ -138,7 +139,6 @@ export function ConnectionsPage({
             </button>
           </section>
           <section
-            key={`${selectedMethod ?? 'empty'}-${reveal ? 'result' : 'form'}`}
             className={`surface connection-details${oauthProfile ? ' has-oauth' : ''}`}
             id="connection-details"
             aria-label="连接详情"
@@ -146,111 +146,117 @@ export function ConnectionsPage({
             // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Allow keyboard users to scroll this named region.
             tabIndex={0}
           >
-            {oauthProfile ? (
-              <OAuthConnection
-                key={`${w.id}-${oauthProfile.id}`}
-                w={w}
-                mcp={mcp}
-                profile={oauthProfile}
-                onBusyChange={setOauthBusy}
-              />
-            ) : selectedMethod === 'token' ? (
-              <div className="connection-token-details">
-                <div className="surface-head">
-                  <h2>{reveal ? '访问令牌已生成' : '其他客户端 · 访问令牌'}</h2>
-                </div>
-                {reveal ? (
-                  <>
-                    <p className="page-description">
-                      请现在复制并保存在客户端。切换连接方式或关闭后无法再次查看，丢失时可以重新生成，旧令牌将失效。
-                    </p>
-                    <code className="inline-code">{reveal.secret}</code>
-                    <div className="form-actions">
-                      <CopyButton text={reveal.secret} label="复制令牌" />
-                      <CopyButton
-                        text={JSON.stringify(
-                          {
-                            url: endpoint,
-                            headers: {
-                              Authorization: `Bearer ${reveal.secret}`,
-                            },
-                          },
-                          null,
-                          2,
-                        )}
-                        label="复制连接配置"
-                      />
-                      <Button onClick={() => setReveal(null)}>关闭</Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <p className="page-description">
-                      范围：{w.name}。令牌只在生成后显示一次，可随时吊销。
-                    </p>
-                    {endpoint && (
-                      <div className="action-row oauth-actions">
-                        <CopyButton text={endpoint} label="复制连接地址" />
-                      </div>
-                    )}
-                    <label className="field">
-                      连接名称
-                      <input
-                        maxLength={100}
-                        value={d.name}
-                        onChange={(e) => setD({ ...d, name: e.target.value })}
-                        placeholder="例如：笔记本上的 Chatbox"
-                      />
-                    </label>
-                    <label className="field">
-                      有效期
-                      <Picker
-                        label="令牌有效期"
-                        value={d.ttl}
-                        onChange={(ttl) => setD({ ...d, ttl })}
-                        options={[
-                          { value: '0.0416667', label: '1 小时' },
-                          { value: '1', label: '1 天' },
-                          { value: '7', label: '7 天' },
-                          { value: '30', label: '30 天' },
-                        ]}
-                      />
-                    </label>
-                    <p className="callout">
-                      授权读取当前工作区记忆、下载原文、提交客户端摘要、创建和精准修改
-                      Note，以及提交分享链接到待确认收件箱。
-                    </p>
-                    {error && (
-                      <p className="error-text" role="alert">
-                        {error}
+            <ConnectionDetailsContent>
+              {oauthProfile ? (
+                <OAuthConnection
+                  key={`${w.id}-${oauthProfile.id}`}
+                  w={w}
+                  mcp={mcp}
+                  profile={oauthProfile}
+                  onBusyChange={setOauthBusy}
+                />
+              ) : selectedMethod === 'token' ? (
+                <div className="connection-token-details">
+                  <div className="surface-head">
+                    <h2>
+                      {reveal ? '访问令牌已生成' : '其他客户端 · 访问令牌'}
+                    </h2>
+                  </div>
+                  {reveal ? (
+                    <>
+                      <p className="page-description">
+                        请现在复制并保存在客户端。切换连接方式或关闭后无法再次查看，丢失时可以重新生成，旧令牌将失效。
                       </p>
-                    )}
-                    <div className="form-actions">
-                      <span className="save-caption">
-                        <SaveStatus state={p}>
-                          {p.saved ? '✓ 草稿已保存' : '保存中…'}
-                        </SaveStatus>
-                      </span>
-                      <Button
-                        primary
-                        disabled={busy || !d.name.trim() || !p.ready || !origin}
-                        onClick={() => {
-                          void create();
-                        }}
-                      >
-                        <KeyRound size={15} />
-                        {busy ? '正在创建…' : '生成访问令牌'}
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className="connection-details-empty">
-                <Plug size={28} aria-hidden="true" />
-                <h2>未选择连接方式</h2>
-              </div>
-            )}
+                      <code className="inline-code">{reveal.secret}</code>
+                      <div className="form-actions">
+                        <CopyButton text={reveal.secret} label="复制令牌" />
+                        <CopyButton
+                          text={JSON.stringify(
+                            {
+                              url: endpoint,
+                              headers: {
+                                Authorization: `Bearer ${reveal.secret}`,
+                              },
+                            },
+                            null,
+                            2,
+                          )}
+                          label="复制连接配置"
+                        />
+                        <Button onClick={() => setReveal(null)}>关闭</Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="page-description">
+                        范围：{w.name}。令牌只在生成后显示一次，可随时吊销。
+                      </p>
+                      {endpoint && (
+                        <div className="action-row oauth-actions">
+                          <CopyButton text={endpoint} label="复制连接地址" />
+                        </div>
+                      )}
+                      <label className="field">
+                        连接名称
+                        <input
+                          maxLength={100}
+                          value={d.name}
+                          onChange={(e) => setD({ ...d, name: e.target.value })}
+                          placeholder="例如：笔记本上的 Chatbox"
+                        />
+                      </label>
+                      <label className="field">
+                        有效期
+                        <Picker
+                          label="令牌有效期"
+                          value={d.ttl}
+                          onChange={(ttl) => setD({ ...d, ttl })}
+                          options={[
+                            { value: '0.0416667', label: '1 小时' },
+                            { value: '1', label: '1 天' },
+                            { value: '7', label: '7 天' },
+                            { value: '30', label: '30 天' },
+                          ]}
+                        />
+                      </label>
+                      <p className="callout">
+                        授权读取当前工作区记忆、下载原文、提交客户端摘要、创建和精准修改
+                        Note，以及提交分享链接到待确认收件箱。
+                      </p>
+                      {error && (
+                        <p className="error-text" role="alert">
+                          {error}
+                        </p>
+                      )}
+                      <div className="form-actions">
+                        <span className="save-caption">
+                          <SaveStatus state={p}>
+                            {p.saved ? '✓ 草稿已保存' : '保存中…'}
+                          </SaveStatus>
+                        </span>
+                        <Button
+                          primary
+                          disabled={
+                            busy || !d.name.trim() || !p.ready || !origin
+                          }
+                          onClick={() => {
+                            void create();
+                          }}
+                        >
+                          <KeyRound size={15} />
+                          {busy ? '正在创建…' : '生成访问令牌'}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="connection-details-empty">
+                  <Plug size={28} aria-hidden="true" />
+                  <h2>未选择连接方式</h2>
+                </div>
+              )}
+            </ConnectionDetailsContent>
           </section>
         </div>
         <div className="connection-sync-notes">

@@ -197,12 +197,9 @@
     min-width: 0;
   }
   .timeline-toolbar .segments {
-    height: 40px !important;
-    gap: 12px !important;
-  }
-  .timeline-toolbar .segments [data-slot='tabs-trigger'] {
-    font-size: 12px !important;
-    white-space: nowrap;
+    --segments-height: 44px;
+    --segments-padding: 10px;
+    --segments-font-size: 12px;
   }
   .timeline-toolbar .search-field {
     min-width: 0;

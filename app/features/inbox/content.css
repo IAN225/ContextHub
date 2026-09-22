@@ -84,17 +84,6 @@
 .upload-turn {
   padding: 6px 0 18px;
 }
-.upload-message-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 24px;
-}
-.upload-message-head time {
-  margin-left: auto;
-  color: var(--ui-muted, #737b65);
-  font-size: 11px;
-}
 .inbox-select-all {
   display: flex;
   align-items: center;
@@ -125,23 +114,6 @@
   opacity: 0.35;
   cursor: default;
 }
-.upload-message {
-  display: grid;
-  min-width: 0;
-  gap: 8px;
-}
-.upload-message small {
-  color: var(--ui-muted, #a7b88c);
-  font-size: 12px;
-}
-.upload-message p {
-  color: var(--ui-text, #81956b);
-  line-height: 1.9;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  margin: 0;
-  font-size: 15px;
-}
 .inbox-file-action {
   padding-top: 12px;
   display: flex;
@@ -171,18 +143,33 @@
     display: flex;
     align-items: stretch;
     overflow-x: auto;
-    padding: 6px;
-    gap: 10px;
+    padding: 8px;
+    gap: 8px;
+    background: color-mix(
+      in srgb,
+      var(--ui-border, #d9dcd2) 65%,
+      var(--ui-surface, #fffefa)
+    );
+    border: 1px solid var(--ui-border, #d9dcd2);
+    border-radius: 8px;
+    scroll-padding-inline: 8px;
   }
   .inbox-list .surface-head {
     display: none;
   }
   .inbox-list > button {
-    width: 158px;
+    width: 152px;
+    max-width: 85%;
     flex-shrink: 0;
     border: 1px solid var(--ui-border, #e1e9d4);
-    border-radius: 4px;
-    padding: 6px 10px;
+    border-radius: 5px;
+    padding: 8px 12px;
+    background: var(--ui-subtle, #f5f5f0);
+  }
+  .inbox-list > button.selected {
+    background: var(--ui-surface, #fffefa);
+    border-color: var(--ui-border-accent, #9fae92);
+    box-shadow: inset 0 2px var(--ui-accent, #50683e);
   }
   .inbox-paper {
     padding: 23px;
@@ -200,11 +187,5 @@
   .inbox-file-action .field {
     min-width: 0;
     font-size: 12px;
-  }
-  .upload-message p {
-    font-size: 14px;
-  }
-  .upload-message small {
-    font-size: 11px;
   }
 }

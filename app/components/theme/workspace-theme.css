@@ -114,7 +114,7 @@
 .workspace-theme .turn-detail {
   background: var(--ui-surface);
 }
-.workspace-theme :is(.markdown pre, .tool-text, .memory-preview, .inline-code) {
+.workspace-theme :is(.markdown pre, .memory-preview, .inline-code) {
   background: var(--ui-subtle);
   color: var(--ui-text);
 }

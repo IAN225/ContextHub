@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="256 194 222 124" preserveAspectRatio="none">
+  <!-- Compass needle excerpt, Lorc / game-icons, CC BY 3.0. See docs/third-party-artwork.md. -->
+  <path transform="rotate(45 256 256)" d="M405.53 108 297.25 298.313l-.75.437-40.844-40.875-148.72 148.72-2.186 1.25 109.125-191.75 41.78 41.78L405.532 108z"/>
+  <path transform="translate(0 512) scale(1 -1) rotate(45 256 256)" d="M405.53 108 297.25 298.313l-.75.437-40.844-40.875-148.72 148.72-2.186 1.25 109.125-191.75 41.78 41.78L405.532 108z"/>
+</svg>

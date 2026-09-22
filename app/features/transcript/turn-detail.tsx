@@ -1,25 +1,14 @@
 'use client';
-import {
-  Archive,
-  Pencil,
-  ArrowUp,
-  ArrowDown,
-  Code2,
-  RotateCcw,
-  Trash2,
-} from 'lucide-react';
+import { Archive, Pencil, Code2, RotateCcw, Trash2 } from 'lucide-react';
+import { ConversationMessages } from '../../components/shared/conversation-messages.tsx';
 import { TurnDivider } from '../../components/shared/turn-divider.tsx';
-import { AttachmentCard } from '../../components/shared/attachment-card.tsx';
 import { Button } from '../../components/shared/button.tsx';
-import { Markdown } from '../../components/shared/markdown.tsx';
-import { ModelAvatar } from '../../components/shared/model-avatar.tsx';
 import { Segments } from '../../components/shared/segments.tsx';
 import {
   type Status,
   type Turn,
   type Workspace,
 } from '../../lib/core/model.ts';
-import { messageMedia } from '../../lib/attachments/message-media.ts';
 import type { TurnCoverageMark } from './timeline.tsx';
 export function TurnDetail({
   current,
@@ -48,7 +37,6 @@ export function TurnDetail({
   onInsert: (after: string | null) => void;
   onStatus: (status: Status) => void;
 }) {
-  const media = messageMedia(current);
   return (
     <div className="turn-detail">
       <div className="detail-tabs">
@@ -87,45 +75,11 @@ export function TurnDetail({
       {tab === 'preview' ? (
         <div className="conversation-text">
           <TurnDivider number={actual} />
-          {media.messages.map((m, i) => (
-            <div className={`message conversation-role ${m.role}`} data-role={m.role} key={i}>
-              <div className="message-avatar">
-                {m.role === 'user' ? (
-                  '我'
-                ) : m.role === 'assistant' ? (
-                  <ModelAvatar value={appearance?.avatar} />
-                ) : (
-                  <Code2 size={16} />
-                )}
-              </div>
-              <div className="message-label">
-                {m.role === 'user'
-                  ? 'You'
-                  : m.role === 'assistant'
-                    ? 'Assistant'
-                    : (m.name ?? m.role)}
-              </div>
-              <div className="message-body">
-                {rendered && m.role === 'assistant' ? (
-                  <Markdown text={m.content} />
-                ) : (
-                  <p
-                    className={`raw-text ${m.role.startsWith('tool') ? 'tool-text' : ''}`}
-                  >
-                    {m.content}
-                  </p>
-                )}
-                <div className="message-attachments">
-                  {media.byMessage[i].map((a) => (
-                    <AttachmentCard attachment={a} key={a.id} />
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-          {media.unassigned.map((a) => (
-            <AttachmentCard attachment={a} key={a.id} />
-          ))}
+          <ConversationMessages
+            turn={current}
+            appearance={appearance}
+            rendered={rendered}
+          />
         </div>
       ) : tab === 'payload' ? (
         <pre className="payload">
@@ -172,13 +126,13 @@ export function TurnDetail({
             aria-label="在此轮之前插入"
             onClick={() => onInsert(previousId)}
           >
-            <ArrowUp size={14} /> 前面插入
+            {'<· 插入对话'}
           </Button>
           <Button
             aria-label="在此轮之后插入"
             onClick={() => onInsert(current.id)}
           >
-            <ArrowDown size={14} /> 后面插入
+            {'插入对话 ·>'}
           </Button>
         </fieldset>
         <fieldset className="turn-status-actions" aria-label="轮次状态">
