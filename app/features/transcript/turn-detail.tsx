@@ -120,7 +120,7 @@ export function TurnDetail({
           ))}
         </div>
       )}
-      <div className="detail-footer" role="group" aria-label="轮次操作">
+      <fieldset className="detail-footer" aria-label="轮次操作">
         <Button
           aria-label="在此轮之前插入"
           onClick={() => onInsert(previousId)}
@@ -155,7 +155,7 @@ export function TurnDetail({
         >
           {'插入 ·>'}
         </Button>
-      </div>
+      </fieldset>
       {current.status === 'trash' && (
         <p className="callout">
           回收站按完整轮次保留。删除满 30
