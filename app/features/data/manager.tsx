@@ -1,35 +1,12 @@
 'use client';
-import { Download, Trash2 } from 'lucide-react';
+import { BackupPanel } from './backup-panel.tsx';
+import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../../components/shared/button.tsx';
 import { Modal } from '../../components/shared/modal.tsx';
-import { cloudMode } from '../../lib/account/client.ts';
-import {
-  BACKUP_LIMIT,
-  backupCounts,
-  backupState,
-  createBackup,
-  parseBackup,
-  restoreBackup,
-  type HubBackup,
-} from '../../lib/storage/backup.ts';
-import { mcpRequest } from '../../lib/mcp/client.ts';
 import { trashCounts } from '../../lib/recycle-bin.ts';
-import { accountRepository } from '../../lib/storage/account-repository.ts';
 import { type HubState } from '../../lib/state/contracts.ts';
-import { taskRequest } from '../../lib/tasks/client.ts';
 
-function download(backup: HubBackup, prefix = 'ContextHub备份') {
-  const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' });
-  if (blob.size > BACKUP_LIMIT)
-    throw new Error('备份超过 100 MB，暂不能导出。');
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${prefix}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
-}
 export function DataManager({
   state,
   saved,
@@ -41,14 +18,11 @@ export function DataManager({
   onClose: () => void;
   onCleanup: (mode: 'expired' | 'all') => Promise<number>;
 }) {
-  const [backup, setBackup] = useState<HubBackup | null>(null);
-  const [confirmed, setConfirmed] = useState(false);
   const [clearConfirmed, setClearConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const counts = state ? trashCounts(state) : { total: 0, expired: 0 };
-  const imported = backup ? backupCounts(backupState(backup)) : null;
   async function run(action: () => Promise<void>) {
     setBusy(true);
     setError('');
@@ -73,108 +47,13 @@ export function DataManager({
       }}
     >
       <div className="form-stack">
-        <section className="form-stack">
-          <h3>备份与恢复</h3>
-          <p className="inline-note">
-            导出已保存的工作区、Note、摘要、待归档内容、草稿和已保存附件。不包含模型
-            Key、投递凭据、MCP 令牌及服务端尚未接收的变更。MCP
-            写入需要先在网页接收，才会进入此备份。
-          </p>
-          <Button
-            disabled={busy || !state || !saved}
-            onClick={() =>
-              void run(async () => {
-                download(await createBackup(accountRepository));
-                setMessage('已发起备份下载。');
-              })
-            }
-          >
-            <Download size={15} />
-            导出备份
-          </Button>
-          {!saved && state && (
-            <p className="inline-note">
-              请先等待保存完成；保存失败时可关闭此窗口重试保存。
-            </p>
-          )}
-          <label className="field">
-            选择备份文件（JSON，最多 100 MB）
-            <input
-              type="file"
-              accept=".json,application/json"
-              disabled={busy}
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                event.target.value = '';
-                setBackup(null);
-                setConfirmed(false);
-                if (!file) return;
-                void run(async () => {
-                  if (file.size > BACKUP_LIMIT)
-                    throw new Error('备份超过 100 MB。');
-                  setBackup(parseBackup(await file.text()));
-                });
-              }}
-            />
-          </label>
-          {backup && imported && (
-            <div className="form-stack">
-              <p className="callout">
-                备份时间：{new Date(backup.createdAt).toLocaleString()}
-                <br />
-                {imported.workspaces} 个工作区 · {imported.turns} 轮原文 ·{' '}
-                {imported.notes} 条 Note · {imported.uploads} 份待归档内容
-              </p>
-              <p className="inline-note">
-                {cloudMode()
-                  ? '恢复会覆盖当前账号的云端工作区与草稿，并自动刷新。其他设备的旧页面需要刷新。'
-                  : '恢复会覆盖此浏览器的现有数据，并自动刷新。'}
-                {state
-                  ? '覆盖前会发起当前数据的备份下载；'
-                  : '当前数据读取失败，无法生成覆盖前备份；'}
-                摘要自动运行和自动收件会暂停，回收站内容获得新的 30
-                天恢复期。现有后台任务及未接收结果会取消；MCP
-                连接、服务副本与未接收变更会清除，避免旧内容写回。恢复后可重新启用收件和
-                MCP。
-              </p>
-              <label className="checks">
-                <input
-                  type="checkbox"
-                  checked={confirmed}
-                  disabled={busy}
-                  onChange={(event) => setConfirmed(event.target.checked)}
-                />
-                <span>
-                  {cloudMode()
-                    ? '我确认用此备份覆盖当前账号的工作区数据'
-                    : '我确认用此备份覆盖本地数据'}
-                </span>
-              </label>
-              <Button
-                primary
-                disabled={busy || !confirmed || (Boolean(state) && !saved)}
-                onClick={() =>
-                  void run(async () => {
-                    if (state)
-                      download(
-                        await createBackup(accountRepository),
-                        'ContextHub恢复前备份',
-                      );
-                    // Cancel retained server snapshots before replacing their source
-                    // data, so old work cannot keep running against a restored library.
-                    await taskRequest('session', {});
-                    await taskRequest('cancel-all', {});
-                    await mcpRequest('reset', {});
-                    await restoreBackup(accountRepository, backup);
-                    window.location.reload();
-                  })
-                }
-              >
-                确认覆盖并恢复
-              </Button>
-            </div>
-          )}
-        </section>
+        <BackupPanel
+          state={state}
+          saved={saved}
+          busy={busy}
+          run={run}
+          setMessage={setMessage}
+        />
         {state && (
           <section className="form-stack">
             <h3>回收站</h3>

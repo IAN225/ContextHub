@@ -120,42 +120,42 @@ export function TurnDetail({
           ))}
         </div>
       )}
-      <div className="detail-footer">
-        <fieldset className="turn-insert-actions" aria-label="插入轮次">
+      <fieldset className="detail-footer" aria-label="轮次操作">
+        <Button
+          aria-label="在此轮之前插入"
+          onClick={() => onInsert(previousId)}
+        >
+          {'<· 插入'}
+        </Button>
+        <Button
+          onClick={() =>
+            status(current.status === 'normal' ? 'deprecated' : 'normal')
+          }
+        >
+          {current.status === 'normal' ? (
+            <Archive size={14} />
+          ) : (
+            <RotateCcw size={14} />
+          )}
+          {current.status === 'normal' ? '弃用' : '恢复'}
+        </Button>
+        {current.status !== 'trash' && (
           <Button
-            aria-label="在此轮之前插入"
-            onClick={() => onInsert(previousId)}
+            aria-label="删除此轮（移入回收站）"
+            onClick={() => status('trash')}
           >
-            {'<· 插入对话'}
+            <Trash2 size={14} />
+            删除
           </Button>
-          <Button
-            aria-label="在此轮之后插入"
-            onClick={() => onInsert(current.id)}
-          >
-            {'插入对话 ·>'}
-          </Button>
-        </fieldset>
-        <fieldset className="turn-status-actions" aria-label="轮次状态">
-          {current.status !== 'normal' && (
-            <Button onClick={() => status('normal')}>
-              <RotateCcw size={14} />
-              恢复
-            </Button>
-          )}
-          {current.status === 'normal' && (
-            <Button onClick={() => status('deprecated')}>
-              <Archive size={14} />
-              弃用
-            </Button>
-          )}
-          {current.status !== 'trash' && (
-            <Button onClick={() => status('trash')}>
-              <Trash2 size={14} />
-              移入回收站
-            </Button>
-          )}
-        </fieldset>
-      </div>
+        )}
+        <Button
+          className="turn-insert-after"
+          aria-label="在此轮之后插入"
+          onClick={() => onInsert(current.id)}
+        >
+          {'插入 ·>'}
+        </Button>
+      </fieldset>
       {current.status === 'trash' && (
         <p className="callout">
           回收站按完整轮次保留。删除满 30

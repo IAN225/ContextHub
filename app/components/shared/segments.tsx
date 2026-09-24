@@ -16,7 +16,6 @@ export function Segments({
       value={value}
       onValueChange={(v) => onChange(String(v))}
     >
-      <span className="clock-hand pointing-left" aria-hidden="true" />
       <TabsList variant="line" className="segments" data-scroll-rail="always">
         {options.map((o) => (
           <TabsTrigger key={o.id} value={o.id}>
@@ -24,7 +23,6 @@ export function Segments({
           </TabsTrigger>
         ))}
       </TabsList>
-      <span className="clock-hand" aria-hidden="true" />
     </Tabs>
   );
 }

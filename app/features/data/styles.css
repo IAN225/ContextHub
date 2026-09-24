@@ -1,0 +1,13 @@
+.backup-workspaces {
+  min-width: 0;
+}
+.backup-panel .checks span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.backup-panel .checks input {
+  flex-shrink: 0;
+}
+.backup-panel .button {
+  white-space: normal;
+}

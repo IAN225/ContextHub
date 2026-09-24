@@ -27,6 +27,7 @@
 @import '../features/memory/styles.css';
 @import '../features/connections/styles.css';
 @import '../features/search/styles.css';
+@import '../features/data/styles.css';
 @import '../features/inbox/content.css';
 @import '../features/imports/styles.css';
 @import '../features/inbox/styles.css';
