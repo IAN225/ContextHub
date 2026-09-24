@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="black" stroke-linecap="round">
+  <!-- Original artwork for ContextHub: gilt corner, drawn for the top-left position.
+       The short twin arms sit over the CSS edge rules, which fade along the frame. -->
+  <path d="M2.5 46V2.5H46" stroke-width="2.2"/>
+  <path d="M7 34V7h27" stroke-width="1.2"/>
+  <path d="M7 22c6 0 9-3 7.2-6.2C12.6 13 9.5 14.6 10.6 17M22 7c0 6-3 9-6.2 7.2C13 12.6 14.6 9.5 17 10.6" stroke-width="1.4"/>
+  <path d="M13 13l3.2 3.2" stroke-width="1"/>
+  <path d="M2.5 -.5 5.5 2.5 2.5 5.5 -.5 2.5Z" fill="black" stroke="none"/>
+  <circle cx="2.5" cy="46" r="1.5" fill="black" stroke="none"/>
+  <circle cx="46" cy="2.5" r="1.5" fill="black" stroke="none"/>
+  <circle cx="7" cy="34" r="1" fill="black" stroke="none"/>
+  <circle cx="34" cy="7" r="1" fill="black" stroke="none"/>
+</svg>
